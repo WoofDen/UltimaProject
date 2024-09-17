@@ -2,6 +2,7 @@
 
 #include "ItemFactoryHelper.h"
 #include "Item.h"
+#include "UltimaProject/Framework/UPGameMode.h"
 
 UItemFactoryHelper::UItemFactoryHelper()
 {
@@ -55,10 +56,15 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, UItemDat
 	{
 		return nullptr;
 	}
+	AUPGameMode* GameMode = World->GetAuthGameMode<AUPGameMode>();
+	if (!GameMode || !IsValid(GameMode->ItemBaseClass))
+	{
+		return nullptr;
+	}
 
 	FActorSpawnParameters Parameters;
 	AItem* Item = World->SpawnActorDeferred<AItem>(
-		AItem::StaticClass(),
+		GameMode->ItemBaseClass,
 		Transform,
 		nullptr
 	);

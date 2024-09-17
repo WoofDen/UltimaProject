@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "UltimaProject/Items/Common/Item.h"
 #include "UPGameMode.generated.h"
 
 /**
@@ -17,4 +18,8 @@ class ULTIMAPROJECT_API AUPGameMode : public AGameModeBase
 	AUPGameMode();
 
 	virtual void BeginPlay() override;
+
+public:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AItem> ItemBaseClass;
 };

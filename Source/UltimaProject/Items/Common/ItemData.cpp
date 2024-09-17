@@ -11,23 +11,44 @@ UItemData::UItemData()
 {
 }
 
+UItemData::UItemData(FObjectInitializer& Initializer)
+	: Super(Initializer)
+{
+}
+
 bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 {
 	check(GetClass());
-	
+
 	Source = Source ? Source : GetClass()->GetDefaultObject<UItemData>();
-	
+
 	StaticData = Source->StaticData;
 	InstanceData = Source->InstanceData;
-	
+
 	StaticData->Icon.LoadSynchronous();
 	StaticData->WorldMesh.LoadSynchronous();
 	return true;
 }
 
-TObjectPtr<const UItemDataAsset> UItemData::GetStaticData() const
+TSoftObjectPtr<const UItemDataAsset> UItemData::GetStaticData() const
 {
 	return StaticData;
+}
+
+const FItemInstanceData& UItemData::GetInstanceData() const
+{
+	return InstanceData;
+}
+
+FText UItemData::GetDisplayName() const
+{
+	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
+	if(StaticData.IsValid())
+	{
+		return StaticData->Name;
+	}
+
+	return Unnamed;
 }
 
 UTexture2D* UItemData::GetViewIcon() const
@@ -47,7 +68,17 @@ int64 UItemData::GetMaxAmountPerStack() const
 
 int64 UItemData::SetAmount(const int64 Value)
 {
-	check(Value >= 0);
+	ensureAlways(Value >= 0);
 	InstanceData.Amount = FMath::Max(StaticData->MaxAmountPerStack, Value);
 	return InstanceData.Amount;
+}
+
+TSoftObjectPtr<UStaticMesh> UItemData::GetStaticMesh() const
+{
+	if (StaticData)
+	{
+		return StaticData->WorldMesh;
+	}
+
+	return nullptr;
 }

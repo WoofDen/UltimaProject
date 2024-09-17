@@ -4,27 +4,42 @@
 
 #include "CoreMinimal.h"
 #include "ItemData.h"
+#include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/Actor.h"
 #include "Item.generated.h"
 
 /**
  * In-world representation of every item
  */
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Abstract, BlueprintType)
 class ULTIMAPROJECT_API AItem : public AActor
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleInstanceOnly)
+protected:
+	UPROPERTY()
+	TObjectPtr<USphereComponent> SphereComponent;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
-protected:
-	UPROPERTY(Transient)
-	TObjectPtr<UItemData> Data;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UWidgetComponent> HoverWidget;
+
+	UPROPERTY(BlueprintReadOnly)
+	TSoftObjectPtr<UItemData> ItemData;
+
+	// Static data for item initialization
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSoftObjectPtr<const UItemDataAsset> DefaultStaticData;
+
+	// Dynamic data for item initialization
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FItemInstanceData DefaultInstanceData;
 	
 public:
 	AItem();
-	AItem(UItemData* ItemData);
 
 	bool SetItemData(UItemData* NewData = nullptr);
 

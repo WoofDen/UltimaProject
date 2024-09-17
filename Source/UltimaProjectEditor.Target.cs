@@ -5,10 +5,10 @@ using System.Collections.Generic;
 
 public class UltimaProjectEditorTarget : TargetRules
 {
-	public UltimaProjectEditorTarget( TargetInfo Target) : base(Target)
+	public UltimaProjectEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V5;
-		ExtraModuleNames.AddRange( new string[] { "UltimaProject" } );
+		ExtraModuleNames.AddRange(new string[] { "UltimaProject", "UMG" });
 	}
 }

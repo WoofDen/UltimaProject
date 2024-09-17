@@ -7,7 +7,7 @@
 #include "UObject/Object.h"
 #include "ItemData.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FItemInstanceData
 {
 	GENERATED_BODY()
@@ -27,16 +27,16 @@ class UItemDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FText Name;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int64 MaxAmountPerStack;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UTexture2D> Icon;
 };
 
@@ -48,20 +48,28 @@ class ULTIMAPROJECT_API UItemData : public UObject
 {
 	GENERATED_BODY()
 
+	friend class AItem;
+protected:
 	// Data asset with static props
 	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<const UItemDataAsset> StaticData;
+	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData InstanceData;
 
 public:
 	UItemData();
+	UItemData(FObjectInitializer& Initializer);
 
 	virtual bool Initialize(UItemData* Source = nullptr);
 
-	TObjectPtr<const UItemDataAsset> GetStaticData() const;
+	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
+
+	const FItemInstanceData& GetInstanceData() const;
+
+	UFUNCTION(BlueprintCallable)
+	virtual FText GetDisplayName() const;
 
 	UFUNCTION(BlueprintCallable)
 	virtual UTexture2D* GetViewIcon() const;
@@ -72,6 +80,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual int64 GetMaxAmountPerStack() const;
 
-	UFUNCTION(Blueprintable)
+	UFUNCTION(BlueprintCallable)
 	virtual int64 SetAmount(const int64 Value);
+
+	UFUNCTION(BlueprintCallable)
+	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
 };
