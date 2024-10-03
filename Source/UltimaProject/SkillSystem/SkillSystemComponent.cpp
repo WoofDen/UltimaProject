@@ -4,6 +4,12 @@
 
 USkillSystemComponent::USkillSystemComponent()
 {
+}
+
+void USkillSystemComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	
 	for (const ESkill Skill : TEnumRange<ESkill>())
 	{
 		TSubclassOf<USkillBase> SkillClass = SkillClasses[Skill];

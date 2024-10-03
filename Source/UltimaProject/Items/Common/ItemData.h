@@ -49,6 +49,7 @@ class ULTIMAPROJECT_API UItemData : public UObject
 	GENERATED_BODY()
 
 	friend class AItem;
+
 protected:
 	// Data asset with static props
 	UPROPERTY(EditDefaultsOnly)
@@ -57,6 +58,9 @@ protected:
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData InstanceData;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<AItem> ActorClass;
 
 public:
 	UItemData();
@@ -67,6 +71,8 @@ public:
 	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
 
 	const FItemInstanceData& GetInstanceData() const;
+
+	TSubclassOf<AItem> GetActorClass() const;
 
 	UFUNCTION(BlueprintCallable)
 	virtual FText GetDisplayName() const;

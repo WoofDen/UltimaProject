@@ -48,7 +48,7 @@ bool UContainer::AddItem(FContainerItemData& ItemData)
 	return AddItem(ItemData, Result);
 }
 
-bool UContainer::MoveItem(FContainerItemData ItemData, FItemTransactionResult& Result)
+bool UContainer::MoveItem(FContainerItemData& ItemData, FItemTransactionResult& Result)
 {
 	if (ItemData.Container.IsValid())
 	{
@@ -63,7 +63,7 @@ bool UContainer::MoveItem(FContainerItemData ItemData, FItemTransactionResult& R
 	return AddItem(ItemData, Result);
 }
 
-bool UContainer::RemoveItem(FContainerItemData ItemData)
+bool UContainer::RemoveItem(FContainerItemData& ItemData)
 {
 	if (Items.RemoveSingle(ItemData) > 0)
 	{

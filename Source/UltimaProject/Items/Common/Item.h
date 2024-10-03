@@ -24,23 +24,25 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	TObjectPtr<UWidgetComponent> HoverWidget;
 
+	// Data object represents current item.
 	UPROPERTY(BlueprintReadOnly)
-	TSoftObjectPtr<UItemData> ItemData;
+	TObjectPtr<UItemData> ItemData;
 
 	// Static data for item initialization
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSoftObjectPtr<const UItemDataAsset> DefaultStaticData;
+	TObjectPtr<const UItemDataAsset> DefaultStaticData;
 
 	// Dynamic data for item initialization
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData DefaultInstanceData;
-	
+
 public:
 	AItem();
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	bool SetItemData(UItemData* NewData = nullptr);
 
 protected:

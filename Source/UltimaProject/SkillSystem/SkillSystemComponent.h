@@ -37,6 +37,8 @@ class ULTIMAPROJECT_API USkillSystemComponent : public UActorComponent
 	TMap<ESkill, TObjectPtr<USkillBase>> Skills;
 
 public:
+	virtual void BeginPlay() override;
+	
 	USkillBase* GetSkill(const ESkill SkillName) const;
 
 	template <typename T>

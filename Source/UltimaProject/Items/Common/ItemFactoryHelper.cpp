@@ -56,15 +56,15 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, UItemDat
 	{
 		return nullptr;
 	}
-	AUPGameMode* GameMode = World->GetAuthGameMode<AUPGameMode>();
-	if (!GameMode || !IsValid(GameMode->ItemBaseClass))
+	
+	if (!IsValid(ItemData->GetActorClass()))
 	{
 		return nullptr;
 	}
 
 	FActorSpawnParameters Parameters;
 	AItem* Item = World->SpawnActorDeferred<AItem>(
-		GameMode->ItemBaseClass,
+		ItemData->GetActorClass(),
 		Transform,
 		nullptr
 	);

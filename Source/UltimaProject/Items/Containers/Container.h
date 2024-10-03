@@ -63,10 +63,10 @@ public:
 	virtual bool AddItem(FContainerItemData& ItemData);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool MoveItem(FContainerItemData ItemData, FItemTransactionResult& Result);
+	virtual bool MoveItem(FContainerItemData& ItemData, FItemTransactionResult& Result);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool RemoveItem(FContainerItemData ItemData);
+	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetRandomItem(FContainerItemData& Item) const;

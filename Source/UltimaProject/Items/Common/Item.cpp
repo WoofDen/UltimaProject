@@ -2,7 +2,7 @@
 
 AItem::AItem()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereCollisionComponent");
 	SetRootComponent(SphereComponent);
@@ -18,9 +18,11 @@ AItem::AItem()
 	HoverWidget = CreateDefaultSubobject<UWidgetComponent>("HoverWidgetComponent");
 	HoverWidget->SetVisibility(false);
 	HoverWidget->SetupAttachment(RootComponent);
+	HoverWidget->SetCastShadow(false);
+	HoverWidget->SetComponentTickEnabled(false);
 }
 
-bool AItem::SetItemData(UItemData* NewData /*= nullptr*/)
+bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
 {
 	// It should be could once after actor creation ( so far )
 	if (!ensureAlways(ItemData == nullptr))
@@ -47,12 +49,8 @@ bool AItem::SetItemData(UItemData* NewData /*= nullptr*/)
 
 void AItem::BeginPlay()
 {
-	Super::BeginPlay();
-
-	PrimaryActorTick.bCanEverTick = false;
-
 	// Item can be created with ItemData set already or from default
-	if (!ItemData.IsValid() && ensureAlways(DefaultStaticData.IsValid()))
+	if (!IsValid(ItemData) && ensureAlways(IsValid(DefaultStaticData)))
 	{
 		UItemData* Data = NewObject<UItemData>(this, FName("ItemData"));
 		Data->StaticData = DefaultStaticData;
@@ -65,6 +63,9 @@ void AItem::BeginPlay()
 			Destroy();
 		}
 	}
+
+	// Calls BP impl.
+	Super::BeginPlay();
 }
 
 void AItem::Tick(float DeltaTime)

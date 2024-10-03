@@ -40,6 +40,11 @@ const FItemInstanceData& UItemData::GetInstanceData() const
 	return InstanceData;
 }
 
+TSubclassOf<AItem> UItemData::GetActorClass() const
+{
+	return ActorClass;
+}
+
 FText UItemData::GetDisplayName() const
 {
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
