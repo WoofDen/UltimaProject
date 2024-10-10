@@ -17,8 +17,12 @@ class ULTIMAPROJECT_API AItem : public AActor
 {
 	GENERATED_BODY()
 
+private:
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRemoveFromWorld();
+
 protected:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<USphereComponent> SphereComponent;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
@@ -39,15 +43,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData DefaultInstanceData;
 
+	virtual void BeginPlay() override;
+
 public:
 	AItem();
+
+	void RemoveFromWorld();
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	bool SetItemData(UItemData* NewData = nullptr);
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	virtual void Tick(float DeltaTime) override;
+
+	UItemData* GetItemData() const { return ItemData; }
 };

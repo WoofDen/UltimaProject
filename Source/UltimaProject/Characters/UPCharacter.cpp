@@ -68,15 +68,6 @@ void AUPCharacter::Tick(float DeltaTime)
 void AUPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerInputComponent);
-	
-	Input->BindAction(
-		MoveToCursorAction,
-		ETriggerEvent::Triggered,
-		GetPlayerController(),
-		&AUPPlayerController::MoveToCursor
-	);
 }
 
 void AUPCharacter::PostInitializeComponents()

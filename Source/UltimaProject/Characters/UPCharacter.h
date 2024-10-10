@@ -89,10 +89,6 @@ public:
 
 #pragma endregion
 #pragma region Input
-
-protected:
-	UPROPERTY(meta=(AllowPrivateAccess="true"), EditDefaultsOnly)
-	TObjectPtr<UInputAction> MoveToCursorAction;
 #pragma endregion
 #pragma region Inventory
 protected:

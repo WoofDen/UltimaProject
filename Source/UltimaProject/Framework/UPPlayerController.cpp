@@ -2,9 +2,10 @@
 
 
 #include "UPPlayerController.h"
+
+#include "UPPlayerState.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "GameFramework/Character.h"
-#include "InputAction.h"
 #include "UltimaProject/Characters/UPCharacter.h"
 
 #define DBGPRINT(x) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(x));
@@ -21,10 +22,15 @@ void AUPPlayerController::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AUPPlayerController::MoveToCursor(const FInputActionInstance& Instance)
+void AUPPlayerController::MoveToCursor()
 {
-	FHitResult HitResult;
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return;
+	}
 
+	FHitResult HitResult;
 	// copy of GetHitResultUnderCursor
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 	bool bHit = false;
@@ -38,17 +44,71 @@ void AUPPlayerController::MoveToCursor(const FInputActionInstance& Instance)
 	}
 
 	// 
-	if (!bHit) 
+	if (!bHit)
 	{
 		return;
 	}
 
-	// Seek for nav bounds
 	DBGSPHERE(HitResult.Location, FColor::Red);
 
-	// Will create path following component for PC
+	FVector Direction = (HitResult.Location - ControlledPawn->GetActorLocation()).GetSafeNormal();
+
+	ensure(!HasAuthority());
+	ControlledPawn->AddMovementInput(Direction); // won't work on server :o
+
+	/*
+	// has issues with rotation replication 
 	UAIBlueprintHelperLibrary::SimpleMoveToLocation(
-		GetCharacter()->GetController(),
-		HitResult.Location
+		this,
+		Location
 	);
+	*/
+}
+
+void AUPPlayerController::HandlePickupAction() const
+{
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return;
+	}
+
+	UInventoryComponent* InventoryComponent = ControlledPawn->FindComponentByClass<UInventoryComponent>();
+	if (!InventoryComponent)
+	{
+		return;
+	}
+
+	// find actor under cursor
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	FHitResult HitResult;
+	if (LocalPlayer && LocalPlayer->ViewportClient)
+	{
+		FVector2D MousePosition;
+		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+		{
+			TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+			ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+
+			GetHitResultAtScreenPosition(
+				MousePosition,
+				ObjectTypes,
+				false,
+				HitResult);
+		}
+	}
+
+	if (!HitResult.bBlockingHit)
+	{
+		return;
+	}
+
+	AItem* Item = Cast<AItem>(HitResult.GetActor());
+
+	if (!Item)
+	{
+		return;
+	}
+
+	InventoryComponent->TryPickupItem(Item);
 }

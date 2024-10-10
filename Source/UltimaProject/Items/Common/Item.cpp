@@ -1,18 +1,20 @@
 ﻿#include "Item.h"
 
+#include "UltimaProject/Framework/UPPlayerState.h"
+
 AItem::AItem()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereCollisionComponent");
 	SetRootComponent(SphereComponent);
+	SphereComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SphereComponent->SetCollisionObjectType(ECC_WorldDynamic);
+	SphereComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
-
-	StaticMeshComponent->SetGenerateOverlapEvents(false);
-	StaticMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	StaticMeshComponent->SetCollisionObjectType(ECC_WorldDynamic);
-	StaticMeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	StaticMeshComponent->SetupAttachment(RootComponent);
 
 	HoverWidget = CreateDefaultSubobject<UWidgetComponent>("HoverWidgetComponent");
@@ -20,6 +22,18 @@ AItem::AItem()
 	HoverWidget->SetupAttachment(RootComponent);
 	HoverWidget->SetCastShadow(false);
 	HoverWidget->SetComponentTickEnabled(false);
+
+	SetReplicates(true);
+}
+
+void AItem::RemoveFromWorld()
+{
+	if (!ensure(HasAuthority()))
+	{
+		return;
+	}
+
+	MulticastRemoveFromWorld();
 }
 
 bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
@@ -45,6 +59,12 @@ bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
 	}
 
 	return true;
+}
+
+void AItem::MulticastRemoveFromWorld_Implementation()
+{
+	ensure(!HasAuthority());
+	Destroy();
 }
 
 void AItem::BeginPlay()

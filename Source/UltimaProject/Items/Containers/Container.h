@@ -58,10 +58,13 @@ public:
 	virtual void SetWeightCapacity(const int64 NewValue);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool AddItem(UPARAM(ref) FContainerItemData& ItemData, FItemTransactionResult& Result);
+	virtual bool AddItem(UPARAM(ref) FContainerItemData& ContainerItemData, FItemTransactionResult& Result);
 
 	virtual bool AddItem(FContainerItemData& ItemData);
 
+	virtual bool AddItem(UItemData* ItemData);
+
+	// Move item from another container
 	UFUNCTION(BlueprintCallable)
 	virtual bool MoveItem(FContainerItemData& ItemData, FItemTransactionResult& Result);
 

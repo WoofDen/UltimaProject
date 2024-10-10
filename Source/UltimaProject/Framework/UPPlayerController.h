@@ -22,7 +22,11 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
+
 public:
-	void MoveToCursor(const FInputActionInstance& Instance);
-	
+	UFUNCTION(BlueprintCallable)
+	void MoveToCursor();
+
+	UFUNCTION(BlueprintCallable)
+	void HandlePickupAction() const;
 };

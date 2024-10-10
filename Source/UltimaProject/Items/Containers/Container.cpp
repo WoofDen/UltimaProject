@@ -29,13 +29,18 @@ void UContainer::SetWeightCapacity(const int64 NewValue)
 	WeightCapacity = NewValue;
 }
 
-bool UContainer::AddItem(FContainerItemData& ItemData, FItemTransactionResult& Result)
+bool UContainer::AddItem(FContainerItemData& ContainerItemData, FItemTransactionResult& Result)
 {
-	if (ensureAlways(ItemData.Container == nullptr))
+	if(!IsValid(ContainerItemData.ItemData))
 	{
-		ItemData.Container = this;
+		return false;
+	}
+	
+	if (ensureAlways(ContainerItemData.Container == nullptr))
+	{
+		ContainerItemData.Container = this;
 
-		Items.Add(ItemData);
+		Items.Add(ContainerItemData);
 		return true;
 	}
 
@@ -46,6 +51,14 @@ bool UContainer::AddItem(FContainerItemData& ItemData)
 {
 	FItemTransactionResult Result;
 	return AddItem(ItemData, Result);
+}
+
+bool UContainer::AddItem(UItemData* ItemData)
+{
+	FContainerItemData ContainerItemData;
+	ContainerItemData.ItemData = ItemData;
+
+	return AddItem(ContainerItemData);
 }
 
 bool UContainer::MoveItem(FContainerItemData& ItemData, FItemTransactionResult& Result)
