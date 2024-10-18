@@ -2,8 +2,8 @@
 
 #include "UPCharacter.h"
 #include "Components/ArrowComponent.h"
-#include "EnhancedInputComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "UltimaProject/Items/Containers/PlayerInventory/InventoryComponent.h"
 
 AUPPlayerController* AUPCharacter::GetPlayerController()
 {
@@ -23,6 +23,7 @@ AUPCharacter::AUPCharacter()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 	GetArrowComponent()->bHiddenInGame = false;
 	GetArrowComponent()->SetVisibility(true);
@@ -68,6 +69,12 @@ void AUPCharacter::Tick(float DeltaTime)
 void AUPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void AUPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(AUPCharacter, Inventory, COND_OwnerOnly);
 }
 
 void AUPCharacter::PostInitializeComponents()

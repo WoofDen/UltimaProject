@@ -3,6 +3,7 @@
 #include "Interfaces\ContainerInterface.h"
 #include "Container.generated.h"
 
+// Server-related info about item stored in a container
 USTRUCT(BlueprintType)
 struct FContainerItemData
 {
@@ -28,7 +29,10 @@ class UContainer : public UActorComponent, public IContainerInterface
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
+	UPROPERTY(VisibleAnywhere, Replicated)
 	TArray<FContainerItemData> Items;
 
 	UPROPERTY(VisibleAnywhere)
@@ -80,6 +84,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual AItem* DropItem(UPARAM(ref) FContainerItemData& Item) override;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItems() override;
 #pragma endregion
 };

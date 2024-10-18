@@ -1,5 +1,7 @@
 ﻿#include "InventoryComponent.h"
 
+#include "Engine/ActorChannel.h"
+#include "Net/UnrealNetwork.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
 
 void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
@@ -17,6 +19,23 @@ void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
 	}
 }
 
+void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UInventoryComponent, Items, COND_OwnerOnly);
+}
+
+bool UInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (auto& Item : Items)
+		WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
+
+	return WroteSomething;
+}
+
 UInventoryComponent::UInventoryComponent()
 {
 	if (!HasAnyFlags(RF_ClassDefaultObject))
@@ -24,6 +43,13 @@ UInventoryComponent::UInventoryComponent()
 		OwnerCharacter = Cast<AUPCharacter>(GetOwner());
 		check(OwnerCharacter.IsValid());
 	}
+}
+
+void UInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SetIsReplicated(true);
 }
 
 bool UInventoryComponent::CanPickItem(const AItem* Item) const

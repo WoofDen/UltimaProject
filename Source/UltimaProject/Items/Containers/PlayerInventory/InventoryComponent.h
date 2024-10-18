@@ -13,11 +13,17 @@ class ULTIMAPROJECT_API UInventoryComponent : public UContainer
 	void ServerTryPickupItem(AItem* Item);
 
 protected:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+
 	TWeakObjectPtr<APawn> OwnerCharacter;
 
 public:
+	
 	UInventoryComponent();
 
+	virtual void BeginPlay() override;
+	
 	bool CanPickItem(const AItem* Item) const;
 
 	// Performs pickup action, considering all external conditions are met ( radius/visibility/etc )

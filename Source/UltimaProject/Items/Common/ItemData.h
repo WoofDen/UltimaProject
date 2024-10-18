@@ -66,6 +66,9 @@ public:
 	UItemData();
 	UItemData(FObjectInitializer& Initializer);
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool IsSupportedForNetworking() const override;
+
 	virtual bool Initialize(UItemData* Source = nullptr);
 
 	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;

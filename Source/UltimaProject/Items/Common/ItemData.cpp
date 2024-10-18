@@ -16,6 +16,16 @@ UItemData::UItemData(FObjectInitializer& Initializer)
 {
 }
 
+void UItemData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+bool UItemData::IsSupportedForNetworking() const
+{
+	return true;
+}
+
 bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 {
 	check(GetClass());
@@ -48,7 +58,7 @@ TSubclassOf<AItem> UItemData::GetActorClass() const
 FText UItemData::GetDisplayName() const
 {
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
-	if(StaticData.IsValid())
+	if (StaticData.IsValid())
 	{
 		return StaticData->Name;
 	}
@@ -58,7 +68,12 @@ FText UItemData::GetDisplayName() const
 
 UTexture2D* UItemData::GetViewIcon() const
 {
-	return StaticData->Icon.Get();
+	if (StaticData.IsValid())
+	{
+		return StaticData->Icon.Get();
+	}
+
+	return nullptr;
 }
 
 int64 UItemData::GetAmount() const

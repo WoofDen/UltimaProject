@@ -1,10 +1,21 @@
 ﻿#include "Container.h"
 
+#include "Net/UnrealNetwork.h"
 #include "UltimaProject/Items/Common/ItemFactoryHelper.h"
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
 	return ItemData == Other.ItemData;
+}
+
+void UContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+bool UContainer::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 }
 
 bool UContainer::FindDropTransform(FContainerItemData& Item, FTransform& Result) const
@@ -31,6 +42,11 @@ void UContainer::SetWeightCapacity(const int64 NewValue)
 
 bool UContainer::AddItem(FContainerItemData& ContainerItemData, FItemTransactionResult& Result)
 {
+	if(!ensureAlways(GetOwner()->HasAuthority()))
+	{
+		return false;
+	}
+	
 	if(!IsValid(ContainerItemData.ItemData))
 	{
 		return false;

@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
-#include "InputAction.h"
 #include "UltimaProject/Abilities/UPBaseAttributeSet.h"
-#include "..\Items\Containers\PlayerInventory\InventoryComponent.h"
 #include "UltimaProject/SkillSystem/SkillSystemComponent.h"
 #include "UPCharacter.generated.h"
+
+class UInventoryComponent;
+class InventoryComponent;
 
 UCLASS(Blueprintable)
 class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IAbilitySystemInterface
@@ -32,7 +32,7 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 
 #pragma region Camera
@@ -91,8 +91,9 @@ public:
 #pragma region Input
 #pragma endregion
 #pragma region Inventory
+
 protected:
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Replicated)
 	TObjectPtr<UInventoryComponent> Inventory;
 
 public:

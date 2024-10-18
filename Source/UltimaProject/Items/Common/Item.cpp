@@ -28,11 +28,6 @@ AItem::AItem()
 
 void AItem::RemoveFromWorld()
 {
-	if (!ensure(HasAuthority()))
-	{
-		return;
-	}
-
 	MulticastRemoveFromWorld();
 }
 
@@ -63,7 +58,6 @@ bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
 
 void AItem::MulticastRemoveFromWorld_Implementation()
 {
-	ensure(!HasAuthority());
 	Destroy();
 }
 

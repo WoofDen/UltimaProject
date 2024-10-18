@@ -56,7 +56,7 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, UItemDat
 	{
 		return nullptr;
 	}
-	
+
 	if (!IsValid(ItemData->GetActorClass()))
 	{
 		return nullptr;
