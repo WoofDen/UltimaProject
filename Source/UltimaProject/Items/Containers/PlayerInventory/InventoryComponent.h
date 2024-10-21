@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Items/Containers/Container.h"
 #include "InventoryComponent.generated.h"
 
@@ -14,7 +13,6 @@ class ULTIMAPROJECT_API UInventoryComponent : public UContainer
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 	TWeakObjectPtr<APawn> OwnerCharacter;
 

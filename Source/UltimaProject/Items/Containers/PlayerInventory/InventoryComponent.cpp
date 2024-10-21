@@ -1,7 +1,6 @@
 ﻿#include "InventoryComponent.h"
-
-#include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
+#include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
 
 void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
@@ -11,12 +10,7 @@ void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
 		return;
 	}
 
-	if (AddItem(Item->GetItemData()))
-	{
-		// Reference on UItemData will be stored in the container now
-		// So it's safe to destroy actor from the world now
-		Item->RemoveFromWorld();
-	}
+	MoveItem(Item);
 }
 
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -24,16 +18,6 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(UInventoryComponent, Items, COND_OwnerOnly);
-}
-
-bool UInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
-{
-	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	for (auto& Item : Items)
-		WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
-
-	return WroteSomething;
 }
 
 UInventoryComponent::UInventoryComponent()

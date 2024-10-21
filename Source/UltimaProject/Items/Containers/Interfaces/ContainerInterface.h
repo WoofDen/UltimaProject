@@ -17,5 +17,4 @@ class IContainerInterface
 
 public:
 	virtual TArray<FContainerItemData> GetItems() = 0;
-	virtual AItem* DropItem(FContainerItemData& Item) = 0;
 };

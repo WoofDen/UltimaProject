@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Item.h"
 #include "ItemData.h"
+#include "UltimaProject/Items/Containers/Container.h"
 #include "ItemFactoryHelper.generated.h"
 
 /**
@@ -19,11 +20,11 @@ public:
 	UItemFactoryHelper();
 
 	UFUNCTION(BlueprintCallable)
-	static UItemData* CreateDefaultItemData(const TSubclassOf<UItemData> Class);
+	static bool SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainer* Container);
 
 	// Creates in-world item
 	UFUNCTION(BlueprintCallable)
-	static AItem* SpawnDefaultItem(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
+	static AItem* SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
 	const FTransform& Transform);
 	
 	UFUNCTION(BlueprintCallable)

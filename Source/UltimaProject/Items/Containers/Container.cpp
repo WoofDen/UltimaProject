@@ -1,11 +1,35 @@
 ﻿#include "Container.h"
 
+#include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "UltimaProject/Items/Common/ItemFactoryHelper.h"
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
 	return ItemData == Other.ItemData;
+}
+
+FContainerItemData::FContainerItemData(UItemData* InitData, const UContainer* InitContainer, int64 InitSlotIndex)
+{
+	ItemData = InitData;
+	Container = InitContainer;
+	SlotIndex = InitSlotIndex;
+}
+
+FContainerItemData::FContainerItemData()
+{
+}
+
+int64 UContainer::GetStoredSlotsCount() const
+{
+	// todo cache values?
+	int64 Result = 0;
+	for (const auto& Item : Items)
+	{
+		Result += Item.ItemData->GetStaticData()->Slots;
+	}
+
+	return Result;
 }
 
 void UContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -15,10 +39,15 @@ void UContainer::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 
 bool UContainer::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
-	return Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (auto& Item : Items)
+		WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
+
+	return WroteSomething;
 }
 
-bool UContainer::FindDropTransform(FContainerItemData& Item, FTransform& Result) const
+bool UContainer::FindDropTransform(const UItemData* ItemData, FTransform& Result) const
 {
 	if (APawn* Pawn = Cast<APawn>(GetOwner()))
 	{
@@ -27,7 +56,7 @@ bool UContainer::FindDropTransform(FContainerItemData& Item, FTransform& Result)
 	}
 
 	// TODO for chests or etc traces will be needed
-	return false;;
+	return false;
 }
 
 void UContainer::SetItemsCapacity(const int64 NewValue)
@@ -40,99 +69,94 @@ void UContainer::SetWeightCapacity(const int64 NewValue)
 	WeightCapacity = NewValue;
 }
 
-bool UContainer::AddItem(FContainerItemData& ContainerItemData, FItemTransactionResult& Result)
+FItemTransactionResult UContainer::AddItem(UItemData* ItemData)
 {
-	if(!ensureAlways(GetOwner()->HasAuthority()))
-	{
-		return false;
-	}
-	
-	if(!IsValid(ContainerItemData.ItemData))
-	{
-		return false;
-	}
-	
-	if (ensureAlways(ContainerItemData.Container == nullptr))
-	{
-		ContainerItemData.Container = this;
+	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
-		Items.Add(ContainerItemData);
-		return true;
-	}
+	// todo should we?
+	// ItemData->GetStaticData().LoadSynchronous();
 
-	return false;
+	const int64 SlotIndex = GetStoredSlotsCount() + 1;
+	ensureAlways(SlotIndex < ItemsCapacity);
+	// todo ensure get item at slot == null
+
+	FContainerItemData ContainerItemData(ItemData, this, SlotIndex);
+	Items.Add(ContainerItemData);
+
+	return GItemTransactionResult_Success;
 }
 
-bool UContainer::AddItem(FContainerItemData& ItemData)
+FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item)
 {
-	FItemTransactionResult Result;
-	return AddItem(ItemData, Result);
-}
+	check(GetOwner()->HasAuthority());
 
-bool UContainer::AddItem(UItemData* ItemData)
-{
-	FContainerItemData ContainerItemData;
-	ContainerItemData.ItemData = ItemData;
+	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
-	return AddItem(ContainerItemData);
-}
-
-bool UContainer::MoveItem(FContainerItemData& ItemData, FItemTransactionResult& Result)
-{
-	if (ItemData.Container.IsValid())
+	// FContainerItemData should always have a container
+	if (!ensureAlways(Item.Container.IsValid()))
 	{
-		if (ItemData.Container == this)
-		{
-			return true;
-		}
-
-		ItemData.Container->RemoveItem(ItemData);
+		return GItemTransactionResult_Error;
 	}
 
-	return AddItem(ItemData, Result);
-}
-
-bool UContainer::RemoveItem(FContainerItemData& ItemData)
-{
-	if (Items.RemoveSingle(ItemData) > 0)
+	if (Item.Container == this)
 	{
-		ItemData.Container = nullptr;
+		ensure(false);
+		return GItemTransactionResult_Success;
 	}
 
-	return true;
+	return AddItem(Item.ItemData);
 }
 
-bool UContainer::GetRandomItem(FContainerItemData& Item) const
+FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item, const FVector Location, AItem* OutItem)
 {
-	if (Items.IsEmpty())
-	{
-		return false;
-	}
-	Item = Items[FMath::RandRange(0, Items.Num() - 1)];
+	check(GetOwner()->HasAuthority());
 
-	return true;
-}
-
-AItem* UContainer::DropItem(FContainerItemData& Item)
-{
 	FTransform Transform;
-	if (!FindDropTransform(Item, Transform))
+	if (!FindDropTransform(Item.ItemData, Transform))
 	{
-		return nullptr;
+		return GItemTransactionResult_Error;
 	}
 
 	if (RemoveItem(Item))
 	{
 		if (AItem* Result = UItemFactoryHelper::SpawnItem(GetWorld(), Item.ItemData, Transform))
 		{
-			return Result;
+			OutItem = Result;
+			return GItemTransactionResult_Success;
 		}
-		
+
 		// If failed to spawn item, return UItemData back to container
-		AddItem(Item);
+		AddItem(Item.ItemData);
 	}
 
-	return nullptr;
+	return GItemTransactionResult_Error;
+}
+
+FItemTransactionResult UContainer::MoveItem(AItem* WorldItem)
+{
+	check(GetOwner()->HasAuthority());
+	if (AddItem(WorldItem->GetItemData()).IsSuccess())
+	{
+		// Reference on UItemData will be stored in the container now
+		// So it's safe to destroy actor from the world now
+		WorldItem->RemoveFromWorld();
+
+		return GItemTransactionResult_Success;
+	}
+
+	return GItemTransactionResult_Success;
+}
+
+bool UContainer::RemoveItem(FContainerItemData& ItemData)
+{
+	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
+
+	if (Items.RemoveSingle(ItemData) > 0)
+	{
+		ItemData.Container = nullptr;
+	}
+
+	return true;
 }
 
 TArray<FContainerItemData> UContainer::GetItems()

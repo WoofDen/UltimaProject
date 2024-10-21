@@ -2,6 +2,8 @@
 
 #include "ItemData.h"
 
+#include "Net/UnrealNetwork.h"
+
 FItemInstanceData::FItemInstanceData()
 {
 	Amount = 1;
@@ -19,6 +21,8 @@ UItemData::UItemData(FObjectInitializer& Initializer)
 void UItemData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UItemData, StaticData, COND_OwnerOnly);
 }
 
 bool UItemData::IsSupportedForNetworking() const
@@ -68,12 +72,12 @@ FText UItemData::GetDisplayName() const
 
 UTexture2D* UItemData::GetViewIcon() const
 {
-	if (StaticData.IsValid())
+	if (!ensureAlways(StaticData.IsValid()))
 	{
-		return StaticData->Icon.Get();
+		return nullptr;
 	}
 
-	return nullptr;
+	return StaticData->Icon.LoadSynchronous();
 }
 
 int64 UItemData::GetAmount() const

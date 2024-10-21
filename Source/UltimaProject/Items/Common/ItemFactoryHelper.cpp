@@ -3,36 +3,38 @@
 #include "ItemFactoryHelper.h"
 #include "Item.h"
 #include "UltimaProject/Framework/UPGameMode.h"
+#include "UltimaProject/Items/Containers/Container.h"
 
 UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-UItemData* UItemFactoryHelper::CreateDefaultItemData(const TSubclassOf<UItemData> Class)
+bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainer* Container)
 {
 	if (!Class)
 	{
-		return nullptr;
+		return false;
 	}
 
 	UItemData* Data = Class->GetDefaultObject<UItemData>();
 	if (!Data)
 	{
-		return nullptr;
+		return false;
 	}
 
 	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), Class);
 	if (!ItemData)
 	{
-		return nullptr;
+		return false;
 	}
+
 
 	// TODO better handling
 	ensure(ItemData->Initialize(Data));
-	return ItemData;
+	return Container->AddItem(ItemData).IsSuccess();
 }
 
-AItem* UItemFactoryHelper::SpawnDefaultItem(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
+AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
                                             const FTransform& Transform)
 {
 	check(Class);

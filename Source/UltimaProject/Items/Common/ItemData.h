@@ -38,10 +38,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UTexture2D> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	int64 Slots = 1;
 };
 
 /**
- * InstanceItemData
+ * ItemData
+ * Represent a single item within world. Has to be always as in-world item ( AItem ) or container ( FContainerItemData )
  */
 UCLASS(Blueprintable)
 class ULTIMAPROJECT_API UItemData : public UObject
@@ -52,7 +56,7 @@ class ULTIMAPROJECT_API UItemData : public UObject
 
 protected:
 	// Data asset with static props
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Replicated)
 	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
