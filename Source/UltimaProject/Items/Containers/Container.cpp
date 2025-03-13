@@ -59,6 +59,12 @@ bool UContainer::FindDropTransform(const UItemData* ItemData, FTransform& Result
 	return false;
 }
 
+void UContainer::OnRep_Items()
+{
+	ensureAlways(GetOwner() && !GetOwner()->HasAuthority());
+	OnContainerItemsChanged.Broadcast();
+}
+
 void UContainer::SetItemsCapacity(const int64 NewValue)
 {
 	ItemsCapacity = NewValue;
@@ -82,11 +88,12 @@ FItemTransactionResult UContainer::AddItem(UItemData* ItemData)
 
 	FContainerItemData ContainerItemData(ItemData, this, SlotIndex);
 	Items.Add(ContainerItemData);
+	//OnRep_Items();
 
 	return GItemTransactionResult_Success;
 }
 
-FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item)
+FItemTransactionResult UContainer::MoveItem(const FContainerItemData& Item)
 {
 	check(GetOwner()->HasAuthority());
 
@@ -107,7 +114,7 @@ FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item)
 	return AddItem(Item.ItemData);
 }
 
-FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item, const FVector Location, AItem* OutItem)
+FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item, AItem* OutItem)
 {
 	check(GetOwner()->HasAuthority());
 
@@ -117,11 +124,12 @@ FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item, const FVec
 		return GItemTransactionResult_Error;
 	}
 
-	if (RemoveItem(Item))
+	if (RemoveItem(Item)) // remove item from container
 	{
 		if (AItem* Result = UItemFactoryHelper::SpawnItem(GetWorld(), Item.ItemData, Transform))
 		{
 			OutItem = Result;
+			//OnRep_Items();
 			return GItemTransactionResult_Success;
 		}
 

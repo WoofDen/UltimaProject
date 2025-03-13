@@ -7,6 +7,8 @@
 #include "UObject/Object.h"
 #include "ItemData.generated.h"
 
+class AItem;
+
 USTRUCT(BlueprintType)
 struct FItemInstanceData
 {
@@ -27,6 +29,9 @@ class UItemDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<AItem> ActorClass;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FText Name;
 
@@ -62,9 +67,6 @@ protected:
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData InstanceData;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<AItem> ActorClass;
 
 public:
 	UItemData();

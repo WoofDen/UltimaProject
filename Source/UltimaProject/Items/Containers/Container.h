@@ -3,6 +3,8 @@
 #include "Interfaces\ContainerInterface.h"
 #include "Container.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerItemsChanged);
+
 // Info about item stored in a container
 USTRUCT(BlueprintType)
 struct FContainerItemData
@@ -17,7 +19,12 @@ struct FContainerItemData
 
 	int64 GetSlot() const { return SlotIndex; }
 
+	bool IsValid() const { return ItemData && Container.Get(); }
+	bool IsInContainer(const UContainer* AnotherContainer) const { return Container == AnotherContainer; }
+	//UItemData* GetItemData() const { return ItemData; }
+
 protected:
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<const UContainer> Container = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -54,7 +61,7 @@ UCLASS(Abstract)
 class UContainer : public UActorComponent, public IContainerInterface
 {
 	friend class UItemFactoryHelper;
-	
+
 	GENERATED_BODY()
 
 	int64 GetStoredSlotsCount() const;
@@ -63,7 +70,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
-	UPROPERTY(VisibleAnywhere, Replicated)
+	UPROPERTY(VisibleAnywhere, Replicated, ReplicatedUsing=OnRep_Items)
 	TArray<FContainerItemData> Items;
 
 	UPROPERTY(VisibleAnywhere)
@@ -76,7 +83,13 @@ protected:
 	// Find position nearby where we can safely drop an item
 	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
 
+	UFUNCTION()
+	virtual void OnRep_Items();
+
 public:
+	UPROPERTY(BlueprintAssignable)
+	FOnContainerItemsChanged OnContainerItemsChanged;
+	
 	inline static int64 MaxItemsCapacity = MAX_int64;
 	inline static int64 MaxWeightCapacity = MAX_int64;
 
@@ -93,18 +106,19 @@ public:
 	virtual void SetItemsCapacity(const int64 NewValue);
 	virtual void SetWeightCapacity(const int64 NewValue);
 
+	bool HasItem(const FContainerItemData& ItemData) const { return Items.Contains(ItemData); };
+
 	// Try add item ( UItemData ) to container
 	virtual FItemTransactionResult AddItem(UItemData* ItemData);
 
 	// Container->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(FContainerItemData& Item);
+	virtual FItemTransactionResult MoveItem(const FContainerItemData& Item);
 
 	// Container->World move
-	virtual FItemTransactionResult MoveItem(FContainerItemData& Item, const FVector Location, AItem* OutItem);
+	virtual FItemTransactionResult MoveItem(FContainerItemData& Item, AItem* OutItem);
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
-
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool RemoveItem(FContainerItemData& ItemData);

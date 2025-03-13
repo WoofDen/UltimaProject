@@ -48,9 +48,6 @@ AUPCharacter::AUPCharacter()
 
 	// skills
 	SkillSystemComponent = CreateDefaultSubobject<USkillSystemComponent>("SkillSystemComponent");
-
-	// Inv
-	Inventory = CreateDefaultSubobject<UInventoryComponent>("Inventory");
 }
 
 // Called when the game starts or when spawned
@@ -82,4 +79,6 @@ void AUPCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	check(AbilitySystemComponent);
 	AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
+
+	Inventory = GetComponentByClass<UInventoryComponent>();
 }

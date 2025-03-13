@@ -99,5 +99,8 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return Inventory; };
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UInventoryComponent> InventoryComponentClass;
 #pragma endregion
 };

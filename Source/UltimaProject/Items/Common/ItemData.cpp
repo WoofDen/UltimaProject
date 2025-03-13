@@ -56,7 +56,7 @@ const FItemInstanceData& UItemData::GetInstanceData() const
 
 TSubclassOf<AItem> UItemData::GetActorClass() const
 {
-	return ActorClass;
+	return StaticData->ActorClass;
 }
 
 FText UItemData::GetDisplayName() const

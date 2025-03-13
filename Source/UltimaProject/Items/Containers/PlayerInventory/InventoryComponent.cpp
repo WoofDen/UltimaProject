@@ -13,6 +13,17 @@ void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
 	MoveItem(Item);
 }
 
+void UInventoryComponent::ServerTryDropItem_Implementation(const FContainerItemData& Item)
+{
+	ensureAlways(Item.IsValid() && Item.IsInContainer(this));
+
+	if (ensure(HasItem(Item)))
+	{
+		AItem* Result = nullptr;
+		MoveItem(const_cast<FContainerItemData&>(Item), Result);
+	}
+}
+
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -22,17 +33,13 @@ void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
 UInventoryComponent::UInventoryComponent()
 {
-	if (!HasAnyFlags(RF_ClassDefaultObject))
-	{
-		OwnerCharacter = Cast<AUPCharacter>(GetOwner());
-		check(OwnerCharacter.IsValid());
-	}
 }
 
 void UInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
+	OwnerCharacter = Cast<AUPCharacter>(GetOwner());
 	SetIsReplicated(true);
 }
 
@@ -88,5 +95,18 @@ bool UInventoryComponent::TryPickupItem(AItem* Item)
 
 	// send request to server
 	ServerTryPickupItem(Item);
+	return true;
+}
+
+bool UInventoryComponent::TryDropItem(const FContainerItemData& Item)
+{
+	ensureAlways(!GetOwner()->HasAuthority());
+	ensureAlways(Item.IsValid() && Item.IsInContainer(this));
+
+	if (ensureAlways(HasItem(Item)))
+	{
+		ServerTryDropItem(Item);
+	}
+
 	return true;
 }
