@@ -5,6 +5,7 @@
 
 struct FContainerItemData;
 
+// TODO maybe remove
 UINTERFACE(MinimalAPI, Blueprintable)
 class UContainerInterface : public UInterface
 {

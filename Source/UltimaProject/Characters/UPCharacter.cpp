@@ -18,6 +18,13 @@ AUPPlayerController* AUPCharacter::GetPlayerController()
 	return PlayerController;
 }
 
+void AUPCharacter::OnRep_InventoryComponent()
+{
+	// removing inventory after gameplay begin s not handled
+	ensureAlways(!HasActorBegunPlay() || InventoryComponent);
+	UpdateGameplayReadyState();
+}
+
 // Sets default values
 AUPCharacter::AUPCharacter()
 {
@@ -54,6 +61,7 @@ AUPCharacter::AUPCharacter()
 void AUPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	UpdateGameplayReadyState();
 }
 
 // Called every frame
@@ -71,14 +79,41 @@ void AUPCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 void AUPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME_CONDITION(AUPCharacter, Inventory, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AUPCharacter, InventoryComponent, COND_OwnerOnly);
 }
 
-void AUPCharacter::PostInitializeComponents()
+void AUPCharacter::PreInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	check(AbilitySystemComponent);
 	AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
 
-	Inventory = GetComponentByClass<UInventoryComponent>();
+	if (HasAuthority())
+	{
+		UClass* InventoryClass = InventoryComponentClass && InventoryComponentClass->IsSelected()
+			                         ? InventoryComponentClass->GetClass()
+			                         : UInventoryComponent::StaticClass();
+
+		InventoryComponent = NewObject<UInventoryComponent>(this, InventoryClass, TEXT("InventoryCommponent"));
+		InventoryComponent->RegisterComponent();
+	}
+}
+
+void AUPCharacter::UpdateGameplayReadyState()
+{
+	// GameplayReady is designed to run after begin play
+	ensureAlways(HasActorBegunPlay());
+
+	if (bGameplayReadyStateBroadcasted)
+	{
+		return;
+	}
+
+	if (!InventoryComponent)
+	{
+		return;
+	}
+
+	bGameplayReadyStateBroadcasted = true;
+	OnGameplayReady();
 }

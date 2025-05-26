@@ -67,12 +67,8 @@ void UContainer::OnRep_Items()
 
 void UContainer::SetItemsCapacity(const int64 NewValue)
 {
-	ItemsCapacity = NewValue;
-}
-
-void UContainer::SetWeightCapacity(const int64 NewValue)
-{
-	WeightCapacity = NewValue;
+	ensureAlways(ItemSlotsCapacity <= NewValue); // shrinking not implemented yet
+	ItemSlotsCapacity = NewValue;
 }
 
 FItemTransactionResult UContainer::AddItem(UItemData* ItemData)
@@ -82,19 +78,23 @@ FItemTransactionResult UContainer::AddItem(UItemData* ItemData)
 	// todo should we?
 	// ItemData->GetStaticData().LoadSynchronous();
 
-	const int64 SlotIndex = GetStoredSlotsCount() + 1;
-	ensureAlways(SlotIndex < ItemsCapacity);
+	const int64 SlotIndex = GetStoredSlotsCount();
+	ensureAlways(SlotIndex < ItemSlotsCapacity);
 	// todo ensure get item at slot == null
 
 	FContainerItemData ContainerItemData(ItemData, this, SlotIndex);
 	Items.Add(ContainerItemData);
-	//OnRep_Items();
 
 	return GItemTransactionResult_Success;
 }
 
 FItemTransactionResult UContainer::MoveItem(const FContainerItemData& Item)
 {
+	if (Items.Num() == ItemSlotsCapacity)
+	{
+		return GItemTransactionResult_Capacity;
+	}
+
 	check(GetOwner()->HasAuthority());
 
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
@@ -142,6 +142,11 @@ FItemTransactionResult UContainer::MoveItem(FContainerItemData& Item, AItem* Out
 
 FItemTransactionResult UContainer::MoveItem(AItem* WorldItem)
 {
+	if (Items.Num() == ItemSlotsCapacity)
+	{
+		return GItemTransactionResult_Capacity;
+	}
+
 	check(GetOwner()->HasAuthority());
 	if (AddItem(WorldItem->GetItemData()).IsSuccess())
 	{

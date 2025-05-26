@@ -1,5 +1,6 @@
 ﻿#include "Item.h"
 
+#include "Net/UnrealNetwork.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
 
 AItem::AItem()
@@ -23,12 +24,18 @@ AItem::AItem()
 	HoverWidget->SetCastShadow(false);
 	HoverWidget->SetComponentTickEnabled(false);
 
-	SetReplicates(true);
+	bReplicates = true;
+	bReplicateUsingRegisteredSubObjectList = true;
 }
 
 void AItem::RemoveFromWorld()
 {
-	MulticastRemoveFromWorld();
+	if (!ensureAlways(HasAuthority()))
+	{
+		return;
+	}
+
+	Destroy();
 }
 
 bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
@@ -56,30 +63,42 @@ bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
 	return true;
 }
 
-void AItem::MulticastRemoveFromWorld_Implementation()
+void AItem::PostInitializeComponents()
 {
-	Destroy();
+	Super::PostInitializeComponents();
+	
+	if (HasAuthority())
+	{
+		// Item can be created with ItemData set already or from default
+		if (!IsValid(ItemData) && ensureAlways(IsValid(DefaultStaticData)))
+		{
+			// TODO as any AItem has a UItemData, it may be better to create one within constructor rather than a dynamic one
+			UItemData* Data = NewObject<UItemData>(this, FName("ItemData"));
+			Data->StaticData = DefaultStaticData;
+			Data->InstanceData = DefaultInstanceData;
+
+			AddReplicatedSubObject(Data);
+
+			if (!SetItemData(Data))
+			{
+				UE_LOG(LogActor, Error, TEXT("Item %s initialization failed"), *GetActorNameOrLabel());
+				Data->MarkAsGarbage();
+				Destroy();
+			}
+		}
+	}
 }
 
 void AItem::BeginPlay()
 {
-	// Item can be created with ItemData set already or from default
-	if (!IsValid(ItemData) && ensureAlways(IsValid(DefaultStaticData)))
-	{
-		UItemData* Data = NewObject<UItemData>(this, FName("ItemData"));
-		Data->StaticData = DefaultStaticData;
-		Data->InstanceData = DefaultInstanceData;
-
-		if (!SetItemData(Data))
-		{
-			UE_LOG(LogActor, Error, TEXT("Item %s initialization failed"), *GetActorNameOrLabel());
-			Data->MarkAsGarbage();
-			Destroy();
-		}
-	}
-
-	// Calls BP impl.
 	Super::BeginPlay();
+}
+
+void AItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AItem, ItemData);
 }
 
 void AItem::Tick(float DeltaTime)

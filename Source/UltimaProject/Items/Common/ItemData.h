@@ -16,7 +16,7 @@ struct FItemInstanceData
 
 	FItemInstanceData();
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	float Amount;
 };
 
@@ -65,7 +65,7 @@ protected:
 	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated)
 	FItemInstanceData InstanceData;
 
 public:

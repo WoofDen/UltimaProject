@@ -38,6 +38,8 @@ enum class EItemTransactionResultCode
 {
 	NONE,
 	Success,
+
+	NotEnoughCapacity,
 	Error // Generic error for malformed input, etc.
 };
 
@@ -52,7 +54,8 @@ struct FItemTransactionResult
 };
 
 static FItemTransactionResult GItemTransactionResult_Success{EItemTransactionResultCode::Success};
-static FItemTransactionResult GItemTransactionResult_Error{EItemTransactionResultCode::Success};
+static FItemTransactionResult GItemTransactionResult_Error{EItemTransactionResultCode::Error};
+static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionResultCode::NotEnoughCapacity};
 
 /**
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
@@ -73,12 +76,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, Replicated, ReplicatedUsing=OnRep_Items)
 	TArray<FContainerItemData> Items;
 
-	UPROPERTY(VisibleAnywhere)
-	int64 WeightCapacity = 0;
-
 	// Amount of available slots
-	UPROPERTY(VisibleAnywhere)
-	int64 ItemsCapacity = 10;
+	UPROPERTY(EditDefaultsOnly)
+	int64 ItemSlotsCapacity = 10;
 
 	// Find position nearby where we can safely drop an item
 	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
@@ -86,30 +86,25 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_Items();
 
+	// Try add item ( UItemData ) to container
+	virtual FItemTransactionResult AddItem(UItemData* ItemData);
+
+	virtual bool RemoveItem(FContainerItemData& ItemData);
+
 public:
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemsChanged OnContainerItemsChanged;
-	
-	inline static int64 MaxItemsCapacity = MAX_int64;
-	inline static int64 MaxWeightCapacity = MAX_int64;
 
-	FORCEINLINE int64 GetWeightCapacity() const
-	{
-		return WeightCapacity;
-	}
+	inline static int64 MaxItemsCapacity = MAX_int64;
 
 	FORCEINLINE int64 GetItemsCapacity() const
 	{
-		return ItemsCapacity;
+		return ItemSlotsCapacity;
 	}
 
 	virtual void SetItemsCapacity(const int64 NewValue);
-	virtual void SetWeightCapacity(const int64 NewValue);
 
 	bool HasItem(const FContainerItemData& ItemData) const { return Items.Contains(ItemData); };
-
-	// Try add item ( UItemData ) to container
-	virtual FItemTransactionResult AddItem(UItemData* ItemData);
 
 	// Container->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(const FContainerItemData& Item);
@@ -120,8 +115,6 @@ public:
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
 
-	UFUNCTION(BlueprintCallable)
-	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 #pragma region ContainerInterface
 

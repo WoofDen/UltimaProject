@@ -18,8 +18,6 @@ class ULTIMAPROJECT_API AItem : public AActor
 	GENERATED_BODY()
 
 private:
-	UFUNCTION(NetMulticast, Reliable)
-	void MulticastRemoveFromWorld();
 
 protected:
 	UPROPERTY(EditAnywhere)
@@ -32,7 +30,7 @@ protected:
 	TObjectPtr<UWidgetComponent> HoverWidget;
 
 	// Data object represents current item.
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated, VisibleInstanceOnly, Category="Runtime data")
 	TObjectPtr<UItemData> ItemData;
 
 	// Static data for item initialization
@@ -43,6 +41,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FItemInstanceData DefaultInstanceData;
 
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
 public:
@@ -52,6 +51,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	bool SetItemData(UItemData* NewData = nullptr);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void Tick(float DeltaTime) override;
 

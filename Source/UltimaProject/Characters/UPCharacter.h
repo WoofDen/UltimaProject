@@ -13,7 +13,6 @@
 #include "UPCharacter.generated.h"
 
 class UInventoryComponent;
-class InventoryComponent;
 
 UCLASS(Blueprintable)
 class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IAbilitySystemInterface
@@ -21,7 +20,6 @@ class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IAbilitySystemI
 	GENERATED_BODY()
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:
@@ -33,7 +31,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PostInitializeComponents() override;
+	virtual void PreInitializeComponents() override;
+
+	// TODO maybe interface ( or modular plugin? )
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnGameplayReady();
+
+private:
+	bool bGameplayReadyStateBroadcasted = false;
+	
+	void UpdateGameplayReadyState();
 
 #pragma region Camera
 
@@ -93,14 +100,17 @@ public:
 #pragma region Inventory
 
 protected:
-	UPROPERTY(VisibleAnywhere, Replicated)
-	TObjectPtr<UInventoryComponent> Inventory;
-
-public:
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return Inventory; };
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_InventoryComponent)
+	TObjectPtr<UInventoryComponent> InventoryComponent;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInventoryComponent> InventoryComponentClass;
+
+	UFUNCTION()
+	void OnRep_InventoryComponent();
+
+public:
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; };
 #pragma endregion
 };
