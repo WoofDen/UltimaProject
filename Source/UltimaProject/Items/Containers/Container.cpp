@@ -1,8 +1,11 @@
 ﻿#include "Container.h"
 
+#include "DerivedMeshDataTaskUtils.h"
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "UltimaProject/Items/Common/ItemFactoryHelper.h"
+
+DEFINE_LOG_CATEGORY(LogContainers)
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
@@ -88,9 +91,39 @@ FItemTransactionResult UContainer::AddItem(UItemData* ItemData)
 	return GItemTransactionResult_Success;
 }
 
+FItemTransactionResult UContainer::SplitItem(const FContainerItemData& Data, const int64 SplitAmount)
+{
+	if (!ensureAlways(HasItem(Data)))
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	// we need at least one extra slot
+	if (Items.Num() >= ItemSlotsCapacity)
+	{
+		return GItemTransactionResult_Capacity;
+	}
+
+	UItemData* NewItemData = Data.ItemData->SplitItem(SplitAmount);
+	if (!NewItemData)
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	FItemTransactionResult Result = AddItem(NewItemData);
+	if(!Result.IsSuccess())
+	{
+		// todo
+		UE_LOG(LogContainers, Error, TEXT("Unable to add item to container during split operation - the origin item amount has been reduced"));
+		NewItemData->MarkAsGarbage();
+	}
+
+	return Result;
+}
+
 FItemTransactionResult UContainer::MoveItem(const FContainerItemData& Item)
 {
-	if (Items.Num() == ItemSlotsCapacity)
+	if (Items.Num() >= ItemSlotsCapacity)
 	{
 		return GItemTransactionResult_Capacity;
 	}

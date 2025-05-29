@@ -24,6 +24,28 @@ void UInventoryComponent::ServerTryDropItem_Implementation(const FContainerItemD
 	}
 }
 
+void UInventoryComponent::ServerTrySplitItem_Implementation(const FContainerItemData& Item, const int64 SplitAmount)
+{
+	SplitItem(Item, SplitAmount);
+}
+
+bool UInventoryComponent::TrySplitItem(const FContainerItemData& Item, const int64 SplitAmount)
+{
+	if(!ensureAlways(HasItem(Item)))
+	{
+		return false;
+	}
+
+	const UItemData* ItemData = Item.GetItemData();
+	if(!ItemData || SplitAmount < 0 || SplitAmount >= ItemData->GetAmount())
+	{
+		return false;
+	}
+
+	ServerTrySplitItem(Item, SplitAmount);
+	return true;
+}
+
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

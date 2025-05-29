@@ -60,6 +60,25 @@ TSubclassOf<AItem> UItemData::GetActorClass() const
 	return StaticData->ActorClass;
 }
 
+UItemData* UItemData::SplitItem(const int64 SplitAmount)
+{
+	if (SplitAmount <= 0 || SplitAmount >= GetAmount())
+	{
+		return nullptr;
+	}
+
+	UItemData* NewItemData = DuplicateObject<UItemData>(this, GetOuter());
+	if (!ensureAlways(NewItemData))
+	{
+		return nullptr;
+	}
+
+	const int64 NewAmount = GetAmount() - SplitAmount;
+	SetAmount(NewAmount);
+	NewItemData->SetAmount(SplitAmount);
+	return NewItemData;
+}
+
 FText UItemData::GetDisplayName() const
 {
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
@@ -94,7 +113,7 @@ int64 UItemData::GetMaxAmountPerStack() const
 int64 UItemData::SetAmount(const int64 Value)
 {
 	ensureAlways(Value >= 0);
-	InstanceData.Amount = FMath::Max(StaticData->MaxAmountPerStack, Value);
+	InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value);
 	return InstanceData.Amount;
 }
 

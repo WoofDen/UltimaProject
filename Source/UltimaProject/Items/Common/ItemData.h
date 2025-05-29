@@ -31,7 +31,7 @@ class UItemDataAsset : public UDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<AItem> ActorClass;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FText Name;
 
@@ -58,6 +58,7 @@ class ULTIMAPROJECT_API UItemData : public UObject
 	GENERATED_BODY()
 
 	friend class AItem;
+	friend class UContainer;
 
 protected:
 	// Data asset with static props
@@ -67,6 +68,9 @@ protected:
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated)
 	FItemInstanceData InstanceData;
+
+	// Create a duplicate item data with amount. The origin object amount will be reduced
+	UItemData* SplitItem(const int64 SplitAmount);
 
 public:
 	UItemData();

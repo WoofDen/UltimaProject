@@ -5,6 +5,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerItemsChanged);
 
+DECLARE_LOG_CATEGORY_EXTERN(LogContainers, Display, All);
+
 // Info about item stored in a container
 USTRUCT(BlueprintType)
 struct FContainerItemData
@@ -21,7 +23,7 @@ struct FContainerItemData
 
 	bool IsValid() const { return ItemData && Container.Get(); }
 	bool IsInContainer(const UContainer* AnotherContainer) const { return Container == AnotherContainer; }
-	//UItemData* GetItemData() const { return ItemData; }
+	const UItemData* GetItemData() const { return ItemData; }
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
@@ -105,6 +107,9 @@ public:
 	virtual void SetItemsCapacity(const int64 NewValue);
 
 	bool HasItem(const FContainerItemData& ItemData) const { return Items.Contains(ItemData); };
+
+	// Split into two items by amount. Second item will be placed to the same container
+	virtual FItemTransactionResult SplitItem(UPARAM(ref) const FContainerItemData& Data, const int64 SplitAmount);
 
 	// Container->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(const FContainerItemData& Item);
