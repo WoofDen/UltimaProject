@@ -22,7 +22,6 @@ AItem::AItem()
 	HoverWidget->SetVisibility(false);
 	HoverWidget->SetupAttachment(RootComponent);
 	HoverWidget->SetCastShadow(false);
-	HoverWidget->SetComponentTickEnabled(false);
 
 	bReplicates = true;
 	bReplicateUsingRegisteredSubObjectList = true;
@@ -67,7 +66,7 @@ void AItem::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	
-	if (HasAuthority())
+	if (HasAuthority() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Item can be created with ItemData set already or from default
 		if (!IsValid(ItemData) && ensureAlways(IsValid(DefaultStaticData)))
@@ -92,6 +91,12 @@ void AItem::PostInitializeComponents()
 void AItem::BeginPlay()
 {
 	Super::BeginPlay();
+	
+}
+
+void AItem::OnRep_ItemData()
+{
+	OnItemDataChanged();
 }
 
 void AItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

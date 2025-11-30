@@ -3,6 +3,7 @@
 #include "ItemData.h"
 
 #include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
 
 FItemInstanceData::FItemInstanceData()
 {
@@ -23,7 +24,12 @@ void UItemData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(UItemData, StaticData, COND_InitialOnly);
-	DOREPLIFETIME(UItemData, InstanceData);
+
+	{
+		FDoRepLifetimeParams Params;
+		Params.bIsPushBased = true;
+		DOREPLIFETIME_WITH_PARAMS_FAST(UItemData, InstanceData, Params);
+	}
 }
 
 bool UItemData::IsSupportedForNetworking() const
@@ -58,6 +64,22 @@ const FItemInstanceData& UItemData::GetInstanceData() const
 TSubclassOf<AItem> UItemData::GetActorClass() const
 {
 	return StaticData->ActorClass;
+}
+
+int32 UItemData::GetStackableAmount(const UItemData* TargetItem) const
+{
+	if (!TargetItem || StaticData != TargetItem->StaticData)
+	{
+		return 0;
+	}
+
+	const int32 FreeItemCount = TargetItem->GetMaxAmountPerStack() - TargetItem->GetAmount();
+	if (FreeItemCount == 0)
+	{
+		return 0;
+	}
+
+	return FMath::Min(GetAmount(), FreeItemCount);
 }
 
 UItemData* UItemData::SplitItem(const int64 SplitAmount)
@@ -113,7 +135,25 @@ int64 UItemData::GetMaxAmountPerStack() const
 int64 UItemData::SetAmount(const int64 Value)
 {
 	ensureAlways(Value >= 0);
-	InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value);
+	if (Value != InstanceData.Amount)
+	{
+		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value);
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
+	}
+
+	return InstanceData.Amount;
+}
+
+int64 UItemData::ModifyAmount(const int64 Value)
+{
+	if (Value != 0)
+	{
+		const int32 NewAmount = InstanceData.Amount + Value;
+		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, FMath::Max(0, NewAmount));
+
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
+	}
+
 	return InstanceData.Amount;
 }
 

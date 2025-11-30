@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UltimaProject/Items/Containers/Container.h"
+#include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "ChestComponent.generated.h"
 
 // Base for any in-world container
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API UChestComponent : public UContainer
+class ULTIMAPROJECT_API UChestComponent : public UContainerComponent
 {
 	GENERATED_BODY()
 

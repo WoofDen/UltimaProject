@@ -23,6 +23,7 @@ namespace UnrealBuildTool.Rules
 				"GameplayAbilities", 
 				"GameplayTags", 
 				"GameplayTasks",
+				"NetCore"
 			});
 
 			PrivateDependencyModuleNames.AddRange(new string[]

@@ -8,7 +8,7 @@ public class UltimaProjectEditorTarget : TargetRules
 	public UltimaProjectEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
-		DefaultBuildSettings = BuildSettingsVersion.V5;
-		ExtraModuleNames.AddRange(new string[] { "UltimaProject", "UMG" });
+		DefaultBuildSettings = BuildSettingsVersion.V6;
+		ExtraModuleNames.AddRange(new string[] { "UltimaProject", "UMG", "NetCore" });
 	}
 }

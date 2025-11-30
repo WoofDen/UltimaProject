@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Item.h"
 #include "ItemData.h"
-#include "UltimaProject/Items/Containers/Container.h"
+#include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "ItemFactoryHelper.generated.h"
 
 /**
@@ -20,14 +19,14 @@ public:
 	UItemFactoryHelper();
 
 	UFUNCTION(BlueprintCallable)
-	static bool SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainer* Container);
+	static bool SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container);
 
 	// Creates in-world item
 	UFUNCTION(BlueprintCallable)
 	static AItem* SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
-	const FTransform& Transform);
-	
+	                               const FTransform& Transform);
+
 	UFUNCTION(BlueprintCallable)
 	static AItem* SpawnItem(const UObject* WorldContextObject, UItemData* ItemData,
-								   const FTransform& Transform, bool DuplicateItemData = false);
+	                        const FTransform& Transform, bool DuplicateItemData = false);
 };

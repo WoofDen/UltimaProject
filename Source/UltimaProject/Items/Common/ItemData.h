@@ -18,6 +18,11 @@ struct FItemInstanceData
 
 	UPROPERTY(EditAnywhere)
 	float Amount;
+	
+	bool operator==(const FItemInstanceData& Other) const
+	{
+		return Amount == Other.Amount;
+	}
 };
 
 /**
@@ -58,7 +63,7 @@ class ULTIMAPROJECT_API UItemData : public UObject
 	GENERATED_BODY()
 
 	friend class AItem;
-	friend class UContainer;
+	friend class UContainerComponent;
 
 protected:
 	// Data asset with static props
@@ -86,6 +91,10 @@ public:
 	const FItemInstanceData& GetInstanceData() const;
 
 	TSubclassOf<AItem> GetActorClass() const;
+	
+	// Get a number of items that can be moved TO the TargetItem
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual int32 GetStackableAmount(const UItemData* TargetItem) const;
 
 	UFUNCTION(BlueprintCallable)
 	virtual FText GetDisplayName() const;
@@ -101,6 +110,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual int64 SetAmount(const int64 Value);
+	
+	UFUNCTION(BlueprintCallable)
+	virtual int64 ModifyAmount(const int64 Value);
 
 	UFUNCTION(BlueprintCallable)
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;

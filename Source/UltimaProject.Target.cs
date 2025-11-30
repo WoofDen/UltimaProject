@@ -9,6 +9,7 @@ public class UltimaProjectTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V5;
-		ExtraModuleNames.AddRange( new string[] { "UltimaProject", "UMG" } );
+		ExtraModuleNames.AddRange( new string[] { "UltimaProject", "UMG", "NetCore" } );
+		CppCompileWarningSettings.UndefinedIdentifierWarningLevel = WarningLevel.Off;
 	}
 }

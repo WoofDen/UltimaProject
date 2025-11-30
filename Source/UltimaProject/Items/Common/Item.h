@@ -18,6 +18,8 @@ class ULTIMAPROJECT_API AItem : public AActor
 	GENERATED_BODY()
 
 private:
+	UFUNCTION()
+	void OnRep_ItemData();
 
 protected:
 	UPROPERTY(EditAnywhere)
@@ -30,7 +32,8 @@ protected:
 	TObjectPtr<UWidgetComponent> HoverWidget;
 
 	// Data object represents current item.
-	UPROPERTY(BlueprintReadOnly, Replicated, VisibleInstanceOnly, Category="Runtime data")
+	UPROPERTY(BlueprintReadOnly, Replicated, VisibleInstanceOnly, Category="Runtime data",
+		ReplicatedUsing=OnRep_ItemData)
 	TObjectPtr<UItemData> ItemData;
 
 	// Static data for item initialization
@@ -44,6 +47,10 @@ protected:
 	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnItemDataChanged();
+
 public:
 	AItem();
 
@@ -56,5 +63,12 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UItemData* GetItemData() const { return ItemData; }
+	UItemData* GetItemData() const
+	{
+		// self-defence against modify ItemData somewhere else than server
+		check(HasAuthority());
+		return ItemData;
+	}
+
+	const UItemData* GetItemDataConst() const { return ItemData; }
 };

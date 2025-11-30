@@ -26,7 +26,7 @@ void UInventoryComponent::ServerTryDropItem_Implementation(const FContainerItemD
 
 void UInventoryComponent::ServerTrySplitItem_Implementation(const FContainerItemData& Item, const int64 SplitAmount)
 {
-	SplitItem(Item, SplitAmount);
+	SplitItem(const_cast<FContainerItemData&>(Item), SplitAmount);
 }
 
 bool UInventoryComponent::TrySplitItem(const FContainerItemData& Item, const int64 SplitAmount)
@@ -49,8 +49,6 @@ bool UInventoryComponent::TrySplitItem(const FContainerItemData& Item, const int
 void UInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(UInventoryComponent, Items, COND_OwnerOnly);
 }
 
 UInventoryComponent::UInventoryComponent()

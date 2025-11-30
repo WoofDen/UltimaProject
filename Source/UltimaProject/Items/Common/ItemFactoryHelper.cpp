@@ -3,13 +3,13 @@
 #include "ItemFactoryHelper.h"
 #include "Item.h"
 #include "UltimaProject/Framework/UPGameMode.h"
-#include "UltimaProject/Items/Containers/Container.h"
+#include "UltimaProject/Items/Containers/ContainerComponent.h"
 
 UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainer* Container)
+bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container)
 {
 	if (!Class)
 	{
@@ -27,7 +27,6 @@ bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class
 	{
 		return false;
 	}
-
 
 	// TODO better handling
 	ensure(ItemData->Initialize(Data));
