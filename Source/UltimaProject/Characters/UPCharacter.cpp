@@ -61,6 +61,18 @@ AUPCharacter::AUPCharacter()
 void AUPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Inventory initialization
+	if (HasAuthority())
+	{
+		const UClass* InventoryClass = IsValid(InventoryComponentClass)
+			                         ? *InventoryComponentClass
+			                         : UInventoryComponent::StaticClass();
+
+		InventoryComponent = NewObject<UInventoryComponent>(this, InventoryClass, TEXT("InventoryComponent"));
+		InventoryComponent->RegisterComponent();
+	}
+
 	UpdateGameplayReadyState();
 }
 
@@ -87,16 +99,6 @@ void AUPCharacter::PreInitializeComponents()
 	Super::PostInitializeComponents();
 	check(AbilitySystemComponent);
 	AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
-
-	if (HasAuthority())
-	{
-		UClass* InventoryClass = InventoryComponentClass && InventoryComponentClass->IsSelected()
-			                         ? InventoryComponentClass->GetClass()
-			                         : UInventoryComponent::StaticClass();
-
-		InventoryComponent = NewObject<UInventoryComponent>(this, InventoryClass, TEXT("InventoryCommponent"));
-		InventoryComponent->RegisterComponent();
-	}
 }
 
 void AUPCharacter::UpdateGameplayReadyState()
@@ -114,6 +116,6 @@ void AUPCharacter::UpdateGameplayReadyState()
 		return;
 	}
 
-	bGameplayReadyStateBroadcasted = true;
 	OnGameplayReady();
+	bGameplayReadyStateBroadcasted = true;
 }

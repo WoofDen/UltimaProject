@@ -1,5 +1,6 @@
 ﻿// Game includes
 #include "ContainerComponent.h"
+#include "UltimaProject/UI/ContainerWidget.h"
 #include <UltimaProject/Items/Common/ItemFactoryHelper.h>
 
 // Engine includes
@@ -7,15 +8,16 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
-DEFINE_LOG_CATEGORY(LogContainers)
+DEFINE_LOG_CATEGORY(LogUPContainers)
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
 	return ItemData == Other.ItemData;
 }
 
-FContainerItemData::FContainerItemData(UItemData* InitData, UContainerComponent* InitContainer, int64 InitSlotIndex)
+FContainerItemData::FContainerItemData(UItemData* InitData, UContainerComponent* InitContainer, int32 InitSlotIndex)
 {
+	ItemData = InitData;
 	ItemData = InitData;
 	Container = InitContainer;
 	SlotIndex = InitSlotIndex;
@@ -62,10 +64,10 @@ void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices
 	}
 }
 
-int64 UContainerComponent::GetStoredSlotsCount() const
+int32 UContainerComponent::GetStoredSlotsCount() const
 {
 	// todo cache values?
-	int64 Result = 0;
+	int32 Result = 0;
 	for (const auto& Item : ContainerItems.Items)
 	{
 		Result += Item.ItemData->GetStaticData()->Slots;
@@ -106,6 +108,28 @@ void UContainerComponent::BeginPlay()
 	ContainerItems.ContainerComponent = this;
 }
 
+void UContainerComponent::InitializeContainerWidget()
+{
+	if (!IsValid(ContainerWidgetClass))
+	{
+		UE_LOG(LogUPContainers, Error, TEXT("ContainerWidgetClass is not set for %s/%s"), *GetNameSafe(this),
+		       *GetNameSafe(GetOwner()));
+		return;
+	}
+
+	if (IsValid(ContainerWidget))
+	{
+		ContainerWidget->RemoveFromParent();
+	}
+
+	ContainerWidget = CreateWidget<UContainerWidget>(GetWorld(), ContainerWidgetClass);
+
+	if (ContainerWidget)
+	{
+		ContainerWidget->Initialize(this);
+	}
+}
+
 bool UContainerComponent::FindDropTransform(const UItemData* ItemData, FTransform& Result) const
 {
 	if (APawn* Pawn = Cast<APawn>(GetOwner()))
@@ -141,15 +165,38 @@ void UContainerComponent::NotifyContainerItemChanged_Implementation(const FConta
 	OnContainerItemChanged.Broadcast(Item);
 }
 
-int64 UContainerComponent::GetItemsCapacity() const
+int32 UContainerComponent::GetItemsCapacity() const
 {
 	return ItemSlotsCapacity;
 }
 
-void UContainerComponent::SetItemsCapacity(const int64 NewValue)
+void UContainerComponent::SetItemsCapacity(const int32 NewValue)
 {
 	ensureAlways(ItemSlotsCapacity <= NewValue); // shrinking not implemented yet
 	ItemSlotsCapacity = NewValue;
+}
+
+int32 UContainerComponent::GetItemCapacity() const
+{
+	return ItemSlotsCapacity;
+}
+
+void UContainerComponent::DisplayContainerWidget()
+{
+	// TODO global hud and displayed containers var
+	if (!IsValid(ContainerWidget))
+	{
+		InitializeContainerWidget();
+
+		if (!IsValid(ContainerWidget))
+		{
+			UE_LOG(LogUPContainers, Error, TEXT("Failed to create ContainerWidget for %s/%s"), *GetNameSafe(this),
+			       *GetNameSafe(GetOwner()));
+			return;
+		}
+	}
+
+	ContainerWidget->AddToViewport();
 }
 
 bool UContainerComponent::HasItem(const FContainerItemData& ItemData) const
@@ -170,7 +217,7 @@ FItemTransactionResult UContainerComponent::AddItem(UItemData* ItemData, FContai
 	// todo should we?
 	// ItemData->GetStaticData().LoadSynchronous();
 
-	const int64 SlotIndex = GetStoredSlotsCount();
+	const int32 SlotIndex = GetStoredSlotsCount();
 	ensureAlways(SlotIndex < ItemSlotsCapacity);
 	// todo ensure get item at slot == null
 
@@ -182,7 +229,7 @@ FItemTransactionResult UContainerComponent::AddItem(UItemData* ItemData, FContai
 	return GItemTransactionResult_Success;
 }
 
-FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, const int64 SplitAmount)
+FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, const int32 SplitAmount)
 {
 	if (!ensureAlways(HasItem(Data)))
 	{
@@ -208,7 +255,7 @@ FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, 
 	if (!Result.IsSuccess())
 	{
 		// todo
-		UE_LOG(LogContainers, Error,
+		UE_LOG(LogUPContainers, Error,
 		       TEXT("Unable to add item to container during split operation - the origin item amount has been reduced"
 		       ));
 		NewItemData->MarkAsGarbage();

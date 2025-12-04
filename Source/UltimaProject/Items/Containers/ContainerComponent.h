@@ -9,7 +9,10 @@
 // Generated include
 #include "ContainerComponent.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogContainers, Display, All);
+// Forward declarations
+class UContainerWidget;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogUPContainers, Display, All);
 
 // Info about item stored in a container
 USTRUCT(BlueprintType)
@@ -20,10 +23,10 @@ struct FContainerItemData : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	bool operator==(const FContainerItemData& Other) const;
-	FContainerItemData(UItemData* InitData, UContainerComponent* InitContainer, const int64 InitSlotIndex);
+	FContainerItemData(UItemData* InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
 
-	int64 GetSlot() const { return SlotIndex; }
+	int32 GetSlot() const { return SlotIndex; }
 
 	bool IsValid() const { return ItemData && Container.Get(); }
 	bool IsInContainer(const UContainerComponent* AnotherContainer) const { return Container == AnotherContainer; }
@@ -36,7 +39,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	UItemData* ItemData = nullptr;
 
-	int64 SlotIndex = INDEX_NONE;
+	int32 SlotIndex = INDEX_NONE;
 };
 
 USTRUCT()
@@ -125,7 +128,7 @@ class UContainerComponent : public UActorComponent, public IContainerInterface
 	UPROPERTY(VisibleAnywhere, Transient, Replicated, ReplicatedUsing=OnRep_Items)
 	FContainerItems ContainerItems;
 
-	int64 GetStoredSlotsCount() const;
+	int32 GetStoredSlotsCount() const;
 
 	// Try add item ( UItemData ) to container
 	virtual FItemTransactionResult AddItem(UItemData* ItemData);
@@ -134,13 +137,21 @@ class UContainerComponent : public UActorComponent, public IContainerInterface
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
-	int64 ItemSlotsCapacity = 10;
+	int32 ItemSlotsCapacity = 10;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UContainerWidget> ContainerWidgetClass;
+		
+	UPROPERTY()
+	TObjectPtr<UContainerWidget> ContainerWidget;
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void BeginPlay() override;
 	// ~UActorComponent
+	
+	void InitializeContainerWidget();
 
 	// Find a position nearby where we can safely drop an item
 	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
@@ -165,15 +176,22 @@ public:
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemsChanged();
 
-	inline static int64 MaxItemsCapacity = MAX_int64;
+	inline static int32 MaxItemsCapacity = MAX_int32;
 
-	FORCEINLINE int64 GetItemsCapacity() const;
+	FORCEINLINE int32 GetItemsCapacity() const;
 	bool HasItem(const FContainerItemData& ItemData) const;
 
-	virtual void SetItemsCapacity(const int64 NewValue);
+	virtual void SetItemsCapacity(const int32 NewValue);
+	
+	UFUNCTION(BlueprintCallable,BlueprintPure)
+	virtual int32 GetItemCapacity() const;
+	
+	UFUNCTION(BlueprintCallable)
+	void DisplayContainerWidget();
 
+#pragma region Item transactions
 	// Split into two items by amount. Second item will be placed to the same container
-	virtual FItemTransactionResult SplitItem(UPARAM(ref)  FContainerItemData& Data, const int64 SplitAmount);
+	virtual FItemTransactionResult SplitItem(UPARAM(ref)  FContainerItemData& Data, const int32 SplitAmount);
 
 	// Container->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem);
@@ -183,6 +201,7 @@ public:
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
+#pragma endregion 
 
 #pragma region ContainerInterface
 

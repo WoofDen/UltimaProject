@@ -20,18 +20,22 @@ class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IAbilitySystemI
 	GENERATED_BODY()
 
 protected:
-	virtual void BeginPlay() override;
 
 public:
 	AUPCharacter();
 
-	// Called every frame
+	// AActor
 	virtual void Tick(float DeltaTime) override;
+	virtual void BeginPlay() override;
+	// ~AActor
+	
+	// APawn
+	virtual void PreInitializeComponents() override;
+	// ~APawn
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PreInitializeComponents() override;
 
 	// TODO maybe interface ( or modular plugin? )
 	UFUNCTION(BlueprintImplementableEvent)
@@ -100,7 +104,7 @@ public:
 #pragma region Inventory
 
 protected:
-	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_InventoryComponent)
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_InventoryComponent, Transient)
 	TObjectPtr<UInventoryComponent> InventoryComponent;
 
 	UPROPERTY(EditDefaultsOnly)
