@@ -17,14 +17,27 @@ class ULTIMAPROJECT_API UContainerWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
+protected:
+	// UUserWidget
+	virtual void NativeDestruct() override;
+	// ~UUserWidget
+	
+	
+	UFUNCTION()
+	void OnContainerItemsChange();
+	
+	// Called on client & server
+	UFUNCTION(BlueprintImplementableEvent)
+	void HandleContainerItemsChange();
+	
 public:
 	TWeakObjectPtr<UContainerComponent> ContainerComponent;
-	
-	void Initialize(UContainerComponent* InContainerComponent);
-	
+
+	void SetContainerComponent(UContainerComponent* InContainerComponent);
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnContainerInitialized();
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UContainerComponent* GetContainerComponent() const;
 };

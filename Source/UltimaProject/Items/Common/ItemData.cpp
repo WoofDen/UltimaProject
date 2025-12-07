@@ -40,11 +40,16 @@ bool UItemData::IsSupportedForNetworking() const
 bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 {
 	check(GetClass());
+	check(StaticData.IsValid());
 
-	Source = Source ? Source : GetClass()->GetDefaultObject<UItemData>();
+	if (Source)
+	{
+		StaticData = Source->StaticData;
+		InstanceData = Source->InstanceData;
+	}
 
-	StaticData = Source->StaticData;
-	InstanceData = Source->InstanceData;
+	// Do not allow invalid UItemData
+	check(StaticData.IsValid());
 
 	StaticData->Icon.LoadSynchronous();
 	StaticData->WorldMesh.LoadSynchronous();
@@ -54,6 +59,12 @@ bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 TSoftObjectPtr<const UItemDataAsset> UItemData::GetStaticData() const
 {
 	return StaticData;
+}
+
+void UItemData::SetStaticData(const UItemDataAsset* InStaticData)
+{
+	check(!StaticData.IsValid());
+	StaticData = InStaticData;
 }
 
 const FItemInstanceData& UItemData::GetInstanceData() const

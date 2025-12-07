@@ -20,6 +20,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static bool SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container);
+	
+	UFUNCTION(BlueprintCallable)
+	static bool SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);
 
 	// Creates in-world item
 	UFUNCTION(BlueprintCallable)

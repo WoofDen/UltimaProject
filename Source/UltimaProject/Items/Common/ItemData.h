@@ -55,7 +55,8 @@ public:
 
 /**
  * ItemData
- * Represent a single item within world. Has to be always as in-world item ( AItem ) or container ( FContainerItemData )
+ * Represent a single item within a world or a pre-set ( in case of inherited BP ) of item settings
+ * Has to be always as an in-world item ( AItem ) or container ( FContainerItemData )
  */
 UCLASS(Blueprintable)
 class ULTIMAPROJECT_API UItemData : public UObject
@@ -67,7 +68,7 @@ class ULTIMAPROJECT_API UItemData : public UObject
 
 protected:
 	// Data asset with static props
-	UPROPERTY(EditDefaultsOnly, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ExposeOnSpawn="true"))
 	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
@@ -87,6 +88,7 @@ public:
 	virtual bool Initialize(UItemData* Source = nullptr);
 
 	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
+	void SetStaticData(const UItemDataAsset* InStaticData);
 
 	const FItemInstanceData& GetInstanceData() const;
 

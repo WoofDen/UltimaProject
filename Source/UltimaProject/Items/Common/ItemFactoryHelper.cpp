@@ -28,9 +28,42 @@ bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class
 		return false;
 	}
 
-	// TODO better handling
-	ensure(ItemData->Initialize(Data));
-	return Container->AddItem(ItemData).IsSuccess();
+	ItemData->Initialize(Data);
+	const bool bResult = Container->AddItem(ItemData).IsSuccess();
+	if (!bResult)
+	{
+		ItemData->MarkAsGarbage();
+		return false;
+	}
+
+	return bResult;
+}
+
+bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
+                                                       UContainerComponent* Container)
+{
+	if (!ItemDataAsset)
+	{
+		return false;
+	}
+
+	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), UItemData::StaticClass());
+	if (!ItemData)
+	{
+		return false;
+	}
+
+	ItemData->SetStaticData(ItemDataAsset);
+	ItemData->Initialize();
+	ItemData->SetAmount(1);
+
+	const bool bResult = Container->AddItem(ItemData).IsSuccess();
+	if (!bResult)
+	{
+		ItemData->MarkAsGarbage();
+	}
+
+	return bResult;
 }
 
 AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,

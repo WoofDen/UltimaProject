@@ -3,12 +3,37 @@
 // Game includes
 #include "ContainerWidget.h"
 
-void UContainerWidget::Initialize(UContainerComponent* InContainerComponent)
+void UContainerWidget::OnContainerItemsChange()
 {
+	HandleContainerItemsChange();
+}
+
+void UContainerWidget::NativeDestruct()
+{
+	Super::NativeDestruct();
+
+	if (ContainerComponent.IsValid())
+	{
+		ContainerComponent->OnContainerItemsChanged.RemoveDynamic(this, &ThisClass::OnContainerItemsChange);
+	}
+}
+
+void UContainerWidget::SetContainerComponent(UContainerComponent* InContainerComponent)
+{
+	check(!ContainerComponent.IsValid())
 	ContainerComponent = InContainerComponent;
-	ensureAlways(ContainerComponent.IsValid());
 	
+	if (!ContainerComponent.IsValid())
+	{
+		UE_LOG(LogUPContainers, Error, TEXT("ContainerComponent is not valid for %s"), *GetNameSafe(this));
+		RemoveFromParent();
+		return;
+	}
+
 	OnContainerInitialized();
+
+	ensureAlways(GetOwningPlayer()->GetNetMode() == NM_Client || GetOwningPlayer()->GetNetMode() == NM_ListenServer);
+	ContainerComponent->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnContainerItemsChange);
 }
 
 UContainerComponent* UContainerWidget::GetContainerComponent() const

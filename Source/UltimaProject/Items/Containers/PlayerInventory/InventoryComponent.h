@@ -30,6 +30,7 @@ public:
 
 	// Performs pickup action, considering all external conditions are met ( radius/visibility/etc )
 	// Client only
+	UFUNCTION(BlueprintCallable)
 	bool TryPickupItem(AItem* Item);
 	
 	// Client only

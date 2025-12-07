@@ -29,6 +29,11 @@ FContainerItemData::FContainerItemData()
 
 void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
+	if (AddedIndices.IsEmpty())
+	{
+		return;
+	}
+
 	// Propagate changes to client
 	if (UContainerComponent* Container = ContainerComponent.Get())
 	{
@@ -43,6 +48,11 @@ void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, in
 
 void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
+	if (ChangedIndices.IsEmpty())
+	{
+		return;
+	}
+
 	// Propagate changes to client
 	if (UContainerComponent* Container = ContainerComponent.Get())
 	{
@@ -57,10 +67,22 @@ void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndice
 
 void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
-	// Propagate changes to client
-	if (UContainerComponent* Container = ContainerComponent.Get())
+	if (RemovedIndices.IsEmpty() || !ContainerComponent.IsValid())
 	{
-		Container->NotifyContainerItemsChanged();
+		return;
+	}
+
+	// Propagate changes to the client
+	// The replicated prop. ( ContainerItems ) still contains the removed idx., so postpone the update
+	if (UWorld* World = ContainerComponent->GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick([WeakContainerPtr = ContainerComponent]
+		{
+			if (WeakContainerPtr.IsValid())
+			{
+				WeakContainerPtr->NotifyContainerItemsChanged();
+			}
+		});
 	}
 }
 
@@ -126,7 +148,7 @@ void UContainerComponent::InitializeContainerWidget()
 
 	if (ContainerWidget)
 	{
-		ContainerWidget->Initialize(this);
+		ContainerWidget->SetContainerComponent(this);
 	}
 }
 
@@ -140,12 +162,6 @@ bool UContainerComponent::FindDropTransform(const UItemData* ItemData, FTransfor
 
 	// TODO for chests or etc traces will be needed
 	return false;
-}
-
-void UContainerComponent::OnRep_Items()
-{
-	ensureAlways(GetOwner() && !GetOwner()->HasAuthority());
-	NotifyContainerItemsChanged();
 }
 
 void UContainerComponent::NotifyContainerItemsChanged_Implementation()
@@ -196,7 +212,15 @@ void UContainerComponent::DisplayContainerWidget()
 		}
 	}
 
-	ContainerWidget->AddToViewport();
+	if (ContainerWidget->IsInViewport())
+	{
+		ContainerWidget->RemoveFromParent();
+		ContainerWidget = nullptr;
+	}
+	else
+	{
+		ContainerWidget->AddToViewport();
+	}
 }
 
 bool UContainerComponent::HasItem(const FContainerItemData& ItemData) const

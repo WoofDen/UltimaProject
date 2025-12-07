@@ -125,7 +125,7 @@ class UContainerComponent : public UActorComponent, public IContainerInterface
 
 	friend class UItemFactoryHelper;
 
-	UPROPERTY(VisibleAnywhere, Transient, Replicated, ReplicatedUsing=OnRep_Items)
+	UPROPERTY(VisibleAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
 	int32 GetStoredSlotsCount() const;
@@ -155,9 +155,6 @@ protected:
 
 	// Find a position nearby where we can safely drop an item
 	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
-
-	UFUNCTION()
-	virtual void OnRep_Items();
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, const FContainerItemData&, ContainerItem);
