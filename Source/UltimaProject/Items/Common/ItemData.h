@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
+// Game incldues
+#include "UltimaProject/Abilities/Interactions/BaseInteractionAbility.h"
+
+// Engine includes
 #include "UObject/Object.h"
+#include "Engine/DataAsset.h"
+
+// Generated include
 #include "ItemData.generated.h"
 
 class AItem;
@@ -51,6 +56,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int64 Slots = 1;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UBaseInteractionAbility> PickupAbilityClass;
 };
 
 /**

@@ -2,14 +2,19 @@
 
 #pragma once
 
+// Game includes
+#include "UltimaProject/Framework/UPPlayerController.h"
+#include "UltimaProject/Attributes/UPBaseAttributeSet.h"
+#include "UltimaProject/SkillSystem/SkillSystemComponent.h"
+
+// Engine includes
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "UltimaProject/Framework/UPPlayerController.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
-#include "UltimaProject/Abilities/UPBaseAttributeSet.h"
-#include "UltimaProject/SkillSystem/SkillSystemComponent.h"
+
+// Generated include
 #include "UPCharacter.generated.h"
 
 class UInventoryComponent;
