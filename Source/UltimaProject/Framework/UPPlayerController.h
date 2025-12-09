@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
+// Game includes
 #include "UltimaProject/Navigation/UPPathFollowingComponent.h"
-#include "InputAction.h"
+#include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
+
+// Engine includes
+#include "GameFramework/PlayerController.h"
+
+// Generated include
 #include "UPPlayerController.generated.h"
 
 /**
@@ -23,10 +27,19 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
 
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayHUDWidget> GameplayHUDWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGameplayHUDWidget> GameplayHUDWidgetInstance;
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void MoveToCursor();
 
 	UFUNCTION(BlueprintCallable)
 	void HandlePickupAction() const;
+
+	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
 };

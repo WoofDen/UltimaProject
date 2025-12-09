@@ -36,8 +36,24 @@ void UInteractionProgressWidget::NativeTick(const FGeometry& MyGeometry, float I
 	}
 }
 
+void UInteractionProgressWidget::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+	SetInteractionName(InteractionName);
+}
+
 void UInteractionProgressWidget::InitializeWidget(double InTimeStarted, float InTargetTime)
 {
 	TimeStarted = InTimeStarted;
 	TargetTime = InTargetTime;
+}
+
+void UInteractionProgressWidget::SetInteractionName(const FText& InInteractionName)
+{
+	InteractionName = InInteractionName;
+	if (InteractionNameText)
+	{
+		InteractionNameText->SetVisibility(InteractionName.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+		InteractionNameText->SetText(InteractionName);
+	}
 }

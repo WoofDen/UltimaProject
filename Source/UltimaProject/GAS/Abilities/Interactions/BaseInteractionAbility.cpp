@@ -2,9 +2,38 @@
 
 // Game includes
 #include "BaseInteractionAbility.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 // Engine includes
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+
+void UBaseInteractionAbility::InitializeProgressWidget(AUPPlayerController* OwnerController)
+{
+	if (!IsValid(OwnerController) || !ensureAlways(IsValid(ProgressWidgetClass)))
+	{
+		return;
+	}
+
+	if (!ProgressWidgetInstance)
+	{
+		ProgressWidgetInstance = CreateWidget<UInteractionProgressWidget>(OwnerController, ProgressWidgetClass);
+	}
+
+	if (ensureAlways(ProgressWidgetInstance))
+	{
+		// Setup the timings
+		if (UWorld* World = OwnerController->GetWorld())
+		{
+			ProgressWidgetInstance->InitializeWidget(World->GetTimeSeconds(), InteractionTime);
+		}
+
+		// Add widget to HUD
+		if (UGameplayHUDWidget* GameplayHUDWidget = OwnerController->GetGameplayHUD())
+		{
+			GameplayHUDWidget->AddInteractionWidget(ProgressWidgetInstance);
+		}
+	}
+}
 
 void UBaseInteractionAbility::OnInteractionFinished()
 {
@@ -25,30 +54,26 @@ void UBaseInteractionAbility::ActivateAbility(const FGameplayAbilitySpecHandle H
                                               const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-	check(ActorInfo);
 
-	// Create the progress widget
-	if (!IsValid(ProgressWidgetInstance) && ActorInfo->OwnerActor->GetNetMode() != NM_DedicatedServer)
+	// (Client/LS) Create the progress widget instance
+	if (ActorInfo->OwnerActor->GetNetMode() != NM_DedicatedServer)
 	{
-		ensureAlways(IsValid(ProgressWidgetClass));
+		check(ActorInfo);
 		ensureAlways(ActorInfo->OwnerActor.IsValid());
 
-		APawn* Pawn = Cast<APawn>(ActorInfo->OwnerActor.Get());
-		APlayerController* PC = nullptr;
-		if (Pawn)
+		if (APawn* Pawn = Cast<APawn>(ActorInfo->OwnerActor.Get()))
 		{
-			PC = Pawn->GetController<APlayerController>();
+			InitializeProgressWidget(Pawn->GetController<AUPPlayerController>());
 		}
 
-		ProgressWidgetInstance = CreateWidget<UInteractionProgressWidget>(PC, ProgressWidgetClass);
+		if (!ProgressWidgetInstance)
+		{
+			CancelAbility(Handle, ActorInfo, ActivationInfo, false);
+			return;
+		}
 	}
 
-	if (UWorld* World = GetWorld(); World && ProgressWidgetInstance)
-	{
-		ProgressWidgetInstance->InitializeWidget(World->GetTimeSeconds(), InteractionTime);
-		ProgressWidgetInstance->AddToViewport();
-	}
-
+	// (Server) Set up a wait task for the server
 	check(ActorInfo->OwnerActor.IsValid());
 	if (ActorInfo->OwnerActor->HasAuthority())
 	{

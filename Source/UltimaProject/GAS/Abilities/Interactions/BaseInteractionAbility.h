@@ -4,6 +4,7 @@
 
 // Game includes
 #include "UltimaProject/UI/InteractionProgressWidget.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 // Engine includes
 #include "Abilities/GameplayAbility.h"
@@ -22,6 +23,8 @@ class ULTIMAPROJECT_API UBaseInteractionAbility : public UGameplayAbility
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UAbilityTask_WaitDelay> DelayTask;
+
+	void InitializeProgressWidget(AUPPlayerController* OwnerController);
 
 protected:
 	UPROPERTY(EditDefaultsOnly)

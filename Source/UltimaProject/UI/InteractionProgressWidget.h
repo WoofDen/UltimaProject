@@ -23,15 +23,23 @@ class ULTIMAPROJECT_API UInteractionProgressWidget : public UUserWidget
 	
 protected:
 	UPROPERTY(meta=(BindWidget, OptionalWidget=true))
+	TObjectPtr<UTextBlock> InteractionNameText;
+	
+	UPROPERTY(meta=(BindWidget, OptionalWidget=true))
 	TObjectPtr<UTextBlock> RemainingTimeText;
 	
 	UPROPERTY(meta=(BindWidget, OptionalWidget=true))
 	TObjectPtr<UProgressBar> ProgressBar;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText InteractionName;
+	
 public:
 	// UUserWidget
 	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	void NativePreConstruct() override;
 	// ~UUserWidget
 	
 	void InitializeWidget(double InTimeStarted, float InTargetTime);
+	void SetInteractionName(const FText& InInteractionName);
 };

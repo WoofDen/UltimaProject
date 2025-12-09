@@ -4,14 +4,14 @@
 
 // Game includes
 #include "UltimaProject/Framework/UPPlayerController.h"
-#include "UltimaProject/Attributes/UPBaseAttributeSet.h"
+#include "UltimaProject/GAS/Attributes/UPBaseAttributeSet.h"
 #include "UltimaProject/SkillSystem/SkillSystemComponent.h"
+#include "UltimaProject/GAS/UPAbilitySystemComponent.h"
 
 // Engine includes
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 
 // Generated include
@@ -80,16 +80,13 @@ public:
 
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta=(AllowPrivateAccess=true))
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UUPAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta=(AllowPrivateAccess=true), Category="Attributes")
 	const UUPBaseAttributeSet* BaseAttributeSet = nullptr;
 
 public:
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override
-	{
-		return AbilitySystemComponent.Get();
-	};
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 #pragma endregion
 #pragma region Skills
 

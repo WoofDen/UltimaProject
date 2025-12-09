@@ -21,8 +21,19 @@ AUPPlayerController::AUPPlayerController()
 void AUPPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Initialize Gameplay HUD
+	if (ensureAlways(IsValid(GameplayHUDWidgetClass)) 
+		&& IsLocalController())
+	{
+		GameplayHUDWidgetInstance = CreateWidget<UGameplayHUDWidget>(this, GameplayHUDWidgetClass);
+		check(GameplayHUDWidgetInstance);
+
+		GameplayHUDWidgetInstance->AddToViewport();
+	}
 }
 
+// TODO this one shouldn't be there
 void AUPPlayerController::MoveToCursor()
 {
 	APawn* ControlledPawn = GetPawn();

@@ -3,7 +3,7 @@
 #pragma once
 
 // Game incldues
-#include "UltimaProject/Abilities/Interactions/BaseInteractionAbility.h"
+#include "UltimaProject/GAS/Abilities/Interactions/BaseInteractionAbility.h"
 
 // Engine includes
 #include "UObject/Object.h"

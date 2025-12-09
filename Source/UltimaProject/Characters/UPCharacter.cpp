@@ -18,6 +18,11 @@ AUPPlayerController* AUPCharacter::GetPlayerController()
 	return PlayerController;
 }
 
+UAbilitySystemComponent* AUPCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent.Get();
+}
+
 void AUPCharacter::OnRep_InventoryComponent()
 {
 	// removing inventory after gameplay begin s not handled
@@ -50,10 +55,10 @@ AUPCharacter::AUPCharacter()
 	ArmRotator.Pitch = -40.f;
 	SpringArmComponent->SetWorldRotation(ArmRotator);
 
-	// gas
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>("AbilitySystemComponent");
+	// GAS
+	AbilitySystemComponent = CreateDefaultSubobject<UUPAbilitySystemComponent>("AbilitySystemComponent");
 
-	// skills
+	// Skills
 	SkillSystemComponent = CreateDefaultSubobject<USkillSystemComponent>("SkillSystemComponent");
 }
 
@@ -66,8 +71,8 @@ void AUPCharacter::BeginPlay()
 	if (HasAuthority())
 	{
 		const UClass* InventoryClass = IsValid(InventoryComponentClass)
-			                         ? *InventoryComponentClass
-			                         : UInventoryComponent::StaticClass();
+			                               ? *InventoryComponentClass
+			                               : UInventoryComponent::StaticClass();
 
 		InventoryComponent = NewObject<UInventoryComponent>(this, InventoryClass, TEXT("InventoryComponent"));
 		InventoryComponent->RegisterComponent();
