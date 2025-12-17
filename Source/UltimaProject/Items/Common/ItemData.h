@@ -3,7 +3,7 @@
 #pragma once
 
 // Game incldues
-#include "UltimaProject/GAS/Abilities/Interactions/BaseInteractionAbility.h"
+#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Interaction.h"
 
 // Engine includes
 #include "UObject/Object.h"
@@ -58,7 +58,7 @@ public:
 	int64 Slots = 1;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UBaseInteractionAbility> PickupAbilityClass;
+	TSubclassOf<UGameplayAbility_Interaction> PickupAbilityClass;
 };
 
 /**

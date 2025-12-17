@@ -10,6 +10,23 @@ UUPAbilitySystemComponent::UUPAbilitySystemComponent()
 {
 }
 
+FGameplayAbilitySpec* UUPAbilitySystemComponent::FindAbilityByTag(const FGameplayTag& Tag) const
+{
+	TArray<FGameplayAbilitySpec*> AbilitiesToActivatePtrs;
+	FGameplayTagContainer TagsToQuery;
+	TagsToQuery.AddTag(Tag);
+
+	GetActivatableGameplayAbilitySpecsByAllMatchingTags(TagsToQuery, AbilitiesToActivatePtrs, false);
+	ensureAlways(AbilitiesToActivatePtrs.Num() <= 1);
+
+	if (!AbilitiesToActivatePtrs.IsEmpty())
+	{
+		return AbilitiesToActivatePtrs[0];
+	}
+	
+	return nullptr;
+}
+
 void UUPAbilitySystemComponent::BeginPlay()
 {
 	Super::BeginPlay();

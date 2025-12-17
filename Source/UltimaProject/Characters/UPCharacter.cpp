@@ -106,6 +106,17 @@ void AUPCharacter::PreInitializeComponents()
 	AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
 }
 
+void AUPCharacter::Restart()
+{
+	Super::Restart();
+	
+	// Re-init to ensure FGameplayAbilityActorInfo::PlayerController is set
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
+}
+
 void AUPCharacter::UpdateGameplayReadyState()
 {
 	// GameplayReady is designed to run after begin play

@@ -2,45 +2,40 @@
 
 #pragma once
 
-// Game includes
-#include "UltimaProject/UI/InteractionProgressWidget.h"
-#include "UltimaProject/Framework/UPPlayerController.h"
-
 // Engine includes
 #include "Abilities/GameplayAbility.h"
-#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 
 // Generated include
-#include "BaseInteractionAbility.generated.h"
+#include "GameplayAbility_Interaction.generated.h"
 
 /**
  * 
  */
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API UBaseInteractionAbility : public UGameplayAbility
+class ULTIMAPROJECT_API UGameplayAbility_Interaction : public UGameplayAbility
 {
 	GENERATED_BODY()
 
+	float Time;
+	float TimeStarted;
+	
 	UPROPERTY(Transient)
-	TWeakObjectPtr<UAbilityTask_WaitDelay> DelayTask;
+	TObjectPtr<class UAbilityTask_WaitDelay> WaitDelayTaskInstance;
 
-	void InitializeProgressWidget(AUPPlayerController* OwnerController);
-
+	UPROPERTY(Transient)
+	TObjectPtr<class UInteractionProgressWidget> ProgressWidgetInstance;
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	float InteractionTime = 3.f;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class UInteractionProgressWidget> ProgressWidgetClass;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UInteractionProgressWidget> ProgressWidgetInstance;
+	TSubclassOf<UInteractionProgressWidget> ProgressWidgetClass;
 
 	UFUNCTION()
 	void OnInteractionFinished();
 
 public:
-	UBaseInteractionAbility();
+	UGameplayAbility_Interaction();
 
 	// UGameplayAbility
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

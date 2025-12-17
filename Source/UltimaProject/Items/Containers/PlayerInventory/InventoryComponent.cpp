@@ -5,6 +5,7 @@
 
 void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
 {
+	// Third pickup check - server check
 	if (!IsValid(Item) || !CanPickItem(Item))
 	{
 		return;
@@ -108,12 +109,10 @@ bool UInventoryComponent::CanPickItem(const AItem* Item) const
 
 bool UInventoryComponent::TryPickupItem(AItem* Item)
 {
-	// expect this to be called from a local client
+	// Expect this to be called from a local client
 	ensure(!GetOwner()->HasAuthority());
 
-	// local checks
-
-	// send request to server
+	// Send the request to the server
 	ServerTryPickupItem(Item);
 	return true;
 }

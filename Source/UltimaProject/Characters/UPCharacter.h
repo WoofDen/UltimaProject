@@ -36,6 +36,7 @@ public:
 	
 	// APawn
 	virtual void PreInitializeComponents() override;
+	virtual void Restart() override;
 	// ~APawn
 
 	// Called to bind functionality to input
