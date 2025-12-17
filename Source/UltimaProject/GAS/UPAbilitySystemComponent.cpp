@@ -34,9 +34,4 @@ void UUPAbilitySystemComponent::BeginPlay()
 
 	ASCOwnerInterface = Cast<IAbilitySystemInterface>(GetOwner());
 	check(ASCOwnerInterface.IsValid());
-
-	if (DefaultAbilitySet && GetOwner()->HasAuthority())
-	{
-		DefaultAbilitySet->GiveAbilities(this);
-	}
 }

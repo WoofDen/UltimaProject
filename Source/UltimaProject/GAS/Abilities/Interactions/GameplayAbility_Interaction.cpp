@@ -2,7 +2,6 @@
 
 // Game includes
 #include "GameplayAbility_Interaction.h"
-#include "UltimaProject/Items/Containers/PlayerInventory/InventoryComponent.h"
 #include "UltimaProject/UI/InteractionProgressWidget.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 
@@ -32,7 +31,7 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 	check(ActorInfo);
 	ensureAlways(ActorInfo->OwnerActor.IsValid());
 
-	// (Server) 
+	// (Server) Setup a delay task
 	if (ActorInfo->OwnerActor->GetNetMode() == NM_DedicatedServer)
 	{
 		check(ActorInfo->OwnerActor.IsValid());
@@ -63,13 +62,14 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 
 		if (ensureAlways(ProgressWidgetInstance))
 		{
-			// Setup the timings
+			// Set up the timings
 			if (UWorld* World = OwnerController->GetWorld())
 			{
 				ProgressWidgetInstance->InitializeWidget(World->GetTimeSeconds(), InteractionTime);
+				ProgressWidgetInstance->SetInteractionName(InteractionName);
 			}
 
-			// Add widget to HUD
+			// Add the progress widget to HUD
 			if (UGameplayHUDWidget* GameplayHUDWidget = OwnerController->GetGameplayHUD())
 			{
 				GameplayHUDWidget->AddInteractionWidget(ProgressWidgetInstance);

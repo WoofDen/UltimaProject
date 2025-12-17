@@ -18,11 +18,6 @@ AUPPlayerController* AUPCharacter::GetPlayerController()
 	return PlayerController;
 }
 
-UAbilitySystemComponent* AUPCharacter::GetAbilitySystemComponent() const
-{
-	return AbilitySystemComponent.Get();
-}
-
 void AUPCharacter::OnRep_InventoryComponent()
 {
 	// removing inventory after gameplay begin s not handled
@@ -54,12 +49,6 @@ AUPCharacter::AUPCharacter()
 	FRotator ArmRotator;
 	ArmRotator.Pitch = -40.f;
 	SpringArmComponent->SetWorldRotation(ArmRotator);
-
-	// GAS
-	AbilitySystemComponent = CreateDefaultSubobject<UUPAbilitySystemComponent>("AbilitySystemComponent");
-
-	// Skills
-	SkillSystemComponent = CreateDefaultSubobject<USkillSystemComponent>("SkillSystemComponent");
 }
 
 // Called when the game starts or when spawned
@@ -97,24 +86,6 @@ void AUPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME_CONDITION(AUPCharacter, InventoryComponent, COND_OwnerOnly);
-}
-
-void AUPCharacter::PreInitializeComponents()
-{
-	Super::PostInitializeComponents();
-	check(AbilitySystemComponent);
-	AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
-}
-
-void AUPCharacter::Restart()
-{
-	Super::Restart();
-	
-	// Re-init to ensure FGameplayAbilityActorInfo::PlayerController is set
-	if (AbilitySystemComponent)
-	{
-		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-	}
 }
 
 void AUPCharacter::UpdateGameplayReadyState()

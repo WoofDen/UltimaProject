@@ -1,5 +1,4 @@
 ﻿#include "InventoryComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
 

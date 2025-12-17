@@ -80,7 +80,7 @@ void AUPPlayerController::MoveToCursor()
 void AUPPlayerController::HandlePickupAction() const
 {
 	APawn* ControlledPawn = GetPawn();
-	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(ControlledPawn);
+	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetPlayerState<APlayerState>());
 
 	if (!ControlledPawn || !ASI)
 	{
@@ -162,6 +162,7 @@ void AUPPlayerController::HandlePickupAction() const
 				{
 					InventoryComponentPtr->TryPickupItem(TargetItemPtr.Get());
 				}
-			});
+			}
+		);
 	}
 }

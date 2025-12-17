@@ -18,15 +18,19 @@ class ULTIMAPROJECT_API UGameplayAbility_Interaction : public UGameplayAbility
 
 	float Time;
 	float TimeStarted;
-	
+
 	UPROPERTY(Transient)
 	TObjectPtr<class UAbilityTask_WaitDelay> WaitDelayTaskInstance;
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UInteractionProgressWidget> ProgressWidgetInstance;
+
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	float InteractionTime = 3.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	FText InteractionName;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInteractionProgressWidget> ProgressWidgetClass;

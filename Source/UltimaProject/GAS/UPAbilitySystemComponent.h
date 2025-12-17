@@ -24,9 +24,6 @@ public:
 	TWeakInterfacePtr<IAbilitySystemInterface> ASCOwnerInterface;
 
 protected:
-	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UGameplayAbilitySet> DefaultAbilitySet;
-
 	// UAbilitySystemComponent
 	virtual void BeginPlay() override;
 	// ~UAbilitySystemComponent

@@ -1,7 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
+// Game includes
 #include "UPPathFollowingComponent.h"
 #include "UltimaProject/Characters/UPCharacter.h"
+#include "UltimaProject/Framework/UPPlayerState.h"
 
 FAIRequestID UUPPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestData, FNavPathSharedPtr InPath)
 {
@@ -27,9 +29,9 @@ void UUPPathFollowingComponent::OnPathFinished(const FPathFollowingResult& Resul
 void UUPPathFollowingComponent::OnMovementCompleted() const
 {
 	const AController* Controller = CastChecked<AController>(GetOwner());
-	const AUPCharacter* Character = CastChecked<AUPCharacter>(Controller->GetPawn());
+	const AUPPlayerState* PS = Controller->GetPlayerState<AUPPlayerState>();
 
 	const float Length = FMath::Max(0, (PathFinishedAt - PathStartedAt).Length());
 
-	Character->GetSkillSystemComponent()->AddSkillExp(ESkill::Walking, Length / 1000);
+	PS->GetSkillSystemComponent()->AddSkillExp(ESkill::Walking, Length / 1000);
 }

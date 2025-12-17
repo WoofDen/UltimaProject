@@ -20,7 +20,7 @@
 class UInventoryComponent;
 
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IAbilitySystemInterface
+class ULTIMAPROJECT_API AUPCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -32,12 +32,7 @@ public:
 	// AActor
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
-	// ~AActor
-	
-	// APawn
-	virtual void PreInitializeComponents() override;
-	virtual void Restart() override;
-	// ~APawn
+	// ~AActo
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -76,31 +71,6 @@ private:
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	AUPPlayerController* GetPlayerController();
-#pragma endregion
-#pragma region GAS
-
-private:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta=(AllowPrivateAccess=true))
-	TObjectPtr<UUPAbilitySystemComponent> AbilitySystemComponent;
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta=(AllowPrivateAccess=true), Category="Attributes")
-	const UUPBaseAttributeSet* BaseAttributeSet = nullptr;
-
-public:
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-#pragma endregion
-#pragma region Skills
-
-private:
-	UPROPERTY()
-	TObjectPtr<USkillSystemComponent> SkillSystemComponent;
-
-public:
-	USkillSystemComponent* GetSkillSystemComponent() const
-	{
-		return SkillSystemComponent;
-	}
-
 #pragma endregion
 #pragma region Input
 #pragma endregion
