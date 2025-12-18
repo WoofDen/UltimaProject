@@ -9,13 +9,11 @@ class ULTIMAPROJECT_API UInventoryComponent : public UContainerComponent
 	GENERATED_BODY()
 
 	UFUNCTION(Server, Reliable)
-	void ServerTryPickupItem(AItem* Item);
+	void ServerTryDropItem(const FContainerItemData& Item);
 
 	UFUNCTION(Server, Reliable)
-	void ServerTryDropItem(const FContainerItemData& Item);
-	
-	UFUNCTION(Server, Reliable)
 	void ServerTrySplitItem(const FContainerItemData& Item, const int64 SplitAmount);
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -26,13 +24,16 @@ public:
 
 	virtual void BeginPlay() override;
 
-	bool CanPickItem(const AItem* Item) const;
+	bool CanStoreItem(const AItem* Item) const;
 
 	// Performs pickup action, considering all external conditions are met ( radius/visibility/etc )
 	// Client only
 	UFUNCTION(BlueprintCallable)
 	bool TryPickupItem(AItem* Item);
-	
+
+	UFUNCTION(Server, Reliable)
+	void ServerTryPickupItem(AItem* Item);
+
 	// Client only
 	UFUNCTION(BlueprintCallable)
 	bool TrySplitItem(UPARAM(ref) const FContainerItemData& Item, const int64 SplitAmount);

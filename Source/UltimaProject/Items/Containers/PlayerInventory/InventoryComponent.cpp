@@ -5,7 +5,7 @@
 void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
 {
 	// Third pickup check - server check
-	if (!IsValid(Item) || !CanPickItem(Item))
+	if (!IsValid(Item) || !CanStoreItem(Item))
 	{
 		return;
 	}
@@ -63,7 +63,7 @@ void UInventoryComponent::BeginPlay()
 	SetIsReplicated(true);
 }
 
-bool UInventoryComponent::CanPickItem(const AItem* Item) const
+bool UInventoryComponent::CanStoreItem(const AItem* Item) const
 {
 	if (!OwnerCharacter.IsValid())
 	{
@@ -72,13 +72,6 @@ bool UInventoryComponent::CanPickItem(const AItem* Item) const
 
 	const AUPPlayerState* PlayerState = OwnerCharacter->GetPlayerState<AUPPlayerState>();
 	if (!PlayerState)
-	{
-		return false;
-	}
-
-	// radius check
-	float Distance = (OwnerCharacter->GetActorLocation() - Item->GetActorLocation()).Length();
-	if (Distance > PlayerState->GetPickupRadius())
 	{
 		return false;
 	}

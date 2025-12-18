@@ -19,11 +19,6 @@ class ULTIMAPROJECT_API AUPPlayerState : public APlayerState, public IAbilitySys
 	void OnPawnChanged(APlayerState* Player, APawn* NewPawn, APawn* OldPawn);
 	void UpdateAbilitySystemComponent();
 
-protected:
-	// TODO move to pickup ability?
-	UPROPERTY(EditAnywhere, meta=(ClampMin=0))
-	float PickupRadius;
-
 public:
 	AUPPlayerState();
 
@@ -32,11 +27,6 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PostInitializeComponents() override;
 	// ~AActor
-
-	FORCEINLINE float GetPickupRadius() const
-	{
-		return PickupRadius;
-	}
 
 #pragma region Ability System
 

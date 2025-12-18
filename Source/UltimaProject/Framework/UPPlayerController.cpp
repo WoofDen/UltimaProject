@@ -94,47 +94,9 @@ void AUPPlayerController::HandlePickupAction() const
 		return;
 	}
 
-	// Trace an actor under the cursor
-	FHitResult HitResult;
-	if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player); LocalPlayer && LocalPlayer->ViewportClient)
-	{
-		FVector2D MousePosition;
-		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
-		{
-			TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-			ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
-
-			GetHitResultAtScreenPosition(
-				MousePosition,
-				ObjectTypes,
-				false,
-				HitResult);
-		}
-	}
-
-	if (!HitResult.bBlockingHit)
-	{
-		return;
-	}
-
-	AItem* Item = Cast<AItem>(HitResult.GetActor());
-
 	FGameplayAbilitySpec* PickupAbilitySpec = ASC->FindAbilityByTag(ASC->GetPickupAbilityTag());
-	if (!PickupAbilitySpec || !Item)
+	if (!PickupAbilitySpec || PickupAbilitySpec->IsActive())
 	{
-		return;
-	}
-
-	// One action per time
-	if (PickupAbilitySpec->IsActive())
-	{
-		return;
-	}
-
-	// First pickup check - on the action
-	if (!InventoryComponent->CanPickItem(Item))
-	{
-		// TODO some visuals
 		return;
 	}
 
@@ -146,23 +108,5 @@ void AUPPlayerController::HandlePickupAction() const
 	}
 
 	// TODO an extra server check might be needed when we ensure the player actually run a interaction ability before to call UInventoryComponent::TryPickupItem
-	if (ASC->TryActivateAbility(PickupAbilitySpec->Handle, true))
-	{
-		ensureAlways(PickupAbilitySpec->IsActive());
-		ASC->OnAbilityEnded.AddWeakLambda(
-			this, [TargetItemPtr = TWeakObjectPtr(Item), InventoryComponentPtr = TWeakObjectPtr(InventoryComponent)](
-			const FAbilityEndedData& AbilityEndedData)
-			{
-				if (AbilityEndedData.bWasCancelled)
-				{
-					return;
-				}
-
-				if (InventoryComponentPtr.IsValid() && TargetItemPtr.IsValid())
-				{
-					InventoryComponentPtr->TryPickupItem(TargetItemPtr.Get());
-				}
-			}
-		);
-	}
+	ASC->TryActivateAbility(PickupAbilitySpec->Handle, true);
 }
