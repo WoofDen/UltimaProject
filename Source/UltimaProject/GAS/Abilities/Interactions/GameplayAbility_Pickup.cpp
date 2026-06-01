@@ -4,7 +4,9 @@
 #include "GameplayAbility_Pickup.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemLog.h"
 #include "UltimaProject/Characters/UPCharacter.h"
+#include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Common/Item.h"
 #include "UltimaProject/Items/Containers/PlayerInventory/InventoryComponent.h"
 
@@ -46,18 +48,21 @@ AItem* UGameplayAbility_Pickup::GetItemUnderCursor()
 
 bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
 {
+	// Validation
 	AUPCharacter* Character = Cast<AUPCharacter>(GetAvatarActorFromActorInfo());
 	if (!Item || !Character || !Character->GetInventoryComponent())
 	{
 		return false;
 	}
 
+	// Distance check
 	float Distance = (GetActorInfo().AvatarActor->GetActorLocation() - Item->GetActorLocation()).Length();
 	if (Distance > PickupRadius)
 	{
 		return false;
 	}
 
+	// Inventory capacity & other checks
 	if (!Character->GetInventoryComponent()->CanStoreItem(Item))
 	{
 		return false;
@@ -66,23 +71,62 @@ bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
 	return true;
 }
 
-void UGameplayAbility_Pickup::ServerOnReplicatedDataReady(const FGameplayAbilityTargetDataHandle& DataHandle,
-                                                          FGameplayTag Tag)
+void UGameplayAbility_Pickup::PickupItemInternal()
+{
+	check(K2_HasAuthority()); // Server only
+	
+	if (!bServerTargetDataReady || !TargetItem.IsValid() || !IsInteractionFinished())
+	{
+		// To start the picking attempt the next conditions should be met
+		// - Data is replicated ( most probably the earliest event )
+		// - Interaction is done
+		return;
+	}
+	
+	if (AUPCharacter* Character = Cast<AUPCharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (UInventoryComponent* InventoryComponent = Character->GetInventoryComponent())
+		{
+			InventoryComponent->TryStoreItem(TargetItem.Get());
+		}
+	}
+	
+	// Regardless of the result, end the ability
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+}
+
+void UGameplayAbility_Pickup::OnTargetDataReady(const FGameplayAbilityTargetDataHandle& DataHandle,
+                                                FGameplayTag Tag)
 {
 	// Validation
 	if (!IsActive() || DataHandle.Num() == 0 || DataHandle.Get(0)->GetActors().IsEmpty())
 	{
+		UE_LOG(LogAbilitySystem, Error, TEXT("Pickup: Invalid data received from server"));
+		EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, true);
 		return;
 	}
+	
+	bServerTargetDataReady = true;
 
-	AItem* Item = Cast<AItem>(DataHandle.Get(0)->GetActors()[0]);
-	AUPCharacter* Character = Cast<AUPCharacter>(GetAvatarActorFromActorInfo());
-	if (!Item || !Character || !CanPickupItem(Item) || !Character->GetInventoryComponent())
+	if (const FGameplayAbilityTargetData* TargetDataFirst = DataHandle.Get(0))
 	{
-		return;
+		if (TArray<TWeakObjectPtr<AActor>> TargetActors = TargetDataFirst->GetActors(); !TargetActors.IsEmpty())
+		{
+			TargetItem = Cast<AItem>(TargetActors[0]);
+			PickupItemInternal();
+			
+			return;
+		}
 	}
+	
+	UE_LOG(LogAbilitySystem, Error, TEXT("Pickup(2): Invalid data received from server"));
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, true);
+}
 
-	Character->GetInventoryComponent()->ServerTryPickupItem(Item);
+void UGameplayAbility_Pickup::OnInteractionFinished()
+{
+	Super::OnInteractionFinished();
+	PickupItemInternal();
 }
 
 void UGameplayAbility_Pickup::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -103,15 +147,16 @@ void UGameplayAbility_Pickup::ActivateAbility(const FGameplayAbilitySpecHandle H
 	// (Client) 
 	if (GetActorInfo().OwnerActor->GetNetMode() == NM_Client)
 	{
-		AItem* TargetItem = GetItemUnderCursor();
-		if (!TargetItem || !CanPickupItem(TargetItem))
+		AItem* CursorItem = GetItemUnderCursor();
+		if (!CursorItem || !CanPickupItem(CursorItem))
 		{
 			EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 			return;
 		}
 
+		// Send TargetData to Server
 		FGameplayAbilityTargetData_ActorArray* Data = new FGameplayAbilityTargetData_ActorArray();
-		Data->TargetActorArray.Add(TargetItem);
+		Data->TargetActorArray.Add(CursorItem);
 		FGameplayAbilityTargetDataHandle Handle(Data); // Wraps Data in TSharedPtr
 
 		FGameplayTag ApplicationTag;
@@ -126,23 +171,29 @@ void UGameplayAbility_Pickup::ActivateAbility(const FGameplayAbilitySpecHandle H
 	// (Server)
 	else if (GetActorInfo().OwnerActor->GetNetMode() == NM_DedicatedServer)
 	{
+		bServerTargetDataReady = false;
+		// Set up a delegate to wait for target data replication
 		ASC->AbilityTargetDataSetDelegate(
 			GetCurrentAbilitySpecHandle(),
 			GetCurrentActivationInfo().GetActivationPredictionKey()
-		).AddUObject(this, &ThisClass::ServerOnReplicatedDataReady);
+		).AddUObject(this, &ThisClass::OnTargetDataReady);
 	}
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
 void UGameplayAbility_Pickup::EndAbility(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-	bool bReplicateEndAbility, bool bWasCancelled)
+                                         const FGameplayAbilityActorInfo* ActorInfo,
+                                         const FGameplayAbilityActivationInfo ActivationInfo,
+                                         bool bReplicateEndAbility, bool bWasCancelled)
 {
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-	
+
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
-		ASC->AbilityTargetDataSetDelegate(GetCurrentAbilitySpecHandle(), GetCurrentActivationInfo().GetActivationPredictionKey()).RemoveAll(this);
+		ASC->AbilityTargetDataSetDelegate(
+			GetCurrentAbilitySpecHandle(),
+			GetCurrentActivationInfo().GetActivationPredictionKey()
+		).RemoveAll(this);
 	}
 }

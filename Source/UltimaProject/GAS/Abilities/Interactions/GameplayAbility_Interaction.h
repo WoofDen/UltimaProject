@@ -9,12 +9,14 @@
 #include "GameplayAbility_Interaction.generated.h"
 
 /**
- * 
+ * An interaction ability represents a base for a longing time-based action and can be interrupted
  */
 UCLASS(Blueprintable)
 class ULTIMAPROJECT_API UGameplayAbility_Interaction : public UGameplayAbility
 {
 	GENERATED_BODY()
+	
+	bool bInteractionFinished = false;
 
 	float Time;
 	float TimeStarted;
@@ -35,8 +37,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInteractionProgressWidget> ProgressWidgetClass;
 
+	bool IsInteractionFinished() const;
+
+	// If after the interaction ends some loginc should be conducted, this one has to be overriden
 	UFUNCTION()
-	void OnInteractionFinished();
+	virtual void OnInteractionFinished();
 
 public:
 	UGameplayAbility_Interaction();

@@ -8,16 +8,21 @@
 // Engine includes
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 
+bool UGameplayAbility_Interaction::IsInteractionFinished() const
+{
+	// Cannot rely on the WaitDelayTaskInstance as it will be moved to Finished only after OnFinish delegate
+	return bInteractionFinished;
+}
+
 void UGameplayAbility_Interaction::OnInteractionFinished()
 {
-	check(GetActorInfo().OwnerActor.IsValid() && GetActorInfo().OwnerActor->HasAuthority())
-
-	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+	check(K2_HasAuthority());
+	bInteractionFinished = true;
 }
 
 UGameplayAbility_Interaction::UGameplayAbility_Interaction()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerExecution;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
@@ -44,7 +49,7 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 		}
 
 		WaitDelayTaskInstance->OnFinish.AddDynamic(this, &ThisClass::OnInteractionFinished);
-		WaitDelayTaskInstance->Activate();
+		WaitDelayTaskInstance->ReadyForActivation();
 	}
 	// (Client) Setup interaction UI
 	else if (ActorInfo->OwnerActor->GetNetMode() == NM_Client)

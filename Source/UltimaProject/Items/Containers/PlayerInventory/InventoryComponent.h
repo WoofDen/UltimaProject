@@ -26,13 +26,7 @@ public:
 
 	bool CanStoreItem(const AItem* Item) const;
 
-	// Performs pickup action, considering all external conditions are met ( radius/visibility/etc )
-	// Client only
-	UFUNCTION(BlueprintCallable)
-	bool TryPickupItem(AItem* Item);
-
-	UFUNCTION(Server, Reliable)
-	void ServerTryPickupItem(AItem* Item);
+	void TryStoreItem(AItem* Item);
 
 	// Client only
 	UFUNCTION(BlueprintCallable)

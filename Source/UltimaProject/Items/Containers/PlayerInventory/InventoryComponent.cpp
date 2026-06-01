@@ -2,14 +2,15 @@
 #include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
 
-void UInventoryComponent::ServerTryPickupItem_Implementation(AItem* Item)
+void UInventoryComponent::TryStoreItem(AItem* Item)
 {
-	// Third pickup check - server check
 	if (!IsValid(Item) || !CanStoreItem(Item))
 	{
 		return;
 	}
-
+	
+	// Server only
+	check(Item->HasAuthority());
 	MoveItem(Item);
 }
 
@@ -96,16 +97,6 @@ bool UInventoryComponent::CanStoreItem(const AItem* Item) const
 		return false;
 	}
 
-	return true;
-}
-
-bool UInventoryComponent::TryPickupItem(AItem* Item)
-{
-	// Expect this to be called from a local client
-	ensure(!GetOwner()->HasAuthority());
-
-	// Send the request to the server
-	ServerTryPickupItem(Item);
 	return true;
 }
 

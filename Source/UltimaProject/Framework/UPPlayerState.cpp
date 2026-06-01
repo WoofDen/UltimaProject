@@ -63,7 +63,7 @@ void AUPPlayerState::PostInitializeComponents()
 	{
 		AbilitySystemComponent->AddSet<UUPBaseAttributeSet>();
 
-		if (DefaultAbilitySet)
+		if (HasAuthority() && DefaultAbilitySet)
 		{
 			DefaultAbilitySet->GiveAbilities(AbilitySystemComponent);
 		}

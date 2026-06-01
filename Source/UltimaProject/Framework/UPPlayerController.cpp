@@ -7,6 +7,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "GameFramework/Character.h"
 #include "UltimaProject/Characters/UPCharacter.h"
+#include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Containers/PlayerInventory/InventoryComponent.h"
 
 #define DBGPRINT(x) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(x));
@@ -82,31 +83,19 @@ void AUPPlayerController::HandlePickupAction() const
 	APawn* ControlledPawn = GetPawn();
 	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetPlayerState<APlayerState>());
 
-	if (!ControlledPawn || !ASI)
-	{
-		return;
-	}
+	NULLCHECK(ControlledPawn);
+	NULLCHECK(ASI);
 
 	UUPAbilitySystemComponent* ASC = Cast<UUPAbilitySystemComponent>(ASI->GetAbilitySystemComponent());
-	UInventoryComponent* InventoryComponent = ControlledPawn->FindComponentByClass<UInventoryComponent>();
-	if (!InventoryComponent || !ASC)
-	{
-		return;
-	}
+	NULLCHECK(ASC);
 
 	FGameplayAbilitySpec* PickupAbilitySpec = ASC->FindAbilityByTag(ASC->GetPickupAbilityTag());
+	
+	// Prevent parallel pickups
 	if (!PickupAbilitySpec || PickupAbilitySpec->IsActive())
 	{
 		return;
 	}
 
-	UGameplayAbility_Interaction* PickupAbilityInstance = Cast<UGameplayAbility_Interaction>(
-		PickupAbilitySpec->GetPrimaryInstance());
-	if (!ensureAlways(PickupAbilityInstance))
-	{
-		return;
-	}
-
-	// TODO an extra server check might be needed when we ensure the player actually run a interaction ability before to call UInventoryComponent::TryPickupItem
 	ASC->TryActivateAbility(PickupAbilitySpec->Handle, true);
 }
