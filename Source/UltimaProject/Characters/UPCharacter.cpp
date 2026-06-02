@@ -3,7 +3,7 @@
 #include "UPCharacter.h"
 #include "Components/ArrowComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "UltimaProject/Items/Containers/PlayerInventory/InventoryComponent.h"
+#include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
 
 AUPPlayerController* AUPCharacter::GetPlayerController()
 {

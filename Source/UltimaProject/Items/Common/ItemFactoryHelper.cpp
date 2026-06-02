@@ -2,6 +2,7 @@
 
 #include "ItemFactoryHelper.h"
 #include "Item.h"
+#include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Framework/UPGameMode.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 
@@ -9,61 +10,46 @@ UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-bool UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container)
+UItemData* UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container)
 {
-	if (!Class)
-	{
-		return false;
-	}
+	NULLCHECK_RETURN(Class, nullptr);
 
 	UItemData* Data = Class->GetDefaultObject<UItemData>();
-	if (!Data)
-	{
-		return false;
-	}
+	NULLCHECK_RETURN(Data, nullptr);
 
 	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), Class);
-	if (!ItemData)
-	{
-		return false;
-	}
+	NULLCHECK_RETURN(ItemData, nullptr);
+
 
 	ItemData->Initialize(Data);
-	const bool bResult = Container->AddItem(ItemData).IsSuccess();
-	if (!bResult)
+	if (!Container->AddItem(ItemData).IsSuccess())
 	{
 		ItemData->MarkAsGarbage();
-		return false;
+		return nullptr;
 	}
 
-	return bResult;
+	return ItemData;
 }
 
-bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
+UItemData* UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
                                                        UContainerComponent* Container)
 {
-	if (!ItemDataAsset)
-	{
-		return false;
-	}
+	NULLCHECK_RETURN(ItemDataAsset, nullptr);
 
 	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), UItemData::StaticClass());
-	if (!ItemData)
-	{
-		return false;
-	}
+	NULLCHECK_RETURN(ItemData, nullptr);
 
 	ItemData->SetStaticData(ItemDataAsset);
 	ItemData->Initialize();
 	ItemData->SetAmount(1);
 
-	const bool bResult = Container->AddItem(ItemData).IsSuccess();
-	if (!bResult)
+	if (!Container->AddItem(ItemData).IsSuccess())
 	{
 		ItemData->MarkAsGarbage();
+		return nullptr;
 	}
 
-	return bResult;
+	return ItemData;
 }
 
 AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,

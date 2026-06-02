@@ -26,6 +26,8 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
+	
+	void TryOpenContainer(IContainerInterface* ContainerInterface);
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
@@ -40,6 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HandlePickupAction() const;
+
+	UFUNCTION(BlueprintCallable)
+	void HandleActivateAction();
 
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
 };

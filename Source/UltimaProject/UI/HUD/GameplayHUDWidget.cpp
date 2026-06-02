@@ -5,6 +5,7 @@
 
 // Engine includes
 #include "Components/PanelWidget.h"
+#include "UltimaProject/Common/Macro.h"
 
 void UGameplayHUDWidget::NativeConstruct()
 {
@@ -25,4 +26,18 @@ void UGameplayHUDWidget::AddInteractionWidget(UUserWidget* InteractionWidget)
 	{
 		InteractionsPanel->AddChild(InteractionWidget);
 	}
+}
+
+void UGameplayHUDWidget::AddContainerWidget(IContainerInterface* ContainerInterface)
+{
+	NULLCHECK(ContainerInterface);
+
+	UContainerComponent* ContainerComponent = ContainerInterface->GetContainerComponent();
+	AddContainerWidget(ContainerComponent);
+}
+
+void UGameplayHUDWidget::AddContainerWidget(UContainerComponent* ContainerComponent)
+{
+	NULLCHECK(ContainerComponent);
+	
 }

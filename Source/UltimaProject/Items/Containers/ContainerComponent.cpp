@@ -481,3 +481,9 @@ TArray<FContainerItemData> UContainerComponent::GetItems()
 {
 	return ContainerItems.Items;
 }
+
+TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* InstigatorController)
+{
+	// There we may differ results, based on the instigator.
+	return GetItems();
+}

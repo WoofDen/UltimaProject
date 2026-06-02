@@ -1,10 +1,9 @@
 ﻿#pragma once
 
-// Game includes
-#include "Interfaces/ContainerInterface.h"
-
 // Engine includes
 #include "Net/Serialization/FastArraySerializer.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
+#include "UltimaProject/Items/Common/ItemData.h"
 
 // Generated include
 #include "ContainerComponent.generated.h"
@@ -36,8 +35,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UContainerComponent> Container = nullptr;
 
-	UPROPERTY(BlueprintReadOnly)
-	UItemData* ItemData = nullptr;
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
+	TObjectPtr<UItemData> ItemData = nullptr;
 
 	int32 SlotIndex = INDEX_NONE;
 };
@@ -47,7 +46,7 @@ struct FContainerItems : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TArray<FContainerItemData> Items;
 
 	UPROPERTY()
@@ -119,13 +118,13 @@ static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionRe
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
  */
 UCLASS(Abstract)
-class UContainerComponent : public UActorComponent, public IContainerInterface
+class UContainerComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 	friend class UItemFactoryHelper;
 
-	UPROPERTY(VisibleAnywhere, Transient, Replicated)
+	UPROPERTY(EditAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
 	int32 GetStoredSlotsCount() const;
@@ -200,10 +199,9 @@ public:
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
 #pragma endregion 
 
-#pragma region ContainerInterface
-
-public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	virtual TArray<FContainerItemData> GetItems() override;
-#pragma endregion
+	virtual TArray<FContainerItemData> GetItems();
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
 };

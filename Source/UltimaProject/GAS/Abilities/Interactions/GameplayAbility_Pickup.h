@@ -8,7 +8,7 @@
 #include "GameplayAbility_Pickup.generated.h"
 
 /**
- * 
+ * Pickup an actor item ability
  */
 UCLASS()
 class ULTIMAPROJECT_API UGameplayAbility_Pickup : public UGameplayAbility_Interaction
@@ -16,15 +16,10 @@ class ULTIMAPROJECT_API UGameplayAbility_Pickup : public UGameplayAbility_Intera
 	GENERATED_BODY()
 	
 	// Server only
-	bool bServerTargetDataReady = false;
 	TWeakObjectPtr<AItem> TargetItem;
 
-	AItem* GetItemUnderCursor();
 	bool CanPickupItem(const AItem* Item);
 	void PickupItemInternal();
-	
-	// Called when the server gets client's target data
-	void OnTargetDataReady(const FGameplayAbilityTargetDataHandle& DataHandle, FGameplayTag Tag);
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	float PickupRadius;

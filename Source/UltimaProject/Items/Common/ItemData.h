@@ -66,7 +66,7 @@ public:
  * Represent a single item within a world or a pre-set ( in case of inherited BP ) of item settings
  * Has to be always as an in-world item ( AItem ) or container ( FContainerItemData )
  */
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, BlueprintType)
 class ULTIMAPROJECT_API UItemData : public UObject
 {
 	GENERATED_BODY()

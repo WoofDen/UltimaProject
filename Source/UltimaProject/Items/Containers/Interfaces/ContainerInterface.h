@@ -3,10 +3,8 @@
 #include "UltimaProject/Items/Common/Item.h"
 #include "ContainerInterface.generated.h"
 
-struct FContainerItemData;
-
-// TODO maybe remove
-UINTERFACE(MinimalAPI, Blueprintable)
+// Interface for actors that represents a container or has some container logic ( chests, shelfs )
+UINTERFACE(Blueprintable)
 class UContainerInterface : public UInterface
 {
 	GENERATED_BODY()
@@ -17,5 +15,9 @@ class IContainerInterface
 	GENERATED_BODY()
 
 public:
-	virtual TArray<FContainerItemData> GetItems() = 0;
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UContainerComponent* GetContainerComponent() const;
+	
+	virtual bool CanBeOpened(const class AUPPlayerController* Controller);
+	virtual TSubclassOf<class UContainerWidget> GetDisplayWidgetClass() const;
 };

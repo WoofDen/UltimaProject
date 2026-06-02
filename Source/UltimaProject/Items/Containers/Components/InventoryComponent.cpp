@@ -1,6 +1,7 @@
 ﻿#include "InventoryComponent.h"
 #include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
+#include "UltimaProject/Items/Common/Item.h"
 
 void UInventoryComponent::TryStoreItem(AItem* Item)
 {
@@ -77,7 +78,7 @@ bool UInventoryComponent::CanStoreItem(const AItem* Item) const
 		return false;
 	}
 
-	// visibility check
+	// Visibility check
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(OwnerCharacter.Get());
 	Params.AddIgnoredActor(Item);
