@@ -19,7 +19,7 @@ public:
 	UItemFactoryHelper();
 
 	UFUNCTION(BlueprintCallable)
-	static UItemData* SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container);
+	static UItemData* SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container);
 	
 	UFUNCTION(BlueprintCallable)
 	static UItemData* SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);

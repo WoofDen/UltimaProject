@@ -116,6 +116,7 @@ static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionRe
 
 /**
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
+ * It DOES not contain logic of locks and access but only storage manage
  */
 UCLASS(Abstract)
 class UContainerComponent : public UActorComponent
@@ -140,9 +141,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UContainerWidget> ContainerWidgetClass;
-		
-	UPROPERTY()
-	TObjectPtr<UContainerWidget> ContainerWidget;
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -150,7 +148,7 @@ protected:
 	virtual void BeginPlay() override;
 	// ~UActorComponent
 	
-	void InitializeContainerWidget();
+	// void InitializeContainerWidget();
 
 	// Find a position nearby where we can safely drop an item
 	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
@@ -182,9 +180,9 @@ public:
 	UFUNCTION(BlueprintCallable,BlueprintPure)
 	virtual int32 GetItemCapacity() const;
 	
-	UFUNCTION(BlueprintCallable)
-	void DisplayContainerWidget();
-
+	TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
+	void SetContainerWidgetClass(TSubclassOf<UContainerWidget> Class);
+	
 #pragma region Item transactions
 	// Split into two items by amount. Second item will be placed to the same container
 	virtual FItemTransactionResult SplitItem(UPARAM(ref)  FContainerItemData& Data, const int32 SplitAmount);

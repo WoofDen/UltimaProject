@@ -3,25 +3,20 @@
 #include "ItemFactoryHelper.h"
 #include "Item.h"
 #include "UltimaProject/Common/Macro.h"
-#include "UltimaProject/Framework/UPGameMode.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 
 UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-UItemData* UItemFactoryHelper::SpawnItemInContainer(const TSubclassOf<UItemData> Class, UContainerComponent* Container)
+UItemData* UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container)
 {
-	NULLCHECK_RETURN(Class, nullptr);
+	NULLCHECK_RETURN(Container, nullptr);
 
-	UItemData* Data = Class->GetDefaultObject<UItemData>();
-	NULLCHECK_RETURN(Data, nullptr);
-
-	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), Class);
+	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), UItemData::StaticClass());
 	NULLCHECK_RETURN(ItemData, nullptr);
-
-
-	ItemData->Initialize(Data);
+	
+	ItemData->Initialize(Definition);
 	if (!Container->AddItem(ItemData).IsSuccess())
 	{
 		ItemData->MarkAsGarbage();
@@ -52,8 +47,7 @@ UItemData* UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsse
 	return ItemData;
 }
 
-AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
-                                            const FTransform& Transform)
+AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class, const FTransform& Transform)
 {
 	check(Class);
 

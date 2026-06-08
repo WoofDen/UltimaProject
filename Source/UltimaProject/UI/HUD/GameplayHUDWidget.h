@@ -17,7 +17,8 @@ class ULTIMAPROJECT_API UGameplayHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
-	TArray<TWeakObjectPtr<UContainerComponent>> OpenedContainers;
+	TMap<TWeakObjectPtr<UContainerComponent>, TObjectPtr<UUserWidget>> OpenedContainers;
+
 
 protected:
 	UPROPERTY(meta=(BindWidget))
@@ -32,6 +33,10 @@ public:
 	// ~UUserWidget
 
 	void AddInteractionWidget(UUserWidget* InteractionWidget);
-	void AddContainerWidget(IContainerInterface* ContainerInterface);
+
+	bool IsContainerOpened(UContainerComponent* ContainerComponent) const;
+	
 	void AddContainerWidget(UContainerComponent* ContainerComponent);
+	
+	void CloseContainerWidget(UContainerComponent* ContainerComponent);
 };

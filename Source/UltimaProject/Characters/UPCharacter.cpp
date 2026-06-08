@@ -25,6 +25,16 @@ void AUPCharacter::OnRep_InventoryComponent()
 	UpdateGameplayReadyState();
 }
 
+UContainerComponent* AUPCharacter::GetContainerComponent_Implementation() const
+{
+	return InventoryComponent;
+}
+
+bool AUPCharacter::CanBeOpened(const AUPPlayerController* InstigatorController)
+{
+	return GetController() == InstigatorController;
+}
+
 // Sets default values
 AUPCharacter::AUPCharacter()
 {
@@ -64,6 +74,7 @@ void AUPCharacter::BeginPlay()
 			                               : UInventoryComponent::StaticClass();
 
 		InventoryComponent = NewObject<UInventoryComponent>(this, InventoryClass, TEXT("InventoryComponent"));
+		InventoryComponent->SetContainerWidgetClass(InventoryWidgetClass);
 		InventoryComponent->RegisterComponent();
 	}
 

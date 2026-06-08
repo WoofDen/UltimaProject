@@ -19,5 +19,4 @@ public:
 	UContainerComponent* GetContainerComponent() const;
 	
 	virtual bool CanBeOpened(const class AUPPlayerController* Controller);
-	virtual TSubclassOf<class UContainerWidget> GetDisplayWidgetClass() const;
 };

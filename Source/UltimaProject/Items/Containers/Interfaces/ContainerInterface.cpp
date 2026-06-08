@@ -4,8 +4,3 @@ bool IContainerInterface::CanBeOpened(const class AUPPlayerController* Controlle
 {
 	return true;
 }
-
-TSubclassOf<UContainerWidget> IContainerInterface::GetDisplayWidgetClass() const
-{
-	return nullptr;
-}

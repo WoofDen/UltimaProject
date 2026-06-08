@@ -8,10 +8,8 @@
 #include "UltimaProject/Common/InputHelpers.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
+#include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerInterface.h"
-
-#define DBGPRINT(x) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(x));
-#define DBGSPHERE(l, c) DrawDebugSphere(GetWorld(), l, 10.f, 6, c, false, 3.f);
 
 AUPPlayerController::AUPPlayerController()
 {
@@ -34,16 +32,30 @@ void AUPPlayerController::BeginPlay()
 	}
 }
 
-void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterface)
+void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation)
 {
 	NULLCHECK(ContainerInterface);
 	if (!ContainerInterface->CanBeOpened(this))
 	{
 		return;
 	}
-	
-	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(ContainerInterface->_getUObject());
+
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+		ContainerInterface->_getUObject());
 	NULLCHECK(ContainerComponent);
+	
+	switch (Relation)
+	{
+	case EContainerRelationType::Inventory:
+		// Inventory is already replicated
+		GameplayHUDWidgetInstance->AddContainerWidget(ContainerComponent);
+		break;
+	case EContainerRelationType::InWorldContainer:
+		break;
+	case EContainerRelationType::Invalid:
+		UE_LOG(LogController, Error, TEXT("Invalid container type"));
+		return;
+	}
 }
 
 // TODO this one shouldn't be there
@@ -125,8 +137,12 @@ void AUPPlayerController::HandleActivateAction()
 	NULLCHECK(CursorItem);
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
-	if (IContainerInterface* ContainerInterface = Cast<IContainerInterface>(CursorItem))
-	{
-		TryOpenContainer(ContainerInterface);
-	}
+	TryOpenContainer(Cast<IContainerInterface>(CursorItem), EContainerRelationType::InWorldContainer);
+}
+
+void AUPPlayerController::HandleInventoryToggle()
+{
+	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
+
+	TryOpenContainer(Cast<IContainerInterface>(GetPawn()), EContainerRelationType::Inventory);
 }

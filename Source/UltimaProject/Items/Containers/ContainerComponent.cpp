@@ -105,7 +105,7 @@ void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	{
 		FDoRepLifetimeParams Params;
 		Params.bIsPushBased = true;
-		Params.Condition = COND_OwnerOnly;
+		Params.Condition = COND_None;
 
 		DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ContainerItems, Params);
 	}
@@ -130,6 +130,7 @@ void UContainerComponent::BeginPlay()
 	ContainerItems.ContainerComponent = this;
 }
 
+/*
 void UContainerComponent::InitializeContainerWidget()
 {
 	if (!IsValid(ContainerWidgetClass))
@@ -151,6 +152,7 @@ void UContainerComponent::InitializeContainerWidget()
 		ContainerWidget->SetContainerComponent(this);
 	}
 }
+*/
 
 bool UContainerComponent::FindDropTransform(const UItemData* ItemData, FTransform& Result) const
 {
@@ -162,6 +164,19 @@ bool UContainerComponent::FindDropTransform(const UItemData* ItemData, FTransfor
 
 	// TODO for chests or etc traces will be needed
 	return false;
+}
+
+TSubclassOf<UContainerWidget> UContainerComponent::GetContainerWidgetClass() const
+{
+	return ContainerWidgetClass;
+}
+
+void UContainerComponent::SetContainerWidgetClass(TSubclassOf<UContainerWidget> Class)
+{
+	// Should be initialized before the component registration
+	ensureAlways(!IsRegistered());
+	
+	ContainerWidgetClass = MoveTemp(Class);
 }
 
 void UContainerComponent::NotifyContainerItemsChanged_Implementation()
@@ -197,6 +212,7 @@ int32 UContainerComponent::GetItemCapacity() const
 	return ItemSlotsCapacity;
 }
 
+/*
 void UContainerComponent::DisplayContainerWidget()
 {
 	// TODO global hud and displayed containers var
@@ -222,6 +238,7 @@ void UContainerComponent::DisplayContainerWidget()
 		ContainerWidget->AddToViewport();
 	}
 }
+*/
 
 bool UContainerComponent::HasItem(const FContainerItemData& ItemData) const
 {

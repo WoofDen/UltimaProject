@@ -23,7 +23,7 @@ struct FItemInstanceData
 
 	UPROPERTY(EditAnywhere)
 	float Amount;
-	
+
 	bool operator==(const FItemInstanceData& Other) const
 	{
 		return Amount == Other.Amount;
@@ -56,9 +56,24 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int64 Slots = 1;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayAbility_Interaction> PickupAbilityClass;
+};
+
+// Non-runtime definition of an item. 
+USTRUCT(BlueprintType)
+struct FItemDataDefinition
+{
+	GENERATED_BODY()
+
+	// Data asset with static props
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<const UItemDataAsset> StaticData;
+
+	// Item runtime values ( amount, durability, etc )
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FItemInstanceData InstanceData;
 };
 
 /**
@@ -80,7 +95,7 @@ protected:
 	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, meta = (ExposeOnSpawn="true"))
 	FItemInstanceData InstanceData;
 
 	// Create a duplicate item data with amount. The origin object amount will be reduced
@@ -94,6 +109,7 @@ public:
 	virtual bool IsSupportedForNetworking() const override;
 
 	virtual bool Initialize(UItemData* Source = nullptr);
+	virtual bool Initialize(const FItemDataDefinition& Definition);
 
 	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
 	void SetStaticData(const UItemDataAsset* InStaticData);
@@ -101,7 +117,7 @@ public:
 	const FItemInstanceData& GetInstanceData() const;
 
 	TSubclassOf<AItem> GetActorClass() const;
-	
+
 	// Get a number of items that can be moved TO the TargetItem
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual int32 GetStackableAmount(const UItemData* TargetItem) const;
@@ -120,7 +136,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	virtual int64 SetAmount(const int64 Value);
-	
+
 	UFUNCTION(BlueprintCallable)
 	virtual int64 ModifyAmount(const int64 Value);
 

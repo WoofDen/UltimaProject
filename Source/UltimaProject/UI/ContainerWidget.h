@@ -12,7 +12,7 @@
 /**
  * A container widget provides access to its items.
  */
-UCLASS()
+UCLASS(Abstract)
 class ULTIMAPROJECT_API UContainerWidget : public UUserWidget
 {
 	GENERATED_BODY()

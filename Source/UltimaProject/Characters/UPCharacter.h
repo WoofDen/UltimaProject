@@ -20,7 +20,7 @@
 class UInventoryComponent;
 
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AUPCharacter : public ACharacter
+class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IContainerInterface
 {
 	GENERATED_BODY()
 
@@ -83,11 +83,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInventoryComponent> InventoryComponentClass;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UContainerWidget> InventoryWidgetClass;
+
 	UFUNCTION()
 	void OnRep_InventoryComponent();
 
 public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; };
+	
+	// IContainerInterface
+	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
+	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) override;
+	// ~IContainerInterface
+	
 #pragma endregion
 };

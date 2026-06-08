@@ -56,6 +56,17 @@ bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 	return true;
 }
 
+bool UItemData::Initialize(const FItemDataDefinition& Definition)
+{
+	StaticData = Definition.StaticData;
+	InstanceData = Definition.InstanceData;
+
+	// Do not allow invalid UItemData
+	check(StaticData.IsValid());
+
+	return true;
+}
+
 TSoftObjectPtr<const UItemDataAsset> UItemData::GetStaticData() const
 {
 	return StaticData;

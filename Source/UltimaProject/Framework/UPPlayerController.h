@@ -8,6 +8,7 @@
 
 // Engine includes
 #include "GameFramework/PlayerController.h"
+#include "UltimaProject/Items/Containers/ContainerTypes.h"
 
 // Generated include
 #include "UPPlayerController.generated.h"
@@ -26,8 +27,8 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
-	
-	void TryOpenContainer(IContainerInterface* ContainerInterface);
+
+	void TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation);
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
@@ -37,6 +38,7 @@ protected:
 	TObjectPtr<UGameplayHUDWidget> GameplayHUDWidgetInstance;
 
 public:
+#pragma region Input
 	UFUNCTION(BlueprintCallable)
 	void MoveToCursor();
 
@@ -46,5 +48,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HandleActivateAction();
 
+	UFUNCTION(BlueprintCallable)
+	void HandleInventoryToggle();
+#pragma endregion
+	
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
 };
