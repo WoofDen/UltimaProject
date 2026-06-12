@@ -18,6 +18,7 @@ USTRUCT(BlueprintType)
 struct FContainerItemData : public FFastArraySerializerItem
 {
 	friend class UContainerComponent;
+	friend class UProxyContainerComponent;
 
 	GENERATED_BODY()
 
@@ -116,7 +117,6 @@ static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionRe
 
 /**
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
- * It DOES not contain logic of locks and access but only storage manage
  */
 UCLASS(Abstract)
 class UContainerComponent : public UActorComponent
@@ -124,8 +124,9 @@ class UContainerComponent : public UActorComponent
 	GENERATED_BODY()
 
 	friend class UItemFactoryHelper;
+	friend class UProxyContainerComponent;
 
-	UPROPERTY(EditAnywhere, Transient, Replicated)
+	UPROPERTY(VisibleAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
 	int32 GetStoredSlotsCount() const;
@@ -147,11 +148,6 @@ protected:
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void BeginPlay() override;
 	// ~UActorComponent
-	
-	// void InitializeContainerWidget();
-
-	// Find a position nearby where we can safely drop an item
-	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, const FContainerItemData&, ContainerItem);
@@ -173,19 +169,29 @@ public:
 	inline static int32 MaxItemsCapacity = MAX_int32;
 
 	FORCEINLINE int32 GetItemsCapacity() const;
-	bool HasItem(const FContainerItemData& ItemData) const;
+	virtual bool HasItem(const FContainerItemData& ItemData) const;
 
 	virtual void SetItemsCapacity(const int32 NewValue);
-	
-	UFUNCTION(BlueprintCallable,BlueprintPure)
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual int32 GetItemCapacity() const;
-	
-	TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
+
+	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
 	void SetContainerWidgetClass(TSubclassOf<UContainerWidget> Class);
-	
-#pragma region Item transactions
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual TArray<FContainerItemData> GetItems();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
+
+	IContainerInterface* GetOwnerInterface() const;
+
+#pragma region Server low-level item transactions
+
+protected:
 	// Split into two items by amount. Second item will be placed to the same container
-	virtual FItemTransactionResult SplitItem(UPARAM(ref)  FContainerItemData& Data, const int32 SplitAmount);
+	virtual FItemTransactionResult SplitItem(UPARAM(ref) FContainerItemData& Data, const int32 SplitAmount);
 
 	// Container->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem);
@@ -195,11 +201,43 @@ public:
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
-#pragma endregion 
+#pragma endregion
 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	virtual TArray<FContainerItemData> GetItems();
-	
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
+#pragma region Helpers & validators
+
+public:
+	// Returns self unless the container represents another container (see UProxyContainerComponent)
+	virtual UContainerComponent* GetOriginContainer();
+	virtual UContainerComponent* GetListenContainer();
+
+	// Find a position nearby where we can safely drop an item
+	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
+
+	// TODO split the logic - HasAccess to the container and HasAccess to the item
+	// Check can we move an external actor item to this container
+	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
+#pragma endregion
+
+#pragma region Client top-level item operations
+
+public:
+	virtual void TryStoreItem(AController* Instigator, AItem* Item);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool TrySplitItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item, const int64 SplitAmount);
+
+	UFUNCTION(BlueprintCallable)
+	virtual bool TryDropItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item);
+
+#pragma endregion
+
+#pragma region Server top-level item operations
+
+public:
+	UFUNCTION(Server, Reliable)
+	void ServerTryDropItem(AController* Instigator, const FContainerItemData& Item);
+
+	UFUNCTION(Server, Reliable)
+	void ServerTrySplitItem(AController* Instigator, const FContainerItemData& Item, const int64 SplitAmount);
+#pragma endregion
 };

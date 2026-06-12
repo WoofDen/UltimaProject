@@ -16,7 +16,7 @@ bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
 	NULLCHECK_RETURN(Item, false);
 	NULLCHECK_RETURN(Character, false);
 	NULLCHECK_SP_RETURN(GetActorInfo().AvatarActor, false);
-	
+
 	UInventoryComponent* InventoryComponent = Character->GetInventoryComponent();
 	NULLCHECK_RETURN(InventoryComponent, false);
 
@@ -28,7 +28,7 @@ bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
 	}
 
 	// Inventory capacity & other checks
-	if (!InventoryComponent->CanStoreItem(Item))
+	if (!InventoryComponent->CanStoreItem(GetActorInfo().PlayerController.Get(), Item))
 	{
 		return false;
 	}
@@ -46,7 +46,7 @@ void UGameplayAbility_Pickup::PickupItemInternal()
 		if (UInventoryComponent* InventoryComponent = Character->GetInventoryComponent())
 		{
 			// TODO A check that the item hasn't been picked by someone else between client and server ability activation. Item actor may persist but it doesn't guarantee its valid.
-			InventoryComponent->TryStoreItem(TargetItem.Get());
+			InventoryComponent->TryStoreItem(Character->GetController(), TargetItem.Get());
 		}
 	}
 

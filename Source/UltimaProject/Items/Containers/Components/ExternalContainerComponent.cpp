@@ -11,7 +11,11 @@ UExternalContainerComponent::UExternalContainerComponent()
 void UExternalContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// External containers are accessed through proxy containers
+	SetIsReplicated(false);
 
+	// Server only
 	if (AActor* Owner = GetOwner(); Owner && Owner->HasAuthority())
 	{
 		for (const auto& Data : DefaultItems)

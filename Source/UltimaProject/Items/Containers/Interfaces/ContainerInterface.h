@@ -19,4 +19,6 @@ public:
 	UContainerComponent* GetContainerComponent() const;
 	
 	virtual bool CanBeOpened(const class AUPPlayerController* Controller);
+	
+	// TODO container gets inaccessible delegate 
 };

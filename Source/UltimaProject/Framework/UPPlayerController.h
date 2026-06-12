@@ -28,7 +28,16 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
 
+	TArray<TWeakInterfacePtr<IContainerInterface>> OpenedContainers;
+
+#pragma region Containers
+	bool IsContainerOpened(IContainerInterface* ContainerInterface) const;
 	void TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation);
+	void TryCloseContainer(IContainerInterface* ContainerInterface);
+
+	UFUNCTION(Server, Unreliable)
+	void ServerOpenProxyContainer(UObject* ContainerInterfaceObject);
+#pragma endregion
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
@@ -51,6 +60,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HandleInventoryToggle();
 #pragma endregion
-	
+
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
 };

@@ -8,7 +8,7 @@
 #include "UltimaProject/Common/InputHelpers.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
-#include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
+#include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerInterface.h"
 
 AUPPlayerController::AUPPlayerController()
@@ -32,9 +32,21 @@ void AUPPlayerController::BeginPlay()
 	}
 }
 
+bool AUPPlayerController::IsContainerOpened(IContainerInterface* ContainerInterface) const
+{
+	return OpenedContainers.Contains(ContainerInterface);
+}
+
 void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation)
 {
 	NULLCHECK(ContainerInterface);
+
+	// Already opened
+	if (IsContainerOpened(ContainerInterface))
+	{
+		return;
+	}
+
 	if (!ContainerInterface->CanBeOpened(this))
 	{
 		return;
@@ -43,7 +55,7 @@ void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterfa
 	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
 		ContainerInterface->_getUObject());
 	NULLCHECK(ContainerComponent);
-	
+
 	switch (Relation)
 	{
 	case EContainerRelationType::Inventory:
@@ -51,11 +63,41 @@ void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterfa
 		GameplayHUDWidgetInstance->AddContainerWidget(ContainerComponent);
 		break;
 	case EContainerRelationType::InWorldContainer:
+		ServerOpenProxyContainer(ContainerInterface->_getUObject());
 		break;
 	case EContainerRelationType::Invalid:
 		UE_LOG(LogController, Error, TEXT("Invalid container type"));
 		return;
 	}
+
+	OpenedContainers.Add(ContainerInterface);
+}
+
+void AUPPlayerController::TryCloseContainer(IContainerInterface* ContainerInterface)
+{
+	NULLCHECK(ContainerInterface);
+	if (!IsContainerOpened(ContainerInterface))
+	{
+		return;
+	}
+
+	if (GameplayHUDWidgetInstance)
+	{
+		UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+			ContainerInterface->_getUObject());
+		GameplayHUDWidgetInstance->CloseContainerWidget(ContainerComponent);
+	}
+
+	OpenedContainers.Remove(ContainerInterface);
+}
+
+void AUPPlayerController::ServerOpenProxyContainer_Implementation(UObject* ContainerInterfaceObject)
+{
+	UProxyContainerComponent* ProxyContainer = NewObject<UProxyContainerComponent>(this);
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(ContainerInterfaceObject);
+	
+	ProxyContainer->InitializeServer(this, ContainerComponent);
+	ProxyContainer->RegisterComponent();
 }
 
 // TODO this one shouldn't be there
@@ -137,12 +179,30 @@ void AUPPlayerController::HandleActivateAction()
 	NULLCHECK(CursorItem);
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
-	TryOpenContainer(Cast<IContainerInterface>(CursorItem), EContainerRelationType::InWorldContainer);
+	IContainerInterface* InventoryInterface = Cast<IContainerInterface>(CursorItem);
+	NULLCHECK(CursorItem);
+
+	if (IsContainerOpened(InventoryInterface))
+	{
+		TryCloseContainer(InventoryInterface);
+	}
+	else
+	{
+		TryOpenContainer(InventoryInterface, EContainerRelationType::InWorldContainer);
+	}
 }
 
 void AUPPlayerController::HandleInventoryToggle()
 {
-	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
+	IContainerInterface* InventoryInterface = Cast<IContainerInterface>(GetPawn());
+	NULLCHECK(InventoryInterface);
 
-	TryOpenContainer(Cast<IContainerInterface>(GetPawn()), EContainerRelationType::Inventory);
+	if (IsContainerOpened(InventoryInterface))
+	{
+		TryCloseContainer(InventoryInterface);
+	}
+	else
+	{
+		TryOpenContainer(InventoryInterface, EContainerRelationType::Inventory);
+	}
 }

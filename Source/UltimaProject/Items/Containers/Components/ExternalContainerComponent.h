@@ -17,7 +17,7 @@ class ULTIMAPROJECT_API UExternalContainerComponent : public UContainerComponent
 	GENERATED_BODY()
 	
 protected:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere)
 	TArray<FItemDataDefinition> DefaultItems;
 
 public:

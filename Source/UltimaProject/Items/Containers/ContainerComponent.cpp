@@ -7,6 +7,7 @@
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
+#include "UltimaProject/Common/Macro.h"
 
 DEFINE_LOG_CATEGORY(LogUPContainers)
 
@@ -29,39 +30,43 @@ FContainerItemData::FContainerItemData()
 
 void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
+	NULLCHECK_SP(ContainerComponent);
+
 	if (AddedIndices.IsEmpty())
 	{
 		return;
 	}
 
 	// Propagate changes to client
-	if (UContainerComponent* Container = ContainerComponent.Get())
+	if (UContainerComponent* ListenContainer = ContainerComponent->GetListenContainer())
 	{
 		for (int32 Index : AddedIndices)
 		{
-			Container->NotifyContainerItemChanged(Items[Index]);
+			ListenContainer->NotifyContainerItemChanged(Items[Index]);
 		}
 
-		Container->NotifyContainerItemsChanged();
+		ListenContainer->NotifyContainerItemsChanged();
 	}
 }
 
 void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
+	NULLCHECK_SP(ContainerComponent);
+
 	if (ChangedIndices.IsEmpty())
 	{
 		return;
 	}
 
 	// Propagate changes to client
-	if (UContainerComponent* Container = ContainerComponent.Get())
+	if (UContainerComponent* ListenContainer = ContainerComponent->GetListenContainer())
 	{
 		for (int32 Index : ChangedIndices)
 		{
-			Container->NotifyContainerItemChanged(Items[Index]);
+			ListenContainer->NotifyContainerItemChanged(Items[Index]);
 		}
 
-		Container->NotifyContainerItemsChanged();
+		ListenContainer->NotifyContainerItemsChanged();
 	}
 }
 
@@ -76,13 +81,14 @@ void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices
 	// The replicated prop. ( ContainerItems ) still contains the removed idx., so postpone the update
 	if (UWorld* World = ContainerComponent->GetWorld())
 	{
-		World->GetTimerManager().SetTimerForNextTick([WeakContainerPtr = ContainerComponent]
-		{
-			if (WeakContainerPtr.IsValid())
+		World->GetTimerManager().SetTimerForNextTick(
+			[WeakContainerPtr = TWeakObjectPtr(ContainerComponent->GetOriginContainer())]
 			{
-				WeakContainerPtr->NotifyContainerItemsChanged();
-			}
-		});
+				if (WeakContainerPtr.IsValid())
+				{
+					WeakContainerPtr->NotifyContainerItemsChanged();
+				}
+			});
 	}
 }
 
@@ -156,10 +162,25 @@ void UContainerComponent::InitializeContainerWidget()
 
 bool UContainerComponent::FindDropTransform(const UItemData* ItemData, FTransform& Result) const
 {
+	AActor* Owner = GetOwner();
 	if (APawn* Pawn = Cast<APawn>(GetOwner()))
 	{
 		Result.SetLocation(Pawn->GetNavAgentLocation());
 		return true;
+	}
+
+	// Get player pawn
+	// TODO review this later
+	UWorld* World = GetWorld();
+	NULLCHECK_RETURN(World, false);
+
+	if (APlayerController* PC = World->GetFirstPlayerController())
+	{
+		if (TObjectPtr<APawn> Pawn = PC->GetPawn())
+		{
+			Result.SetLocation(Pawn->GetNavAgentLocation());
+			return true;
+		}
 	}
 
 	// TODO for chests or etc traces will be needed
@@ -175,7 +196,7 @@ void UContainerComponent::SetContainerWidgetClass(TSubclassOf<UContainerWidget> 
 {
 	// Should be initialized before the component registration
 	ensureAlways(!IsRegistered());
-	
+
 	ContainerWidgetClass = MoveTemp(Class);
 }
 
@@ -188,12 +209,18 @@ void UContainerComponent::NotifyContainerItemsChanged_Implementation()
 		Owner->ForceNetUpdate();
 	}
 
-	OnContainerItemsChanged.Broadcast();
+	if (UContainerComponent* ListenContainer = GetListenContainer())
+	{
+		ListenContainer->OnContainerItemsChanged.Broadcast();
+	}
 }
 
 void UContainerComponent::NotifyContainerItemChanged_Implementation(const FContainerItemData& Item)
 {
-	OnContainerItemChanged.Broadcast(Item);
+	if (UContainerComponent* ListenContainer = GetListenContainer())
+	{
+		ListenContainer->OnContainerItemChanged.Broadcast(Item);
+	}
 }
 
 int32 UContainerComponent::GetItemsCapacity() const
@@ -494,6 +521,16 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 	return true;
 }
 
+UContainerComponent* UContainerComponent::GetOriginContainer()
+{
+	return this;
+}
+
+UContainerComponent* UContainerComponent::GetListenContainer()
+{
+	return this;
+}
+
 TArray<FContainerItemData> UContainerComponent::GetItems()
 {
 	return ContainerItems.Items;
@@ -503,4 +540,107 @@ TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* 
 {
 	// There we may differ results, based on the instigator.
 	return GetItems();
+}
+
+IContainerInterface* UContainerComponent::GetOwnerInterface() const
+{
+	return Cast<IContainerInterface>(GetOwner());
+}
+
+bool UContainerComponent::CanStoreItem(const AController* Instigator, const AItem* Item) const
+{
+	NULLCHECK_RETURN(Instigator, false);
+	NULLCHECK_RETURN(Item, false);
+
+	APawn* Pawn = Instigator->GetPawn();
+	UWorld* World = GetWorld();
+	NULLCHECK_RETURN(Pawn, false);
+	NULLCHECK_RETURN(World, false);
+
+	// Visibility check
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(Pawn);
+	Params.AddIgnoredActor(Item);
+
+	FHitResult Result;
+	// move trace a bit up to avoid ground collision
+	const FVector TraceEnd = Item->GetActorLocation() + FVector(0, 0, 1.f);
+	const bool bHasObstacle = World->LineTraceSingleByChannel(
+		Result,
+		Pawn->GetActorLocation(),
+		TraceEnd,
+		ECC_Visibility,
+		Params
+	);
+	if (bHasObstacle)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+void UContainerComponent::TryStoreItem(AController* Instigator, AItem* Item)
+{
+	if (!IsValid(Item) || !CanStoreItem(Instigator, Item))
+	{
+		return;
+	}
+
+	// Server only
+	check(Item->HasAuthority());
+	MoveItem(Item);
+}
+
+
+bool UContainerComponent::TrySplitItem(AController* Instigator, const FContainerItemData& Item, const int64 SplitAmount)
+{
+	// Client only
+	check(!GetOwner()->HasAuthority());
+
+	if (!ensureAlways(HasItem(Item)))
+	{
+		return false;
+	}
+
+	const UItemData* ItemData = Item.GetItemData();
+	if (!ItemData || SplitAmount < 0 || SplitAmount >= ItemData->GetAmount())
+	{
+		return false;
+	}
+
+	ServerTrySplitItem(Instigator, Item, SplitAmount);
+	return true;
+}
+
+bool UContainerComponent::TryDropItem(AController* Instigator, const FContainerItemData& Item)
+{
+	ensureAlways(!GetOwner()->HasAuthority());
+	ensureAlways(Item.IsValid());
+	ensureAlways(Item.IsInContainer(GetOriginContainer()));
+
+	if (ensureAlways(HasItem(Item)))
+	{
+		ServerTryDropItem(Instigator, Item);
+	}
+
+	return true;
+}
+
+void UContainerComponent::ServerTryDropItem_Implementation(AController* Instigator, const FContainerItemData& Item)
+{
+	ensureAlways(Item.IsValid() && Item.IsInContainer(GetOriginContainer()));
+
+	if (ensure(HasItem(Item)))
+	{
+		AItem* Result = nullptr;
+		MoveItem(const_cast<FContainerItemData&>(Item), Result);
+	}
+}
+
+void UContainerComponent::ServerTrySplitItem_Implementation(AController* Instigator, const FContainerItemData& Item,
+                                                            const int64 SplitAmount)
+{
+	SplitItem(const_cast<FContainerItemData&>(Item), SplitAmount);
 }

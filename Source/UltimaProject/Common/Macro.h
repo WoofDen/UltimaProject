@@ -36,5 +36,23 @@
 	return return_value; \
 }
 
+#define VALIDCHECK(variable) if(IsValid(variable)) {\
+	return;\
+}
+
+#define VALIDCHECK_RETURN(variable, return_value) if(!IsValid(variable)) {\
+	return return_value; \
+}
+
+#define VALIDCHECK_LOG(variable, verbosity, log_message) if(!IsValid(variable)) {\
+	UE_LOG(LogTemp, verbosity, TEXT(log_message));\
+	return; \
+}
+
+#define VALIDCHECK_RETURN_LOG(variable, return_value, verbosity, log_message) if(IsValid(variable)) {\
+	UE_LOG(LogTemp, verbosity, TEXT(log_message));\
+	return return_value; \
+}
+
 #define DBGPRINT(x) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(x));
 #define DBGSPHERE(l, c) DrawDebugSphere(GetWorld(), l, 10.f, 6, c, false, 3.f);
