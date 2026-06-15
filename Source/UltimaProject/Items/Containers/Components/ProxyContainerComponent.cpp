@@ -34,31 +34,31 @@ void UProxyContainerComponent::OnRep_OwnerController()
 	InitializeClient();
 }
 
-void UProxyContainerComponent::OnServerOriginContainerItemsChanged()
+void UProxyContainerComponent::OnRep_ProxyContainerItems()
+{
+	NotifyContainerItemsChanged();
+}
+
+void UProxyContainerComponent::OnOriginContainerItemsChanged()
 {
 	NULLCHECK_SP(OriginContainer);
-	
-	// Server only
-	if (GetOwner() && !GetOwner()->HasAuthority())
-	{
-		return;
-	}
+
+	// Both server & Client
+
+	AActor* Owner = GetOwner();
+	NULLCHECK(Owner);
 
 	// Origin container items have been changed
 	// Multiply players can simultaneously change the container so per-item update looks complicated for now
 	// Update the whole proxy array and push it to clients
+	if (Owner->HasAuthority())
 	{
-		ProxyContainerItems = OriginContainer->ContainerItems;
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ProxyContainerItems, this);
+		ProxyContainerItems.Items = OriginContainer->ContainerItems.Items;
+		ProxyContainerItems.MarkArrayDirty(); // Handles push model state
 
-		// Call the origin event on server
-		NotifyContainerItemsChanged();
+		// For client it takes time to get ProxyContainerItems's new value replicated
+		// The update will be called by OnReo_ function
 	}
-}
-
-void UProxyContainerComponent::OnRep_ProxyContainerItems()
-{
-	NotifyContainerItemsChanged();
 }
 
 UProxyContainerComponent::UProxyContainerComponent()
@@ -71,6 +71,11 @@ UProxyContainerComponent::UProxyContainerComponent()
 
 void UProxyContainerComponent::InitializeServer(AUPPlayerController* InOwner, UContainerComponent* InContainerComponent)
 {
+	if (bInitialized)
+	{
+		return;
+	}
+
 	// The component designed exclusively for PC
 	check(GetOwner() == InOwner);
 	check(GetOwner()->HasAuthority()); // Server only, all the essential data will be replicated
@@ -82,18 +87,27 @@ void UProxyContainerComponent::InitializeServer(AUPPlayerController* InOwner, UC
 	OriginContainer = InContainerComponent;
 
 	// Do a copy of items into proxy. Items are still referred to its original container and as items are UObjects, it doesn't inflict duplicate
-	ProxyContainerItems = OriginContainer->ContainerItems;
+	ProxyContainerItems.ContainerComponent = this;
+	ProxyContainerItems.Items = OriginContainer->ContainerItems.Items;
+	ProxyContainerItems.MarkArrayDirty();
+
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ProxyContainerItems, this);
 
 	// Track origin container changes and reflect them to the proxy
-	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnServerOriginContainerItemsChanged);
+	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
 
 	// Send to client
 	SetIsReplicated(true);
+	bInitialized = true;
 }
 
 void UProxyContainerComponent::InitializeClient()
 {
+	if (bInitialized)
+	{
+		return;
+	}
+
 	NULLCHECK_SP(OriginContainer);
 	NULLCHECK_SP(OwnerController);
 
@@ -103,7 +117,12 @@ void UProxyContainerComponent::InitializeClient()
 	// Show proxy container UI to the client
 	HUD->AddContainerWidget(this);
 
-	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnServerOriginContainerItemsChanged);
+	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
+
+	ProxyContainerItems.ContainerComponent = this;
+
+	SetIsReplicated(true);
+	bInitialized = true;
 }
 
 void UProxyContainerComponent::BeginPlay()
@@ -120,7 +139,7 @@ void UProxyContainerComponent::BeginDestroy()
 		// Clear the update delegate on server
 		if (OriginContainer.Get())
 		{
-			OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnServerOriginContainerItemsChanged);
+			OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
 		}
 	}
 }

@@ -72,7 +72,8 @@ void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndice
 
 void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
-	if (RemovedIndices.IsEmpty() || !ContainerComponent.IsValid())
+	NULLCHECK_SP(ContainerComponent);
+	if (RemovedIndices.IsEmpty())
 	{
 		return;
 	}
@@ -205,7 +206,6 @@ void UContainerComponent::NotifyContainerItemsChanged_Implementation()
 	// Mark Items as dirty for replication
 	if (AActor* Owner = GetOwner(); Owner && Owner->HasAuthority())
 	{
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, ContainerItems, this);
 		Owner->ForceNetUpdate();
 	}
 

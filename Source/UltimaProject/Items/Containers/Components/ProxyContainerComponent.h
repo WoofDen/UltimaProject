@@ -23,13 +23,15 @@ class ULTIMAPROJECT_API UProxyContainerComponent : public UContainerComponent
 	void OnRep_OwnerController();
 	
 	UFUNCTION()
-	void OnServerOriginContainerItemsChanged();
+	void OnRep_ProxyContainerItems();
 	
 	UFUNCTION()
-	void OnRep_ProxyContainerItems();
+	void OnOriginContainerItemsChanged();
 	
 	UPROPERTY(Transient, Replicated, ReplicatedUsing=OnRep_ProxyContainerItems)
 	FContainerItems ProxyContainerItems;
+	
+	bool bInitialized = false;
 
 protected:
 	UPROPERTY(Replicated, ReplicatedUsing=OnRep_OriginContainer)
