@@ -8,12 +8,22 @@
 AChestBase::AChestBase()
 {
 	bReplicates = true;
-	
+
 	ContainerComponent = CreateDefaultSubobject<UExternalContainerComponent>(TEXT("ContainerComponent"));
 	if (ensureAlways(ContainerComponent))
 	{
 		ContainerComponent->SetIsReplicated(false);
 	}
+}
+
+void AChestBase::BeginDestroy()
+{
+	if (HasAuthority())
+	{
+		GetAccessibilityChangedDelegate().Broadcast(this);
+	}
+	
+	Super::BeginDestroy();
 }
 
 UContainerComponent* AChestBase::GetContainerComponent_Implementation() const
@@ -24,6 +34,12 @@ UContainerComponent* AChestBase::GetContainerComponent_Implementation() const
 bool AChestBase::CanBeOpened(const class AUPPlayerController* Controller)
 {
 	// TODO Locked logic, skip for now, visibility & distance check 
-	
-	return true; 
+
+	return true;
+}
+
+FOnContainerAccessibilityUpdated AChestBase::GetAccessibilityChangedDelegate() const
+{
+	ensureAlways(HasAuthority());
+	return OnChestAccessibilityChanged;
 }

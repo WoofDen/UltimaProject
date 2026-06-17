@@ -8,6 +8,7 @@
 #include "UltimaProject/Common/InputHelpers.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
+#include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerInterface.h"
 
@@ -40,6 +41,7 @@ bool AUPPlayerController::IsContainerOpened(IContainerInterface* ContainerInterf
 void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation)
 {
 	NULLCHECK(ContainerInterface);
+	check(!HasAuthority()); // Client only
 
 	// Already opened
 	if (IsContainerOpened(ContainerInterface))
@@ -55,6 +57,7 @@ void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterfa
 	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
 		ContainerInterface->_getUObject());
 	NULLCHECK(ContainerComponent);
+	ensureAlways(!ContainerComponent->IsA<UProxyContainerComponent>()); // Shouldn't ever occur :E
 
 	switch (Relation)
 	{
@@ -76,28 +79,103 @@ void AUPPlayerController::TryOpenContainer(IContainerInterface* ContainerInterfa
 void AUPPlayerController::TryCloseContainer(IContainerInterface* ContainerInterface)
 {
 	NULLCHECK(ContainerInterface);
+	check(!HasAuthority()); // Client only
+
 	if (!IsContainerOpened(ContainerInterface))
 	{
 		return;
 	}
 
+	OpenedContainers.Remove(ContainerInterface);
+
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+		ContainerInterface->_getUObject());
+	NULLCHECK(ContainerComponent);
+
 	if (GameplayHUDWidgetInstance)
 	{
-		UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
-			ContainerInterface->_getUObject());
 		GameplayHUDWidgetInstance->CloseContainerWidget(ContainerComponent);
 	}
 
+	if (ContainerComponent->IsA<UExternalContainerComponent>())
+	{
+		ServerCloseProxyContainer(ContainerInterface->_getUObject());
+	}
+}
+
+void AUPPlayerController::OnOpenedContainerAccessibilityUpdated(IContainerInterface* ContainerInterface)
+{
+	NULLCHECK(ContainerInterface);
+	check(HasAuthority()); // Server only
+
+	if (ContainerInterface->CanBeOpened(this))
+	{
+		// Container is still accessible
+		return;
+	}
+
+	UObject* ContainerInterfaceObject = ContainerInterface->_getUObject();
+
+	// Container is no longer accessible
 	OpenedContainers.Remove(ContainerInterface);
+
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+		ContainerInterfaceObject);
+	
+	// External containers are accessible only through proxy containers created per-client runtime
+	if (ContainerComponent->IsA<UExternalContainerComponent>())
+	{
+		UProxyContainerComponent* ProxyContainerComponent = nullptr;
+		OpenedProxyContainers.RemoveAndCopyValue(ContainerComponent, ProxyContainerComponent);
+		
+		ProxyContainerComponent->DestroyComponent();
+	}
+
+	ClientForceCloseContainer(ContainerInterfaceObject);
+}
+
+void AUPPlayerController::ClientForceCloseContainer_Implementation(UObject* ContainerInterfaceObject)
+{
+	IContainerInterface* ContainerInterface = Cast<IContainerInterface>(ContainerInterfaceObject);
+	NULLCHECK(ContainerInterface);
+	
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+	ContainerInterface->_getUObject());
+	NULLCHECK(ContainerComponent);
+
+	if (GameplayHUDWidgetInstance)
+	{
+		GameplayHUDWidgetInstance->CloseContainerWidget(ContainerComponent);
+	}
+}
+
+void AUPPlayerController::ServerCloseProxyContainer_Implementation(UObject* ContainerInterfaceObject)
+{
+	OpenedContainers.Remove(ContainerInterfaceObject);
+
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+		ContainerInterfaceObject);
+	ensureAlways(ContainerComponent->IsA<UExternalContainerComponent>());
+
+	UProxyContainerComponent* ProxyContainerComponent = nullptr;
+	OpenedProxyContainers.RemoveAndCopyValue(ContainerComponent, ProxyContainerComponent);
+	if (ProxyContainerComponent)
+	{
+		ProxyContainerComponent->DestroyComponent();
+	}
 }
 
 void AUPPlayerController::ServerOpenProxyContainer_Implementation(UObject* ContainerInterfaceObject)
 {
 	UProxyContainerComponent* ProxyContainer = NewObject<UProxyContainerComponent>(this);
-	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(ContainerInterfaceObject);
-	
+	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
+		ContainerInterfaceObject);
+
 	ProxyContainer->InitializeServer(this, ContainerComponent);
 	ProxyContainer->RegisterComponent();
+
+	OpenedContainers.Add(ContainerInterfaceObject);
+	OpenedProxyContainers.Add(ContainerComponent, ProxyContainer);
 }
 
 // TODO this one shouldn't be there

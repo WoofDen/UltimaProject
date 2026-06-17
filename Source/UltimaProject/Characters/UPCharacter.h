@@ -25,6 +25,8 @@ class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IContainerInter
 	GENERATED_BODY()
 
 protected:
+	// When player moved ( considerably distance ), died, some form alternations ( TODO )
+	FOnContainerAccessibilityUpdated OnPlayerInventoryAccessibilityChanged;
 
 public:
 	AUPCharacter();
@@ -32,7 +34,8 @@ public:
 	// AActor
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
-	// ~AActo
+	virtual void BeginDestroy() override;
+	// ~AActor
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -44,7 +47,7 @@ public:
 
 private:
 	bool bGameplayReadyStateBroadcasted = false;
-	
+
 	void UpdateGameplayReadyState();
 
 #pragma region Camera
@@ -92,11 +95,12 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; };
-	
+
 	// IContainerInterface
 	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
 	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) override;
+	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
 	// ~IContainerInterface
-	
+
 #pragma endregion
 };
