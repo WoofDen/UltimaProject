@@ -234,7 +234,7 @@ public:
 #pragma region Server top-level item operations
 
 public:
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable) // TODO maybe unreliable?
 	void ServerTryDropItem(AController* Instigator, const FContainerItemData& Item);
 
 	UFUNCTION(Server, Reliable)

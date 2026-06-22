@@ -139,7 +139,7 @@ void UProxyContainerComponent::BeginDestroy()
 		// Clear the update delegate on server
 		if (OriginContainer.Get())
 		{
-			OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
+			OriginContainer->OnContainerItemsChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
 		}
 	}
 }

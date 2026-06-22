@@ -203,7 +203,6 @@ void UContainerComponent::SetContainerWidgetClass(TSubclassOf<UContainerWidget> 
 
 void UContainerComponent::NotifyContainerItemsChanged_Implementation()
 {
-	// Mark Items as dirty for replication
 	if (AActor* Owner = GetOwner(); Owner && Owner->HasAuthority())
 	{
 		Owner->ForceNetUpdate();
@@ -328,7 +327,10 @@ FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, 
 		       ));
 		NewItemData->MarkAsGarbage();
 	}
-
+	else
+	{
+		NotifyContainerItemsChanged();
+	}
 	return Result;
 }
 
@@ -603,6 +605,7 @@ bool UContainerComponent::TrySplitItem(AController* Instigator, const FContainer
 	{
 		return false;
 	}
+
 
 	const UItemData* ItemData = Item.GetItemData();
 	if (!ItemData || SplitAmount < 0 || SplitAmount >= ItemData->GetAmount())
