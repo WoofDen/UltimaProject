@@ -98,7 +98,7 @@ public:
 
 	// IContainerInterface
 	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
-	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) override;
+	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) const override;
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
 	// ~IContainerInterface
 

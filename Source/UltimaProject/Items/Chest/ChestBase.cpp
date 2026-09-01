@@ -31,7 +31,7 @@ UContainerComponent* AChestBase::GetContainerComponent_Implementation() const
 	return ContainerComponent;
 }
 
-bool AChestBase::CanBeOpened(const class AUPPlayerController* Controller)
+bool AChestBase::CanBeOpened(const class AUPPlayerController* Controller) const 
 {
 	// TODO Locked logic, skip for now, visibility & distance check 
 
@@ -43,3 +43,10 @@ FOnContainerAccessibilityUpdated AChestBase::GetAccessibilityChangedDelegate() c
 	ensureAlways(HasAuthority());
 	return OnChestAccessibilityChanged;
 }
+
+/*
+void AChestBase::CallServerTryStoreItem_Implementation(AController* InstigatorController, const FContainerItemData& ItemData)
+{
+	IContainerInterface::ServerTryStoreItemImpl(InstigatorController, ItemData);
+}
+*/

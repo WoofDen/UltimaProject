@@ -9,76 +9,57 @@ UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-UItemData* UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container)
+FItemData& UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition,
+                                                    UContainerComponent* Container)
 {
-	NULLCHECK_RETURN(Container, nullptr);
+	NULLCHECK_RETURN(Container, FItemData::EmptyItem);
 
-	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), UItemData::StaticClass());
-	NULLCHECK_RETURN(ItemData, nullptr);
-	
-	ItemData->Initialize(Definition);
+	FItemData ItemData = FItemData(Definition);
 	if (!Container->AddItem(ItemData).IsSuccess())
 	{
-		ItemData->MarkAsGarbage();
-		return nullptr;
+		return FItemData::EmptyItem;
 	}
 
 	return ItemData;
 }
 
-UItemData* UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
-                                                       UContainerComponent* Container)
+FItemData& UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
+                                                             UContainerComponent* Container)
 {
-	NULLCHECK_RETURN(ItemDataAsset, nullptr);
+	NULLCHECK_RETURN(ItemDataAsset, FItemData::EmptyItem);
 
-	UItemData* ItemData = NewObject<UItemData>(GetTransientPackage(), UItemData::StaticClass());
-	NULLCHECK_RETURN(ItemData, nullptr);
+	FItemData ItemData;
 
-	ItemData->SetStaticData(ItemDataAsset);
-	ItemData->Initialize();
-	ItemData->SetAmount(1);
+	ItemData.SetStaticData(ItemDataAsset);
+	ItemData.PreInitialize();
+	ItemData.SetAmount(1);
 
 	if (!Container->AddItem(ItemData).IsSuccess())
 	{
-		ItemData->MarkAsGarbage();
-		return nullptr;
+		return FItemData::EmptyItem;
 	}
 
 	return ItemData;
 }
 
-AItem* UItemFactoryHelper::SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class, const FTransform& Transform)
-{
-	check(Class);
-
-	UItemData* DefaultItemData = Class->GetDefaultObject<UItemData>();
-	if (!DefaultItemData)
-	{
-		return nullptr;
-	}
-
-	return SpawnItem(WorldContextObject, DefaultItemData, Transform);
-}
-
-AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, UItemData* ItemData,
+AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition ItemData,
                                      const FTransform& Transform, bool DuplicateItemData/* = false*/)
 {
-	check(ItemData);
-
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	if (!World)
 	{
 		return nullptr;
 	}
 
-	if (!ensureAlways(ItemData->GetActorClass()))
+	TSubclassOf<AItem> Actorclass = ItemData.StaticData->ActorClass;
+	if (!ensureAlways(Actorclass))
 	{
 		return nullptr;
 	}
 
 	FActorSpawnParameters Parameters;
 	AItem* Item = World->SpawnActorDeferred<AItem>(
-		ItemData->GetActorClass(),
+		Actorclass,
 		Transform,
 		nullptr
 	);
@@ -88,22 +69,13 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, UItemDat
 		return nullptr;
 	}
 
-	UItemData* NewItemData;
-	if (DuplicateItemData)
+	FItemData NewItemData(ItemData);
+	if (!Item->SetItemData(MoveTemp(NewItemData)))
 	{
-		NewItemData = DuplicateObject(ItemData, Item);
-		if (!NewItemData)
-		{
-			Item->Destroy();
-			return nullptr;
-		}
+		Item->Destroy();
+		return nullptr;
 	}
-	else
-	{
-		NewItemData = ItemData;
-	}
-
-	Item->SetItemData(NewItemData);
 	Item->FinishSpawning(Transform);
+
 	return Item;
 }

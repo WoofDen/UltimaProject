@@ -34,7 +34,7 @@ protected:
 	// Data object represents current item.
 	UPROPERTY(BlueprintReadOnly, Replicated, VisibleInstanceOnly, Category="Runtime data",
 		ReplicatedUsing=OnRep_ItemData)
-	TObjectPtr<UItemData> ItemData;
+	FItemData ItemData = FItemData::EmptyItem;
 
 	// Static data for item initialization
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -55,19 +55,18 @@ public:
 
 	void RemoveFromWorld();
 
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	bool SetItemData(UItemData* NewData = nullptr);
+	bool SetItemData(FItemData&& NewData);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void Tick(float DeltaTime) override;
 
-	UItemData* GetItemData() const
+	FItemData& GetItemDataMutable()
 	{
-		// self-defence against modify ItemData somewhere else than server
+		// self-defence against modifying ItemData somewhere else than server
 		check(HasAuthority());
 		return ItemData;
 	}
 
-	const UItemData* GetItemDataConst() const { return ItemData; }
+	const FItemData GetItemDataConst() const { return ItemData; }
 };

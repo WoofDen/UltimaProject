@@ -21,13 +21,15 @@ struct FItemInstanceData
 
 	FItemInstanceData();
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Amount;
 
 	bool operator==(const FItemInstanceData& Other) const
 	{
 		return Amount == Other.Amount;
 	}
+	
+	bool IsValid() const;
 };
 
 /**
@@ -61,7 +63,8 @@ public:
 	TSubclassOf<UGameplayAbility_Interaction> PickupAbilityClass;
 };
 
-// Non-runtime definition of an item. 
+// Item data definition without an existing item
+// Used only for item spawning
 USTRUCT(BlueprintType)
 struct FItemDataDefinition
 {
@@ -78,11 +81,10 @@ struct FItemDataDefinition
 
 /**
  * ItemData
- * Represent a single item within a world or a pre-set ( in case of inherited BP ) of item settings
- * Has to be always as an in-world item ( AItem ) or container ( FContainerItemData )
+ * Represent a single item within a world. Exists only as in-world item ( AItem ) or in-container item ( FContainerItemData )
  */
-UCLASS(Blueprintable, BlueprintType)
-class ULTIMAPROJECT_API UItemData : public UObject
+USTRUCT(Blueprintable, BlueprintType)
+struct ULTIMAPROJECT_API FItemData
 {
 	GENERATED_BODY()
 
@@ -91,25 +93,30 @@ class ULTIMAPROJECT_API UItemData : public UObject
 
 protected:
 	// Data asset with static props
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, meta = (ExposeOnSpawn="true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
 	TSoftObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Replicated, meta = (ExposeOnSpawn="true"))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
 	FItemInstanceData InstanceData;
 
 	// Create a duplicate item data with amount. The origin object amount will be reduced
-	UItemData* SplitItem(const int64 SplitAmount);
+	bool SplitItem(const int64 SplitAmount, FItemData& ResultItem);
 
 public:
-	UItemData();
-	UItemData(FObjectInitializer& Initializer);
+	FItemData();
+	FItemData(const FItemDataDefinition& Definition);
+	virtual ~FItemData() = default;
+	
+	// ItemData cannot be compared, compare in-world actors or FContainerItemData
+	bool operator==(const FItemData&) const = delete;
+	
+	static FItemData EmptyItem;
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool IsSupportedForNetworking() const override;
-
-	virtual bool Initialize(UItemData* Source = nullptr);
-	virtual bool Initialize(const FItemDataDefinition& Definition);
+	bool PreInitialize(FItemData* Source = nullptr);
+	bool PreInitialize(const FItemDataDefinition& Definition);
+	
+	FItemDataDefinition GetDataDefinition() const;
 
 	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
 	void SetStaticData(const UItemDataAsset* InStaticData);
@@ -117,29 +124,23 @@ public:
 	const FItemInstanceData& GetInstanceData() const;
 
 	TSubclassOf<AItem> GetActorClass() const;
+	
+	bool IsValid() const;
 
 	// Get a number of items that can be moved TO the TargetItem
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	virtual int32 GetStackableAmount(const UItemData* TargetItem) const;
+	virtual int32 GetStackableAmount(const FItemData& TargetItem) const;
 
-	UFUNCTION(BlueprintCallable)
 	virtual FText GetDisplayName() const;
 
-	UFUNCTION(BlueprintCallable)
 	virtual UTexture2D* GetViewIcon() const;
 
-	UFUNCTION(BlueprintCallable)
 	virtual int64 GetAmount() const;
 
-	UFUNCTION(BlueprintCallable)
 	virtual int64 GetMaxAmountPerStack() const;
 
-	UFUNCTION(BlueprintCallable)
 	virtual int64 SetAmount(const int64 Value);
 
-	UFUNCTION(BlueprintCallable)
 	virtual int64 ModifyAmount(const int64 Value);
 
-	UFUNCTION(BlueprintCallable)
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
 };

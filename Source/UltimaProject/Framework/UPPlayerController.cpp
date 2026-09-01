@@ -33,7 +33,7 @@ void AUPPlayerController::BeginPlay()
 	}
 }
 
-bool AUPPlayerController::IsContainerOpened(IContainerInterface* ContainerInterface) const
+bool AUPPlayerController::IsContainerOpened(const IContainerInterface* ContainerInterface) const
 {
 	return OpenedContainers.Contains(ContainerInterface);
 }
@@ -121,26 +121,58 @@ void AUPPlayerController::OnOpenedContainerAccessibilityUpdated(IContainerInterf
 
 	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
 		ContainerInterfaceObject);
-	
+
 	// External containers are accessible only through proxy containers created per-client runtime
 	if (ContainerComponent->IsA<UExternalContainerComponent>())
 	{
 		UProxyContainerComponent* ProxyContainerComponent = nullptr;
 		OpenedProxyContainers.RemoveAndCopyValue(ContainerComponent, ProxyContainerComponent);
-		
+
 		ProxyContainerComponent->DestroyComponent();
 	}
 
 	ClientForceCloseContainer(ContainerInterfaceObject);
 }
 
+bool AUPPlayerController::TryStoreItem(IContainerInterface* ContainerInterface,
+                                       const FContainerItemData& ItemData)
+{
+	NULLCHECK_RETURN(ContainerInterface, false);
+	check(!HasAuthority()); // Client only
+
+	if (!ContainerInterface->CanStoreItem(this, ItemData))
+	{
+		return false;
+	}
+
+	UContainerComponent* OriginContainerComponent = IContainerInterface::Execute_GetContainerComponent(_getUObject());
+	NULLCHECK_RETURN(OriginContainerComponent, false);
+
+	TScriptInterface<IContainerInterface> ContainerScriptInterface(ContainerInterface->_getUObject());
+	ServerTryStoreItem(ContainerScriptInterface, ItemData);
+	return true;
+}
+
+void AUPPlayerController::ServerTryStoreItem_Implementation(const TScriptInterface<IContainerInterface>& ContainerInterface,
+                                                            const FContainerItemData& ItemData)
+{
+	NULLCHECK(ContainerInterface);
+
+	if (!ContainerInterface->CanStoreItem(this, ItemData))
+	{
+		return;
+	}
+
+	ContainerInterface->StoreItemImpl(this, ItemData);
+}
+
 void AUPPlayerController::ClientForceCloseContainer_Implementation(UObject* ContainerInterfaceObject)
 {
 	IContainerInterface* ContainerInterface = Cast<IContainerInterface>(ContainerInterfaceObject);
 	NULLCHECK(ContainerInterface);
-	
+
 	UContainerComponent* ContainerComponent = IContainerInterface::Execute_GetContainerComponent(
-	ContainerInterface->_getUObject());
+		ContainerInterface->_getUObject());
 	NULLCHECK(ContainerComponent);
 
 	if (GameplayHUDWidgetInstance)
@@ -257,16 +289,16 @@ void AUPPlayerController::HandleActivateAction()
 	NULLCHECK(CursorItem);
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
-	IContainerInterface* InventoryInterface = Cast<IContainerInterface>(CursorItem);
-	NULLCHECK(CursorItem);
+	IContainerInterface* CursorContainer = Cast<IContainerInterface>(CursorItem);
+	NULLCHECK(CursorContainer);
 
-	if (IsContainerOpened(InventoryInterface))
+	if (IsContainerOpened(CursorContainer))
 	{
-		TryCloseContainer(InventoryInterface);
+		TryCloseContainer(CursorContainer);
 	}
 	else
 	{
-		TryOpenContainer(InventoryInterface, EContainerRelationType::InWorldContainer);
+		TryOpenContainer(CursorContainer, EContainerRelationType::InWorldContainer);
 	}
 }
 
@@ -283,4 +315,11 @@ void AUPPlayerController::HandleInventoryToggle()
 	{
 		TryOpenContainer(InventoryInterface, EContainerRelationType::Inventory);
 	}
+}
+
+void AUPPlayerController::HandleRelocateItem(FContainerItemData& ContainerItemData,
+                                             TScriptInterface<IContainerInterface> TargetContainer)
+{
+	NULLCHECK(TargetContainer);
+	TryStoreItem(TargetContainer.GetInterface(), ContainerItemData);
 }

@@ -19,17 +19,13 @@ public:
 	UItemFactoryHelper();
 
 	UFUNCTION(BlueprintCallable)
-	static UItemData* SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container);
-	
-	UFUNCTION(BlueprintCallable)
-	static UItemData* SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);
-
-	// Creates in-world item
-	UFUNCTION(BlueprintCallable)
-	static AItem* SpawnItemInWorld(const UObject* WorldContextObject, const TSubclassOf<UItemData> Class,
-	                               const FTransform& Transform);
+	static FItemData& SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container);
 
 	UFUNCTION(BlueprintCallable)
-	static AItem* SpawnItem(const UObject* WorldContextObject, UItemData* ItemData,
+	static FItemData&
+	SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);
+
+	UFUNCTION(BlueprintCallable)
+	static AItem* SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition ItemDefinition,
 	                        const FTransform& Transform, bool DuplicateItemData = false);
 };

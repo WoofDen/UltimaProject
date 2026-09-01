@@ -30,7 +30,7 @@ UContainerComponent* AUPCharacter::GetContainerComponent_Implementation() const
 	return InventoryComponent;
 }
 
-bool AUPCharacter::CanBeOpened(const AUPPlayerController* InstigatorController)
+bool AUPCharacter::CanBeOpened(const AUPPlayerController* InstigatorController) const
 {
 	return GetController() == InstigatorController;
 }
@@ -48,8 +48,11 @@ AUPCharacter::AUPCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
-	GetArrowComponent()->bHiddenInGame = false;
-	GetArrowComponent()->SetVisibility(true);
+	if (UArrowComponent* ArrowComp = GetArrowComponent())
+	{
+		ArrowComp->bHiddenInGame = false;
+		ArrowComp->SetVisibility(true);
+	}
 
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 
@@ -93,7 +96,7 @@ void AUPCharacter::BeginDestroy()
 	{
 		GetAccessibilityChangedDelegate().Broadcast(this);
 	}
-	
+
 	Super::BeginDestroy();
 }
 

@@ -7,39 +7,23 @@
 
 FItemInstanceData::FItemInstanceData()
 {
-	Amount = 1;
+	Amount = 0; // Invalid item marker
 }
 
-UItemData::UItemData()
+bool FItemInstanceData::IsValid() const
+{
+	return Amount >= 0;
+}
+
+FItemData::FItemData()
 {
 }
 
-UItemData::UItemData(FObjectInitializer& Initializer)
-	: Super(Initializer)
+
+FItemData FItemData::EmptyItem = FItemData(FItemDataDefinition(nullptr, FItemInstanceData()));
+
+bool FItemData::PreInitialize(FItemData* Source /* = nullptr */)
 {
-}
-
-void UItemData::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	UObject::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(UItemData, StaticData, COND_InitialOnly);
-
-	{
-		FDoRepLifetimeParams Params;
-		Params.bIsPushBased = true;
-		DOREPLIFETIME_WITH_PARAMS_FAST(UItemData, InstanceData, Params);
-	}
-}
-
-bool UItemData::IsSupportedForNetworking() const
-{
-	return true;
-}
-
-bool UItemData::Initialize(UItemData* Source /* = nullptr */)
-{
-	check(GetClass());
 	check(StaticData.IsValid());
 
 	if (Source)
@@ -56,46 +40,57 @@ bool UItemData::Initialize(UItemData* Source /* = nullptr */)
 	return true;
 }
 
-bool UItemData::Initialize(const FItemDataDefinition& Definition)
+bool FItemData::PreInitialize(const FItemDataDefinition& Definition)
 {
 	StaticData = Definition.StaticData;
 	InstanceData = Definition.InstanceData;
 
 	// Do not allow invalid UItemData
-	check(StaticData.IsValid());
+	check(StaticData.IsValid() || this == &FItemData::EmptyItem);
 
 	return true;
 }
 
-TSoftObjectPtr<const UItemDataAsset> UItemData::GetStaticData() const
+FItemDataDefinition FItemData::GetDataDefinition() const
+{
+	return FItemDataDefinition(StaticData, InstanceData);
+}
+
+TSoftObjectPtr<const UItemDataAsset> FItemData::GetStaticData() const
 {
 	return StaticData;
 }
 
-void UItemData::SetStaticData(const UItemDataAsset* InStaticData)
+void FItemData::SetStaticData(const UItemDataAsset* InStaticData)
 {
 	check(!StaticData.IsValid());
 	StaticData = InStaticData;
 }
 
-const FItemInstanceData& UItemData::GetInstanceData() const
+const FItemInstanceData& FItemData::GetInstanceData() const
 {
 	return InstanceData;
 }
 
-TSubclassOf<AItem> UItemData::GetActorClass() const
+TSubclassOf<AItem> FItemData::GetActorClass() const
 {
 	return StaticData->ActorClass;
 }
 
-int32 UItemData::GetStackableAmount(const UItemData* TargetItem) const
+bool FItemData::IsValid() const
 {
-	if (!TargetItem || StaticData != TargetItem->StaticData)
+	return StaticData && InstanceData.IsValid();
+}
+
+int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const
+{
+	ensureAlways(TargetItem.IsValid());
+	if (StaticData != TargetItem.StaticData)
 	{
 		return 0;
 	}
 
-	const int32 FreeItemCount = TargetItem->GetMaxAmountPerStack() - TargetItem->GetAmount();
+	const int32 FreeItemCount = TargetItem.GetMaxAmountPerStack() - TargetItem.GetAmount();
 	if (FreeItemCount == 0)
 	{
 		return 0;
@@ -104,26 +99,29 @@ int32 UItemData::GetStackableAmount(const UItemData* TargetItem) const
 	return FMath::Min(GetAmount(), FreeItemCount);
 }
 
-UItemData* UItemData::SplitItem(const int64 SplitAmount)
+bool FItemData::SplitItem(const int64 SplitAmount, FItemData& ResultItem)
 {
-	if (SplitAmount <= 0 || SplitAmount >= GetAmount())
+	if (SplitAmount <= 0 || GetAmount() - SplitAmount <= 0)
 	{
-		return nullptr;
+		// TODO 
+		return false;
 	}
 
-	UItemData* NewItemData = DuplicateObject<UItemData>(this, GetOuter());
-	if (!ensureAlways(NewItemData))
-	{
-		return nullptr;
-	}
+	ResultItem.StaticData = StaticData;
+	ResultItem.InstanceData = InstanceData;
 
 	const int64 NewAmount = GetAmount() - SplitAmount;
 	SetAmount(NewAmount);
-	NewItemData->SetAmount(SplitAmount);
-	return NewItemData;
+	ResultItem.SetAmount(SplitAmount);
+	return true;
 }
 
-FText UItemData::GetDisplayName() const
+FItemData::FItemData(const FItemDataDefinition& Definition)
+{
+	PreInitialize(Definition);
+}
+
+FText FItemData::GetDisplayName() const
 {
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
 	if (StaticData.IsValid())
@@ -134,7 +132,7 @@ FText UItemData::GetDisplayName() const
 	return Unnamed;
 }
 
-UTexture2D* UItemData::GetViewIcon() const
+UTexture2D* FItemData::GetViewIcon() const
 {
 	if (!ensureAlways(StaticData.IsValid()))
 	{
@@ -144,42 +142,42 @@ UTexture2D* UItemData::GetViewIcon() const
 	return StaticData->Icon.LoadSynchronous();
 }
 
-int64 UItemData::GetAmount() const
+int64 FItemData::GetAmount() const
 {
 	return InstanceData.Amount;
 }
 
-int64 UItemData::GetMaxAmountPerStack() const
+int64 FItemData::GetMaxAmountPerStack() const
 {
 	return StaticData->MaxAmountPerStack;
 }
 
-int64 UItemData::SetAmount(const int64 Value)
+int64 FItemData::SetAmount(const int64 Value)
 {
 	ensureAlways(Value >= 0);
 	if (Value != InstanceData.Amount)
 	{
 		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value);
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
+		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
 
 	return InstanceData.Amount;
 }
 
-int64 UItemData::ModifyAmount(const int64 Value)
+int64 FItemData::ModifyAmount(const int64 Value)
 {
 	if (Value != 0)
 	{
 		const int32 NewAmount = InstanceData.Amount + Value;
 		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, FMath::Max(0, NewAmount));
 
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
+		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
 
 	return InstanceData.Amount;
 }
 
-TSoftObjectPtr<UStaticMesh> UItemData::GetStaticMesh() const
+TSoftObjectPtr<UStaticMesh> FItemData::GetStaticMesh() const
 {
 	if (StaticData)
 	{

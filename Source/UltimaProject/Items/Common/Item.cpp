@@ -37,17 +37,17 @@ void AItem::RemoveFromWorld()
 	Destroy();
 }
 
-bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
+bool AItem::SetItemData(FItemData&& NewData)
 {
 	// It should be could once after actor creation ( so far )
-	if (!ensureAlways(ItemData == nullptr))
+	if (ensureAlways(!ItemData.IsValid()))
 	{
 		return false;
 	}
 
 	ItemData = NewData;
 
-	auto ItemStaticData = ItemData->GetStaticData();
+	auto ItemStaticData = ItemData.GetStaticData();
 	if (!ensure(ItemStaticData))
 	{
 		return false;
@@ -55,7 +55,7 @@ bool AItem::SetItemData_Implementation(UItemData* NewData /*= nullptr*/)
 
 	if (StaticMeshComponent)
 	{
-		UStaticMesh* Mesh = ItemData->GetStaticData()->WorldMesh.Get();
+		UStaticMesh* Mesh = ItemData.GetStaticData()->WorldMesh.Get();
 		StaticMeshComponent->SetStaticMesh(Mesh);
 	}
 
@@ -69,21 +69,21 @@ void AItem::PostInitializeComponents()
 	if (HasAuthority() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Item can be created with ItemData set already or from default
-		if (!IsValid(ItemData) && ensureAlways(IsValid(DefaultStaticData)))
+		if (!ItemData.IsValid() && ensureAlways(IsValid(DefaultStaticData)))
 		{
 			// TODO as any AItem has a UItemData, it may be better to create one within constructor rather than a dynamic one
-			UItemData* Data = NewObject<UItemData>(this, FName("ItemData"));
-			Data->StaticData = DefaultStaticData;
-			Data->InstanceData = DefaultInstanceData;
-
-			AddReplicatedSubObject(Data);
-
-			if (!SetItemData(Data))
+			FItemDataDefinition DefaultItemDefinition (DefaultStaticData, DefaultInstanceData);
+			FItemData DefaultItemData (MoveTemp(DefaultItemDefinition));
+			
+			if (!SetItemData(MoveTemp(DefaultItemData)))
 			{
 				UE_LOG(LogActor, Error, TEXT("Item %s initialization failed"), *GetActorNameOrLabel());
-				Data->MarkAsGarbage();
+				//Data->MarkAsGarbage();
 				Destroy();
 			}
+
+			//AddReplicatedSubObject(Data);
+
 		}
 	}
 }

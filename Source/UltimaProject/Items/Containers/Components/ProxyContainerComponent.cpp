@@ -152,7 +152,7 @@ bool UProxyContainerComponent::ReplicateSubobjects(class UActorChannel* Channel,
 
 	for (auto& Item : ProxyContainerItems.Items)
 	{
-		WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
+		//WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
 	}
 
 	return WroteSomething;

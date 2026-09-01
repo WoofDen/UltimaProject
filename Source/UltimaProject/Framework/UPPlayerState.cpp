@@ -21,7 +21,7 @@ void AUPPlayerState::UpdateAbilitySystemComponent()
 		APawn* Pawn = GetPawn();
 		AbilitySystemComponent->InitAbilityActorInfo(this, Pawn);
 
-		// If Pawn is not null, PC is exptexted to be set
+		// If Pawn is not null, PC is expected to be set
 		ensureAlways(!Pawn || AbilitySystemComponent->AbilityActorInfo->PlayerController.IsValid());
 	}
 }

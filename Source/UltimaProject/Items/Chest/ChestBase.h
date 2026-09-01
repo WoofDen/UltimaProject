@@ -27,9 +27,12 @@ public:
 	virtual void BeginDestroy() override;
 	// ~AActor
 
-	// IActorContainerInterface
+	// IContainerInterface
 	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
-	virtual bool CanBeOpened(const class AUPPlayerController* Controller) override;
+	virtual bool CanBeOpened(const class AUPPlayerController* Controller) const override;
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
-	// ~IActorContainerInterface
+	
+	//UFUNCTION(Server, Unreliable)
+	//virtual void CallServerTryStoreItem(AController* InstigatorController, const FContainerItemData& ItemData) override;
+	// ~IContainerInterface
 };

@@ -23,21 +23,23 @@ struct FContainerItemData : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 	bool operator==(const FContainerItemData& Other) const;
-	FContainerItemData(UItemData* InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
+	FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
 
 	int32 GetSlot() const { return SlotIndex; }
 
-	bool IsValid() const { return ItemData && Container.Get(); }
+	bool IsValid() const { return ItemData.IsValid() && Container.Get(); }
 	bool IsInContainer(const UContainerComponent* AnotherContainer) const { return Container == AnotherContainer; }
-	const UItemData* GetItemData() const { return ItemData; }
+
+	const FItemData& GetItemData() const { return ItemData; }
+	UContainerComponent* GetContainerComponent() const { return Container.Get(); };
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<UContainerComponent> Container = nullptr;
 
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
-	TObjectPtr<UItemData> ItemData = nullptr;
+	FItemData ItemData;
 
 	int32 SlotIndex = INDEX_NONE;
 };
@@ -132,8 +134,8 @@ class UContainerComponent : public UActorComponent
 	int32 GetStoredSlotsCount() const;
 
 	// Try add item ( UItemData ) to container
-	virtual FItemTransactionResult AddItem(UItemData* ItemData);
-	virtual FItemTransactionResult AddItem(UItemData* ItemData, FContainerItemData& AddedItem);
+	virtual FItemTransactionResult AddItem(FItemData& ItemData);
+	virtual FItemTransactionResult AddItem(FItemData& ItemData, FContainerItemData& AddedItem);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 protected:
@@ -145,7 +147,7 @@ protected:
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	// virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void BeginPlay() override;
 	// ~UActorComponent
 
@@ -211,7 +213,7 @@ public:
 	virtual UContainerComponent* GetListenContainer();
 
 	// Find a position nearby where we can safely drop an item
-	bool FindDropTransform(const UItemData* ItemData, FTransform& Result) const;
+	bool FindDropTransform(const FItemData& ItemData, FTransform& Result) const;
 
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
@@ -221,10 +223,12 @@ public:
 #pragma region Client top-level item operations
 
 public:
+	// Store an external item
 	virtual void TryStoreItem(AController* Instigator, AItem* Item);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool TrySplitItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item, const int64 SplitAmount);
+	virtual bool TrySplitItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item,
+	                          const int64 SplitAmount);
 
 	UFUNCTION(BlueprintCallable)
 	virtual bool TryDropItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item);
@@ -234,10 +238,14 @@ public:
 #pragma region Server top-level item operations
 
 public:
-	UFUNCTION(Server, Reliable) // TODO maybe unreliable?
+	// Store item from another container
+	UFUNCTION(Server, Unreliable)
+	virtual void ServerTryStoreItem(AController* Instigator, const FContainerItemData& ItemData);
+
+	UFUNCTION(Server, Unreliable)
 	void ServerTryDropItem(AController* Instigator, const FContainerItemData& Item);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Unreliable)
 	void ServerTrySplitItem(AController* Instigator, const FContainerItemData& Item, const int64 SplitAmount);
 #pragma endregion
 };

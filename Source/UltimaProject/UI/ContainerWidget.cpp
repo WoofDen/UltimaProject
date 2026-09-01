@@ -3,6 +3,8 @@
 // Game includes
 #include "ContainerWidget.h"
 
+#include "UltimaProject/Common/Macro.h"
+
 void UContainerWidget::OnContainerItemsChange()
 {
 	HandleContainerItemsChange();
@@ -22,7 +24,7 @@ void UContainerWidget::SetContainerComponent(UContainerComponent* InContainerCom
 {
 	check(!ContainerComponent.IsValid())
 	ContainerComponent = InContainerComponent;
-	
+
 	if (!ContainerComponent.IsValid())
 	{
 		UE_LOG(LogUPContainers, Error, TEXT("ContainerComponent is not valid for %s"), *GetNameSafe(this));
@@ -39,4 +41,19 @@ void UContainerWidget::SetContainerComponent(UContainerComponent* InContainerCom
 UContainerComponent* UContainerWidget::GetContainerComponent() const
 {
 	return ContainerComponent.Get();
+}
+
+TScriptInterface<IContainerInterface> UContainerWidget::GetContainerInterface() const
+{
+	NULLCHECK_SP_RETURN(ContainerComponent, nullptr);
+	
+	// If a proxy container, return the origin
+	UContainerComponent* OriginContainer = ContainerComponent->GetOriginContainer();
+	NULLCHECK_RETURN(OriginContainer, nullptr);
+	
+	TScriptInterface<IContainerInterface> Interface;
+	Interface.SetInterface(OriginContainer->GetOwnerInterface());
+	Interface.SetObject(OriginContainer->GetOwner());
+	
+	return Interface;
 }
