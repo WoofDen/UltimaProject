@@ -56,10 +56,9 @@ public:
 
 	// UContainerComponent
 protected:
-	virtual FItemTransactionResult MoveItem(AItem* WorldItem) override;
-	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem) override;
-	virtual FItemTransactionResult MoveItem(FContainerItemData& Item, AItem* OutItem) override;
-	virtual FItemTransactionResult SplitItem(FContainerItemData& Data, const int32 SplitAmount) override;
+	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove) override;
+	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove) override;
+	virtual FItemTransactionResult MoveItem(FContainerItemData& Item, AItem* OutItem, uint32 AmountToMove) override;
 	
 	virtual bool HasItem(const FContainerItemData& ItemData) const override;
 	virtual UContainerComponent* GetOriginContainer() override;

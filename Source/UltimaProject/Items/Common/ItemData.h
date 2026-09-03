@@ -22,7 +22,7 @@ struct FItemInstanceData
 	FItemInstanceData();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Amount;
+	int32 Amount;
 
 	bool operator==(const FItemInstanceData& Other) const
 	{
@@ -48,7 +48,7 @@ public:
 	FText Name;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int64 MaxAmountPerStack;
+	int32 MaxAmountPerStack;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
@@ -57,7 +57,7 @@ public:
 	TSoftObjectPtr<UTexture2D> Icon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int64 Slots = 1;
+	int32 Slots = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<UGameplayAbility_Interaction> PickupAbilityClass;
@@ -69,6 +69,10 @@ USTRUCT(BlueprintType)
 struct FItemDataDefinition
 {
 	GENERATED_BODY()
+	
+	FItemDataDefinition();
+	FItemDataDefinition(const FItemData& Item);
+	FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn);
 
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -77,6 +81,11 @@ struct FItemDataDefinition
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FItemInstanceData InstanceData;
+	
+	bool IsValid() const
+	{
+		return StaticData.IsValid() && InstanceData.IsValid();
+	};
 };
 
 /**
@@ -99,9 +108,6 @@ protected:
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
 	FItemInstanceData InstanceData;
-
-	// Create a duplicate item data with amount. The origin object amount will be reduced
-	bool SplitItem(const int64 SplitAmount, FItemData& ResultItem);
 
 public:
 	FItemData();
@@ -134,13 +140,13 @@ public:
 
 	virtual UTexture2D* GetViewIcon() const;
 
-	virtual int64 GetAmount() const;
+	virtual uint32 GetAmount() const;
 
-	virtual int64 GetMaxAmountPerStack() const;
+	virtual uint32 GetMaxAmountPerStack() const;
 
-	virtual int64 SetAmount(const int64 Value);
+	virtual uint32 SetAmount(const uint32 Value);
 
-	virtual int64 ModifyAmount(const int64 Value);
+	virtual uint32 ModifyAmount(const int32 Value);
 
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
 };

@@ -174,28 +174,22 @@ TSubclassOf<UContainerWidget> UProxyContainerComponent::GetContainerWidgetClass(
 	return OriginContainer->GetContainerWidgetClass();
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem)
+FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
 	return OriginContainer->MoveItem(WorldItem);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& SourceItem)
+FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
 	return OriginContainer->MoveItem(SourceItem);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& Item, AItem* OutItem)
+FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& Item, AItem* OutItem, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
 	return OriginContainer->MoveItem(Item, OutItem);
-}
-
-FItemTransactionResult UProxyContainerComponent::SplitItem(FContainerItemData& Data, const int32 SplitAmount)
-{
-	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
-	return OriginContainer->SplitItem(Data, SplitAmount);
 }
 
 bool UProxyContainerComponent::HasItem(const FContainerItemData& ItemData) const

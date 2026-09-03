@@ -13,7 +13,7 @@ DEFINE_LOG_CATEGORY(LogUPContainers)
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
-	return SlotIndex == Other.SlotIndex;
+	return Handle == Other.Handle;
 }
 
 FContainerItemData::FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, int32 InitSlotIndex)
@@ -21,6 +21,7 @@ FContainerItemData::FContainerItemData(FItemData&& InitData, UContainerComponent
 	ItemData = InitData;
 	Container = InitContainer;
 	SlotIndex = InitSlotIndex;
+	Handle = Container->GenerateItemHandle();
 }
 
 FContainerItemData::FContainerItemData()
@@ -92,7 +93,7 @@ void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices
 	}
 }
 
-int32 UContainerComponent::GetStoredSlotsCount() const
+uint32 UContainerComponent::GetSlotsInUse() const
 {
 	// todo cache values?
 	int32 Result = 0;
@@ -102,6 +103,17 @@ int32 UContainerComponent::GetStoredSlotsCount() const
 	}
 
 	return Result;
+}
+
+uint32 UContainerComponent::GetSlotsAvailable() const
+{
+	return ItemSlotsCapacity - GetSlotsInUse();
+}
+
+FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDataDefinition)
+{
+	FItemData NewItem(ItemDataDefinition);
+	return AddItem(MoveTemp(NewItem));
 }
 
 void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -272,20 +284,20 @@ bool UContainerComponent::HasItem(const FContainerItemData& ItemData) const
 	return ContainerItems.Items.Contains(ItemData);
 }
 
-FItemTransactionResult UContainerComponent::AddItem(FItemData& ItemData)
+FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData)
 {
 	FContainerItemData AddedItem;
-	return AddItem(ItemData, AddedItem);
+	return AddItem(MoveTemp(ItemData), AddedItem);
 }
 
-FItemTransactionResult UContainerComponent::AddItem(FItemData& ItemData, FContainerItemData& AddedItem)
+FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, FContainerItemData& AddedItem)
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
 	// todo should we?
 	// ItemData->GetStaticData().LoadSynchronous();
 
-	const int32 SlotIndex = GetStoredSlotsCount();
+	const int32 SlotIndex = GetSlotsInUse();
 	ensureAlways(SlotIndex < ItemSlotsCapacity);
 	// todo ensure get item at slot == null
 
@@ -293,10 +305,12 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData& ItemData, FContai
 	AddedItem = ContainerItems.Items.Add_GetRef(MoveTemp(ContainerItemData));
 
 	ContainerItems.MarkItemDirty(AddedItem);
+	NotifyContainerItemsChanged();
 
 	return GItemTransactionResult_Success;
 }
 
+/*
 FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, const int32 SplitAmount)
 {
 	if (!ensureAlways(HasItem(Data)))
@@ -319,7 +333,7 @@ FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, 
 	// The origin has been changed
 	ContainerItems.MarkItemDirty(Data);
 
-	FItemTransactionResult Result = AddItem(NewItemData);
+	FItemTransactionResult Result = AddItem(MoveTemp(NewItemData));
 	if (!Result.IsSuccess())
 	{
 		// todo
@@ -333,46 +347,251 @@ FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, 
 	}
 	return Result;
 }
+*/
 
-FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceItem)
+FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove)
 {
 	// Container->Container move
 	check(GetOwner()->HasAuthority());
 
-	// FContainerItemData should always have a container
+	// FContainerItemData should always have a valid container
 	if (!ensureAlways(SourceItem.IsValid()))
 	{
 		return GItemTransactionResult_Error;
 	}
 
-	if (SourceItem.Container == this)
+	// Clamp to items real amount
+	AmountToMove = FMath::Min(AmountToMove, SourceItem.GetAmount());
+
+	UContainerComponent* SourceContainerComponent = SourceItem.Container.Get();
+
+	const bool bMoveWholeStack = AmountToMove >= SourceItem.GetAmount();
+	const bool bSameContainer = SourceItem.Container == this;
+	FItemTransactionResult Result;
+
+	if (bSameContainer && bMoveWholeStack)
 	{
-		ensure(false);
+		ensureAlways(false);
 		return GItemTransactionResult_Success;
 	}
 
 	FItemData& SourceItemData = SourceItem.ItemData;
 
 	// Try to stack into existing items
-	int32 MovedAmount = 0;
+	if (!bSameContainer)
+	{
+		for (FContainerItemData& Item : ContainerItems.Items)
+		{
+			// How much we can put in this stack
+			int32 StackableAmount = SourceItemData.GetStackableAmount(Item.ItemData);
+			StackableAmount = FMath::Min((int32)(AmountToMove - Result.MovedAmount), StackableAmount);
+
+			if (StackableAmount == 0)
+			{
+				continue;
+			}
+
+			Item.ModifyAmount(StackableAmount);
+			SourceItemData.ModifyAmount(-StackableAmount);
+
+			ContainerItems.MarkItemDirty(Item); // This ( Target ) container
+			SourceItem.Container->ContainerItems.MarkItemDirty(SourceItem); // Other ( Source container )
+
+			NotifyContainerItemChanged(Item);
+
+			Result.MovedAmount += StackableAmount;
+
+			if (SourceItemData.GetAmount() == 0 || AmountToMove - Result.MovedAmount == 0)
+			{
+				break;
+			}
+		}
+
+		// If the item amount is 0, remove the item 
+		if (SourceItem.GetAmount() == 0)
+		{
+			UContainerComponent* SourceItemContainer = SourceItem.Container.Get();
+			SourceItemContainer->RemoveItem(SourceItem);
+
+			Result += EItemTransactionResultCode::FullyMoved;
+			return Result;
+		}
+
+		// Something is left but the amount target is reached
+		if (AmountToMove - Result.MovedAmount == 0)
+		{
+			Result += EItemTransactionResultCode::FullyMoved;
+			return Result;
+		}
+	}
+
+	// Splitting the item OR trying to put what left after stacking requires a free slot
+	if (ContainerItems.Items.Num() >= ItemSlotsCapacity)
+	{
+		Result += EItemTransactionResultCode::NotEnoughCapacity;
+		if (Result.MovedAmount > 0)
+		{
+			Result += EItemTransactionResultCode::PartiallyMoved;
+		}
+
+		return Result;
+	}
+
+	ensureAlways(SourceItem.GetAmount() > 0);
+
+	// Create a NEW item and move what is left from the origin
+	const int32 NewItemAmount = FMath::Min(AmountToMove - Result.MovedAmount, SourceItem.GetAmount());
+
+	FItemDataDefinition NewItemDefinition(SourceItem.ItemData);
+	NewItemDefinition.InstanceData.Amount = NewItemAmount;
+	ensureAlways(NewItemDefinition.IsValid());
+
+	// Update the source item amount
+	SourceItem.ModifyAmount(-NewItemAmount);
+
+	bool bOriginItemWasRemoved = false;
+	if (SourceItem.GetAmount() == 0)
+	{
+		// Source amount depleted, remove
+		if (SourceContainerComponent->RemoveItem(SourceItem))
+		{
+			Result += EItemTransactionResultCode::FullyMoved;
+			bOriginItemWasRemoved = true;
+		}
+		else
+		{
+			// Couldn't remove the item
+			Result += EItemTransactionResultCode::Error;
+			return Result;
+		}
+	}
+
+	// Add a new item
+	FItemTransactionResult AddResult = AddItem(NewItemDefinition);
+	if (AddResult.IsSuccess())
+	{
+		Result += EItemTransactionResultCode::FullyMoved;
+		Result.MovedAmount += NewItemAmount;
+	}
+	else
+	{
+		// Revert
+		if (bOriginItemWasRemoved)
+		{
+			FItemTransactionResult bRevertAdditionResult = SourceContainerComponent->AddItem(NewItemDefinition);
+			ensureAlways(bRevertAdditionResult.IsSuccess());
+		}
+		else
+		{
+			SourceItem.ItemData.ModifyAmount(NewItemAmount);
+		}
+	}
+
+	return Result;
+}
+
+FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceItem, AItem* OutItem,
+                                                     uint32 AmountToMove)
+{
+	// Container->World
+
+	check(GetOwner()->HasAuthority());
+
+	if (!SourceItem.IsValid())
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	FTransform Transform;
+	if (!FindDropTransform(SourceItem.ItemData, Transform))
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	FItemTransactionResult Result;
+	UContainerComponent* SourceContainerComponent = SourceItem.Container.Get();
+
+	AmountToMove = FMath::Min(AmountToMove, SourceItem.GetAmount());
+	const bool bMoveWholeStack = SourceItem.GetAmount() == AmountToMove;
+
+	FItemDataDefinition DataDefinition(SourceItem.ItemData);
+	DataDefinition.InstanceData.Amount = AmountToMove;
+
+	if (bMoveWholeStack)
+	{
+		// Remove item from the container. In case of succeed it will be destroyed
+		if (!RemoveItem(SourceItem))
+		{
+			return GItemTransactionResult_Error;
+		}
+	}
+	else
+	{
+		SourceItem.ModifyAmount(-((int32)AmountToMove));
+	}
+
+	if (AItem* ResultItem = UItemFactoryHelper::SpawnItem(GetWorld(), DataDefinition, Transform))
+	{
+		OutItem = ResultItem;
+
+		Result += EItemTransactionResultCode::FullyMoved;
+		Result.MovedAmount = AmountToMove;
+
+		// The source item remains with amount reduced
+		if (!bMoveWholeStack)
+		{
+			SourceContainerComponent->NotifyContainerItemChanged(SourceItem);
+		}
+	}
+	else
+	{
+		Result += EItemTransactionResultCode::Error;
+
+		// Revert
+		if (bMoveWholeStack)
+		{
+			FItemTransactionResult RevertAdditionResult = SourceContainerComponent->AddItem(DataDefinition);
+			ensureAlways(RevertAdditionResult.IsSuccess());
+		}
+		else
+		{
+			SourceItem.ModifyAmount(AmountToMove);
+		}
+	}
+
+	return Result;
+}
+
+FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)
+{
+	// World->Container move. 
+	check(GetOwner()->HasAuthority());
+	NULLCHECK_RETURN(WorldItem, GItemTransactionResult_Error);
+
+	FItemData& SourceItemData = WorldItem->GetItemDataMutable();
+	if (!ensureAlways(SourceItemData.IsValid()))
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	AmountToMove = FMath::Min(AmountToMove, SourceItemData.GetAmount());
+
+	FItemTransactionResult Result;
+
+	// Iterate all items in the container and move as many items as possible
 	for (FContainerItemData& Item : ContainerItems.Items)
 	{
 		int32 StackableAmount = SourceItemData.GetStackableAmount(Item.ItemData);
+		StackableAmount = FMath::Min(StackableAmount, (int32)(AmountToMove - Result.MovedAmount));
 
-		if (StackableAmount == 0)
-		{
-			continue;
-		}
-
-		Item.ItemData.ModifyAmount(StackableAmount);
 		SourceItemData.ModifyAmount(-StackableAmount);
+		Item.ItemData.ModifyAmount(StackableAmount);
 
-		ContainerItems.MarkItemDirty(Item); // This ( Target ) container
-		SourceItem.Container->ContainerItems.MarkItemDirty(SourceItem); // Other ( Source container )
+		ContainerItems.MarkItemDirty(Item);
 
 		NotifyContainerItemChanged(Item);
 
-		MovedAmount += StackableAmount;
+		Result.MovedAmount += StackableAmount;
 
 		if (SourceItemData.GetAmount() == 0)
 		{
@@ -380,139 +599,58 @@ FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceI
 		}
 	}
 
-	// If the item amount is 0, remove the item
-	if (SourceItem.ItemData.GetAmount() == 0)
-	{
-		UContainerComponent* SourceItemContainer = SourceItem.Container.Get();
-		SourceItemContainer->RemoveItem(SourceItem);
-	}
-
-	FItemTransactionResult Result;
-	if (MovedAmount > 0)
-	{
-		NotifyContainerItemsChanged();
-
-		Result += SourceItemData.GetAmount() == 0
-			          ? EItemTransactionResultCode::FullyMoved
-			          : EItemTransactionResultCode::PartiallyMoved;
-	}
-
-	// some amount of item has left, check for the free slot
-	if (ContainerItems.Items.Num() >= ItemSlotsCapacity)
-	{
-		Result += EItemTransactionResultCode::NotEnoughCapacity;
-		return Result;
-	}
-
-	// Try move what's left from the item
-	if (SourceItemData.GetAmount() > 0)
-	{
-		return AddItem(SourceItem.ItemData);
-	}
-
-	return Result;
-}
-
-FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& Item, AItem* OutItem)
-{
-	// Container->World
-
-	check(GetOwner()->HasAuthority());
-
-	FTransform Transform;
-	if (!FindDropTransform(Item.ItemData, Transform))
-	{
-		return GItemTransactionResult_Error;
-	}
-
-	// Remove item from the container. In case of succeed it will be destroyed
-	if (RemoveItem(Item)) 
-	{
-		if (AItem* Result = UItemFactoryHelper::SpawnItem(GetWorld(), Item.ItemData.GetDataDefinition(), Transform))
-		{
-			NotifyContainerItemsChanged();
-
-			OutItem = Result;
-			return GItemTransactionResult_Success;
-		}
-
-		// If failed to spawn item, return UItemData back to container
-		auto Result = AddItem(Item.ItemData);
-		ensureAlways(Result.IsSuccess());
-	}
-
-	return GItemTransactionResult_Error;
-}
-
-FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem)
-{
-	// World->Container move. 
-	check(GetOwner()->HasAuthority());
-
-	if (!ensureAlways(IsValid(WorldItem)))
-	{
-		return GItemTransactionResult_Error;
-	}
-
-	FItemData& WorldItemData = WorldItem->GetItemDataMutable();
-	if (!ensureAlways(WorldItemData.IsValid()))
-	{
-		return GItemTransactionResult_Error;
-	}
-
-	// Iterate all items in the container and move as many items as possible
-	int32 MovedAmount = 0;
-	for (FContainerItemData& Item : ContainerItems.Items)
-	{
-		const int32 StackableAmount = WorldItemData.GetStackableAmount(Item.ItemData);
-
-		WorldItemData.ModifyAmount(-StackableAmount);
-		Item.ItemData.ModifyAmount(StackableAmount);
-
-		ContainerItems.MarkItemDirty(Item);
-
-		NotifyContainerItemChanged(Item);
-
-		MovedAmount += StackableAmount;
-
-		if (WorldItemData.GetAmount() == 0)
-		{
-			break;
-		}
-	}
-
-	FItemTransactionResult Result;
-	if (WorldItemData.GetAmount() == 0)
+	// The source item amount depleted
+	if (SourceItemData.GetAmount() == 0)
 	{
 		// Item is completely stacked into a new container
 		WorldItem->RemoveFromWorld();
 		Result += EItemTransactionResultCode::FullyMoved;
+
+		return Result;
+	}
+
+	// The target amount reached
+	if (Result.MovedAmount >= AmountToMove)
+	{
+		Result += EItemTransactionResultCode::FullyMoved;
+		return Result;
+	}
+
+
+	// Can't stack anything, remains will be added as new items
+	uint32 RemainingAmount = AmountToMove - Result.MovedAmount;
+	const uint32 SlotsAvailable = GetSlotsAvailable();
+	const uint32 SlotsPerStack = SourceItemData.StaticData->Slots;
+	const uint32 ItemsPerStack = SourceItemData.StaticData->MaxAmountPerStack;
+
+	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack)
+	{
+		FItemDataDefinition ItemDefinition(SourceItemData);
+		int32 CurrentIterationAmount = FMath::Min(AmountToMove, ItemsPerStack);
+
+		ItemDefinition.InstanceData.Amount = CurrentIterationAmount;
+
+		if (AddItem(ItemDefinition).IsSuccess())
+		{
+			SourceItemData.ModifyAmount(-CurrentIterationAmount);
+			RemainingAmount -= CurrentIterationAmount;
+
+			Result.MovedAmount += CurrentIterationAmount;
+		}
+	}
+
+	if (RemainingAmount == 0)
+	{
+		Result += EItemTransactionResultCode::FullyMoved;
 	}
 	else
 	{
-		// Try to move the rest into the container as a new item
-		if (MovedAmount > 0)
-		{
-			Result += EItemTransactionResultCode::PartiallyMoved;
-		}
-
-		// We need an extra slot in the container to place what left
-		if (ContainerItems.Items.Num() == ItemSlotsCapacity)
-		{
-			Result += EItemTransactionResultCode::NotEnoughCapacity;
-		}
-		// Add a container item to the container
-		else if (AddItem(WorldItem->GetItemDataMutable()).IsSuccess())
-		{
-			// Reference on UItemData will be stored in the container now
-			// So, it's safe to destroy the actor from the world now
-			WorldItem->RemoveFromWorld();
-		}
+		Result += EItemTransactionResultCode::PartiallyMoved;
 	}
 
-	if (MovedAmount > 0)
+	if (SourceItemData.GetAmount() == 0)
 	{
-		NotifyContainerItemsChanged();
+		WorldItem->RemoveFromWorld();
 	}
 
 	return Result;
@@ -531,6 +669,18 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 	}
 
 	return true;
+}
+
+uint32 UContainerComponent::GenerateItemHandle() const
+{
+	uint32 Handle = 0;
+	for (auto Item : ContainerItems.Items)
+	{
+		Handle = FMath::Max(Handle, Item.GetHandle());
+	}
+
+	check(Handle < UINT32_MAX)
+	return ++Handle;
 }
 
 UContainerComponent* UContainerComponent::GetOriginContainer()
@@ -614,28 +764,6 @@ void UContainerComponent::ServerTryStoreItem_Implementation(AController* Instiga
 	MoveItem(ItemDataMutable);
 }
 
-
-bool UContainerComponent::TrySplitItem(AController* Instigator, const FContainerItemData& Item, const int64 SplitAmount)
-{
-	// Client only
-	check(!GetOwner()->HasAuthority());
-
-	if (!ensureAlways(HasItem(Item)))
-	{
-		return false;
-	}
-
-
-	const FItemData& ItemData = Item.GetItemData();
-	if (!ItemData.IsValid() || SplitAmount < 0 || SplitAmount >= ItemData.GetAmount())
-	{
-		return false;
-	}
-
-	ServerTrySplitItem(Instigator, Item, SplitAmount);
-	return true;
-}
-
 bool UContainerComponent::TryDropItem(AController* Instigator, const FContainerItemData& Item)
 {
 	ensureAlways(!GetOwner()->HasAuthority());
@@ -654,15 +782,9 @@ void UContainerComponent::ServerTryDropItem_Implementation(AController* Instigat
 {
 	ensureAlways(Item.IsValid() && Item.IsInContainer(GetOriginContainer()));
 
-	if (ensure(HasItem(Item)))
+	if (ensureAlways(HasItem(Item)))
 	{
 		AItem* Result = nullptr;
 		MoveItem(const_cast<FContainerItemData&>(Item), Result);
 	}
-}
-
-void UContainerComponent::ServerTrySplitItem_Implementation(AController* Instigator, const FContainerItemData& Item,
-                                                            const int64 SplitAmount)
-{
-	SplitItem(const_cast<FContainerItemData&>(Item), SplitAmount);
 }

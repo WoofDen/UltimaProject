@@ -26,6 +26,6 @@ public:
 	SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);
 
 	UFUNCTION(BlueprintCallable)
-	static AItem* SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition ItemDefinition,
+	static AItem* SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition& ItemDefinition,
 	                        const FTransform& Transform, bool DuplicateItemData = false);
 };

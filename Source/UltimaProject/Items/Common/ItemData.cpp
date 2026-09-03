@@ -53,7 +53,8 @@ bool FItemData::PreInitialize(const FItemDataDefinition& Definition)
 
 FItemDataDefinition FItemData::GetDataDefinition() const
 {
-	return FItemDataDefinition(StaticData, InstanceData);
+	const FItemData* This = this;
+	return FItemDataDefinition(*This);
 }
 
 TSoftObjectPtr<const UItemDataAsset> FItemData::GetStaticData() const
@@ -90,7 +91,7 @@ int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const
 		return 0;
 	}
 
-	const int32 FreeItemCount = TargetItem.GetMaxAmountPerStack() - TargetItem.GetAmount();
+	const uint32 FreeItemCount = TargetItem.GetMaxAmountPerStack() - TargetItem.GetAmount();
 	if (FreeItemCount == 0)
 	{
 		return 0;
@@ -99,22 +100,23 @@ int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const
 	return FMath::Min(GetAmount(), FreeItemCount);
 }
 
-bool FItemData::SplitItem(const int64 SplitAmount, FItemData& ResultItem)
+FItemDataDefinition::FItemDataDefinition()
 {
-	if (SplitAmount <= 0 || GetAmount() - SplitAmount <= 0)
-	{
-		// TODO 
-		return false;
-	}
-
-	ResultItem.StaticData = StaticData;
-	ResultItem.InstanceData = InstanceData;
-
-	const int64 NewAmount = GetAmount() - SplitAmount;
-	SetAmount(NewAmount);
-	ResultItem.SetAmount(SplitAmount);
-	return true;
+	checkNoEntry();
 }
+
+FItemDataDefinition::FItemDataDefinition(const FItemData& Item)
+	: FItemDataDefinition(Item.GetStaticData(), Item.GetInstanceData())
+
+{
+}
+
+FItemDataDefinition::FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn)
+{
+	StaticData = StaticDataIn;
+	InstanceData = InstanceDataIn;
+}
+
 
 FItemData::FItemData(const FItemDataDefinition& Definition)
 {
@@ -142,29 +144,29 @@ UTexture2D* FItemData::GetViewIcon() const
 	return StaticData->Icon.LoadSynchronous();
 }
 
-int64 FItemData::GetAmount() const
+uint32 FItemData::GetAmount() const
 {
-	return InstanceData.Amount;
+	return StaticCast<uint32>(InstanceData.Amount);
 }
 
-int64 FItemData::GetMaxAmountPerStack() const
+uint32 FItemData::GetMaxAmountPerStack() const
 {
-	return StaticData->MaxAmountPerStack;
+	return StaticCast<uint32>(StaticData->MaxAmountPerStack);
 }
 
-int64 FItemData::SetAmount(const int64 Value)
+uint32 FItemData::SetAmount(const uint32 Value)
 {
-	ensureAlways(Value >= 0);
 	if (Value != InstanceData.Amount)
 	{
-		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value);
+		const int32 Value32 = StaticCast<int32>(Value);
+		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value32);
 		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
 
 	return InstanceData.Amount;
 }
 
-int64 FItemData::ModifyAmount(const int64 Value)
+uint32 FItemData::ModifyAmount(const int32 Value)
 {
 	if (Value != 0)
 	{
@@ -174,7 +176,7 @@ int64 FItemData::ModifyAmount(const int64 Value)
 		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
 
-	return InstanceData.Amount;
+	return StaticCast<uint32>(InstanceData.Amount);
 }
 
 TSoftObjectPtr<UStaticMesh> FItemData::GetStaticMesh() const

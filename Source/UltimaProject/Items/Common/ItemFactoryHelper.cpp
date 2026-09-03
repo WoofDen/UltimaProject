@@ -15,7 +15,7 @@ FItemData& UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& D
 	NULLCHECK_RETURN(Container, FItemData::EmptyItem);
 
 	FItemData ItemData = FItemData(Definition);
-	if (!Container->AddItem(ItemData).IsSuccess())
+	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
 	{
 		return FItemData::EmptyItem;
 	}
@@ -34,7 +34,7 @@ FItemData& UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsse
 	ItemData.PreInitialize();
 	ItemData.SetAmount(1);
 
-	if (!Container->AddItem(ItemData).IsSuccess())
+	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
 	{
 		return FItemData::EmptyItem;
 	}
@@ -42,7 +42,7 @@ FItemData& UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsse
 	return ItemData;
 }
 
-AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition ItemData,
+AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition& ItemData,
                                      const FTransform& Transform, bool DuplicateItemData/* = false*/)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);

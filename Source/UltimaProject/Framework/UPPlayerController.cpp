@@ -145,7 +145,7 @@ bool AUPPlayerController::TryStoreItem(IContainerInterface* ContainerInterface,
 		return false;
 	}
 
-	UContainerComponent* OriginContainerComponent = IContainerInterface::Execute_GetContainerComponent(_getUObject());
+	UContainerComponent* OriginContainerComponent = IContainerInterface::Execute_GetContainerComponent(ContainerInterface->_getUObject());
 	NULLCHECK_RETURN(OriginContainerComponent, false);
 
 	TScriptInterface<IContainerInterface> ContainerScriptInterface(ContainerInterface->_getUObject());

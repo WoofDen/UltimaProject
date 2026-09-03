@@ -26,7 +26,14 @@ struct FContainerItemData : public FFastArraySerializerItem
 	FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
 
+	uint32 GetHandle() const { return Handle; }
 	int32 GetSlot() const { return SlotIndex; }
+
+	// Sugar
+	uint32 GetAmount() const { return ItemData.GetAmount(); }
+	uint32 GetMaxAmountPerStack() const { return ItemData.GetMaxAmountPerStack(); };
+	uint32 SetAmount(const int32 Value) { return ItemData.SetAmount(Value); }
+	uint32 ModifyAmount(const int32 Value) { return ItemData.ModifyAmount(Value); }
 
 	bool IsValid() const { return ItemData.IsValid() && Container.Get(); }
 	bool IsInContainer(const UContainerComponent* AnotherContainer) const { return Container == AnotherContainer; }
@@ -41,6 +48,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
 	FItemData ItemData;
 
+	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
+	int32 Handle;
+
+	UPROPERTY(NotReplicated)
 	int32 SlotIndex = INDEX_NONE;
 };
 
@@ -94,6 +105,7 @@ struct FItemTransactionResult
 	GENERATED_BODY()
 
 	int8 ResultCode = 0;
+	uint32 MovedAmount = 0;
 
 	FItemTransactionResult()
 	{
@@ -131,11 +143,17 @@ class UContainerComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
-	int32 GetStoredSlotsCount() const;
+	uint32 GetSlotsInUse() const;
+	uint32 GetSlotsAvailable() const;
 
-	// Try add item ( UItemData ) to container
-	virtual FItemTransactionResult AddItem(FItemData& ItemData);
-	virtual FItemTransactionResult AddItem(FItemData& ItemData, FContainerItemData& AddedItem);
+	// Creates A NEW item and adds to container
+	virtual FItemTransactionResult AddItem(FItemDataDefinition& ItemDataDefinition);
+
+	// Adds an existing item ( UItemData ) to container
+	virtual FItemTransactionResult AddItem(FItemData&& ItemData);
+
+	// Adds an existing item ( UItemData ) to container, returns FContainerItemData
+	virtual FItemTransactionResult AddItem(FItemData&& ItemData, FContainerItemData& AddedItem);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 protected:
@@ -188,21 +206,19 @@ public:
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
 
 	IContainerInterface* GetOwnerInterface() const;
+	uint32 GenerateItemHandle() const;
 
 #pragma region Server low-level item transactions
 
 protected:
-	// Split into two items by amount. Second item will be placed to the same container
-	virtual FItemTransactionResult SplitItem(UPARAM(ref) FContainerItemData& Data, const int32 SplitAmount);
-
 	// Container->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem);
+	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove = UINT32_MAX);
 
 	// Container->World move
-	virtual FItemTransactionResult MoveItem(FContainerItemData& Item, AItem* OutItem);
+	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
 
 	// World->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(AItem* WorldItem);
+	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX);
 #pragma endregion
 
 #pragma region Helpers & validators
@@ -227,10 +243,6 @@ public:
 	virtual void TryStoreItem(AController* Instigator, AItem* Item);
 
 	UFUNCTION(BlueprintCallable)
-	virtual bool TrySplitItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item,
-	                          const int64 SplitAmount);
-
-	UFUNCTION(BlueprintCallable)
 	virtual bool TryDropItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item);
 
 #pragma endregion
@@ -244,8 +256,5 @@ public:
 
 	UFUNCTION(Server, Unreliable)
 	void ServerTryDropItem(AController* Instigator, const FContainerItemData& Item);
-
-	UFUNCTION(Server, Unreliable)
-	void ServerTrySplitItem(AController* Instigator, const FContainerItemData& Item, const int64 SplitAmount);
 #pragma endregion
 };

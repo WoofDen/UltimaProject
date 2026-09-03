@@ -40,7 +40,10 @@ void AItem::RemoveFromWorld()
 bool AItem::SetItemData(FItemData&& NewData)
 {
 	// It should be could once after actor creation ( so far )
-	if (ensureAlways(!ItemData.IsValid()))
+	const bool bWasInitialized = HasActorBegunPlay() || ItemData.IsValid();
+	ensureAlways(!bWasInitialized);
+
+	if (bWasInitialized)
 	{
 		return false;
 	}
@@ -65,16 +68,16 @@ bool AItem::SetItemData(FItemData&& NewData)
 void AItem::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	
+
 	if (HasAuthority() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Item can be created with ItemData set already or from default
 		if (!ItemData.IsValid() && ensureAlways(IsValid(DefaultStaticData)))
 		{
 			// TODO as any AItem has a UItemData, it may be better to create one within constructor rather than a dynamic one
-			FItemDataDefinition DefaultItemDefinition (DefaultStaticData, DefaultInstanceData);
-			FItemData DefaultItemData (MoveTemp(DefaultItemDefinition));
-			
+			FItemDataDefinition DefaultItemDefinition(DefaultStaticData, DefaultInstanceData);
+			FItemData DefaultItemData(MoveTemp(DefaultItemDefinition));
+
 			if (!SetItemData(MoveTemp(DefaultItemData)))
 			{
 				UE_LOG(LogActor, Error, TEXT("Item %s initialization failed"), *GetActorNameOrLabel());
@@ -83,7 +86,6 @@ void AItem::PostInitializeComponents()
 			}
 
 			//AddReplicatedSubObject(Data);
-
 		}
 	}
 }
@@ -91,7 +93,6 @@ void AItem::PostInitializeComponents()
 void AItem::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AItem::OnRep_ItemData()
