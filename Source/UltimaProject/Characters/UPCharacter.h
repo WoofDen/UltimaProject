@@ -20,7 +20,7 @@
 class UInventoryComponent;
 
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IContainerInterface
+class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IContainerOwnerInterface
 {
 	GENERATED_BODY()
 

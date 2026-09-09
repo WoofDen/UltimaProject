@@ -623,7 +623,7 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	const uint32 SlotsPerStack = SourceItemData.StaticData->Slots;
 	const uint32 ItemsPerStack = SourceItemData.StaticData->MaxAmountPerStack;
 
-	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack)
+	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack, a = RemainingAmount)
 	{
 		FItemDataDefinition ItemDefinition(SourceItemData);
 		int32 CurrentIterationAmount = FMath::Min(AmountToMove, ItemsPerStack);
@@ -704,9 +704,9 @@ TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* 
 	return GetItems();
 }
 
-IContainerInterface* UContainerComponent::GetOwnerInterface() const
+IContainerOwnerInterface* UContainerComponent::GetOwnerInterface() const
 {
-	return Cast<IContainerInterface>(GetOwner());
+	return Cast<IContainerOwnerInterface>(GetOwner());
 }
 
 bool UContainerComponent::CanStoreItem(const AController* Instigator, const AItem* Item) const

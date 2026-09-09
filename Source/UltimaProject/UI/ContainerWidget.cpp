@@ -43,7 +43,7 @@ UContainerComponent* UContainerWidget::GetContainerComponent() const
 	return ContainerComponent.Get();
 }
 
-TScriptInterface<IContainerInterface> UContainerWidget::GetContainerInterface() const
+TScriptInterface<IContainerOwnerInterface> UContainerWidget::GetContainerInterface() const
 {
 	NULLCHECK_SP_RETURN(ContainerComponent, nullptr);
 	
@@ -51,7 +51,7 @@ TScriptInterface<IContainerInterface> UContainerWidget::GetContainerInterface() 
 	UContainerComponent* OriginContainer = ContainerComponent->GetOriginContainer();
 	NULLCHECK_RETURN(OriginContainer, nullptr);
 	
-	TScriptInterface<IContainerInterface> Interface;
+	TScriptInterface<IContainerOwnerInterface> Interface;
 	Interface.SetInterface(OriginContainer->GetOwnerInterface());
 	Interface.SetObject(OriginContainer->GetOwner());
 	

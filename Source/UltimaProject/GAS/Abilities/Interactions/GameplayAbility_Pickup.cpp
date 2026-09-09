@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "UltimaProject/Characters/UPCharacter.h"
+#include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Common/Item.h"
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
@@ -67,6 +68,17 @@ void UGameplayAbility_Pickup::OnInteractionFinished()
 	Super::OnInteractionFinished();
 
 	PickupItemInternal();
+}
+
+UGameplayAbility_Pickup::UGameplayAbility_Pickup()
+{
+	AbilityTags.AddTag(TAG_Ability_Container_Pickup);
+
+	FAbilityTriggerData TriggerData;
+	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;
+	TriggerData.TriggerTag = TAG_Ability_Container_Pickup;
+	
+	AbilityTriggers.Add(TriggerData);
 }
 
 void UGameplayAbility_Pickup::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

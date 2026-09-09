@@ -1,19 +1,19 @@
 ﻿#pragma once
 
 #include "UltimaProject/Items/Common/Item.h"
-#include "ContainerInterface.generated.h"
+#include "ContainerOwnerInterface.generated.h"
 
 struct FContainerItemData;
 // Interface for actors that represents a container or has some container logic ( chests, shelfs )
 UINTERFACE(Blueprintable)
-class UContainerInterface : public UInterface
+class UContainerOwnerInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnContainerAccessibilityUpdated, class IContainerInterface*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnContainerAccessibilityUpdated, class IContainerOwnerInterface*);
 
-class IContainerInterface
+class IContainerOwnerInterface
 {
 	GENERATED_BODY()
 
@@ -28,6 +28,6 @@ public:
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const;
 	AActor* GetOwningActor() const;
 
-	bool CanStoreItem(AController* Instigator, const FContainerItemData& ContainerItemData) const;
-	virtual void StoreItemImpl(AController* InstigatorController, const FContainerItemData& ItemData);
+	bool CanStoreItem(AController* Instigator, const UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle) const;
+	virtual void StoreItemImpl(AController* InstigatorController, UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle);
 };

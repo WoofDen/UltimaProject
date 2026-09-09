@@ -42,5 +42,5 @@ public:
 	UContainerComponent* GetContainerComponent() const;
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	TScriptInterface<IContainerInterface> GetContainerInterface() const;
+	TScriptInterface<IContainerOwnerInterface> GetContainerInterface() const;
 };

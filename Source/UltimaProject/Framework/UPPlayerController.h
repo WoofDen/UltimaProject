@@ -34,7 +34,7 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	 * Client version of the array contains all opened containers while server version - only external containers. 
 	 * ( Currently, no need to track own containers on the server like inventories or own pursue )
 	 */
-	TArray<TWeakInterfacePtr<const IContainerInterface>> OpenedContainers;
+	TArray<TWeakInterfacePtr<const IContainerOwnerInterface>> OpenedContainers;
 
 	// List of opened proxy containers. Server only
 	// Key is the origin container ( UExternalContainerComponent ) and value is the corresponding proxy for this client
@@ -44,13 +44,13 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 #pragma region Containers
 
 public:
-	bool IsContainerOpened(const IContainerInterface* ContainerInterface) const;
+	bool IsContainerOpened(const IContainerOwnerInterface* ContainerInterface) const;
 
 private:
-	void TryOpenContainer(IContainerInterface* ContainerInterface, EContainerRelationType Relation);
-	void TryCloseContainer(IContainerInterface* ContainerInterface);
+	void TryOpenContainer(IContainerOwnerInterface* ContainerInterface, EContainerRelationType Relation);
+	void TryCloseContainer(IContainerOwnerInterface* ContainerInterface);
 
-	void OnOpenedContainerAccessibilityUpdated(IContainerInterface* ContainerInterface);
+	void OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface);
 
 	UFUNCTION(Server, Unreliable)
 	void ServerOpenProxyContainer(UObject* ContainerInterfaceObject);
@@ -61,10 +61,10 @@ private:
 	UFUNCTION(Client, Unreliable)
 	void ClientForceCloseContainer(UObject* ContainerInterfaceObject);
 	
-	bool TryStoreItem(IContainerInterface* ContainerInterface, const FContainerItemData& ItemData);
+	bool TryRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer);
 	
 	UFUNCTION(Server, Unreliable)
-	void ServerTryStoreItem(const TScriptInterface<IContainerInterface>& ContainerInterface, const FContainerItemData& ItemData);
+	void ServerTryStoreItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer);
 #pragma endregion
 
 protected:
@@ -78,10 +78,13 @@ public:
 #pragma region Input
 	UFUNCTION(BlueprintCallable)
 	void MoveToCursor();
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleDropAction(UContainerComponent* SourceContainer, int32 ContainerItemHandle, int32 ItemAmount) const;
 
 	UFUNCTION(BlueprintCallable)
 	void HandlePickupAction() const;
-
+	
 	UFUNCTION(BlueprintCallable)
 	void HandleActivateAction();
 
@@ -89,9 +92,9 @@ public:
 	void HandleInventoryToggle();
 
 	UFUNCTION(BlueprintCallable)
-	void HandleRelocateItem(UPARAM(ref) FContainerItemData& ContainerItemData,
-	                        TScriptInterface<IContainerInterface> TargetContainer);
+	void HandleRelocateItem(UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle, UContainerComponent* TargetContainerComponent);
 #pragma endregion
 
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
+	class UUPAbilitySystemComponent* GetAbilitySystemComponent() const;
 };

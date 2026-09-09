@@ -49,6 +49,7 @@ bool AItem::SetItemData(FItemData&& NewData)
 	}
 
 	ItemData = NewData;
+	ItemData.LoadStaticData();
 
 	auto ItemStaticData = ItemData.GetStaticData();
 	if (!ensure(ItemStaticData))

@@ -1,34 +1,31 @@
 ﻿// Game includes
-#include "ContainerInterface.h"
+#include "ContainerOwnerInterface.h"
 
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 
-bool IContainerInterface::CanBeOpened(const class AUPPlayerController* Controller) const
+bool IContainerOwnerInterface::CanBeOpened(const class AUPPlayerController* Controller) const
 {
 	return IsValid(Controller) && IsValid(GetContainerComponent());
 }
 
-FOnContainerAccessibilityUpdated IContainerInterface::GetAccessibilityChangedDelegate() const
+FOnContainerAccessibilityUpdated IContainerOwnerInterface::GetAccessibilityChangedDelegate() const
 {
 	checkNoEntry(); // Has to be reimplemented
 	return {};
 }
 
-AActor* IContainerInterface::GetOwningActor() const
+AActor* IContainerOwnerInterface::GetOwningActor() const
 {
 	return Cast<AActor>(_getUObject());
 }
 
-bool IContainerInterface::CanStoreItem(AController* Instigator, const FContainerItemData& ContainerItemData) const
+bool IContainerOwnerInterface::CanStoreItem(AController* Instigator, const UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle) const
 {
 	AUPPlayerController* PlayerController = Cast<AUPPlayerController>(Instigator);
 	NULLCHECK_RETURN(PlayerController, false);
 
-	UContainerComponent* SourceContainerComponent = ContainerItemData.GetContainerComponent();
-	NULLCHECK_RETURN(SourceContainerComponent, false);
-
-	IContainerInterface* SourceContainer = SourceContainerComponent->GetOwnerInterface();
+	IContainerOwnerInterface* SourceContainer = SourceContainerComponent->GetOwnerInterface();
 	NULLCHECK_RETURN(SourceContainer, false);
 
 	// Check both containers are accessible
@@ -55,18 +52,18 @@ bool IContainerInterface::CanStoreItem(AController* Instigator, const FContainer
 	return true;
 }
 
-void IContainerInterface::StoreItemImpl(AController* InstigatorController, const FContainerItemData& ItemData)
+void IContainerOwnerInterface::StoreItemImpl(AController* InstigatorController, UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle)
 {
-	NULLCHECK(InstigatorController);
 	check(InstigatorController->HasAuthority()); // Server only
+	NULLCHECK(InstigatorController);
 
-	if (!CanStoreItem(InstigatorController, ItemData))
+	if (!CanStoreItem(InstigatorController, SourceContainerComponent, ContainerItemHandle))
 	{
 		return;
 	}
 	
-	UContainerComponent* OriginContainerComponent = IContainerInterface::Execute_GetContainerComponent(_getUObject());
+	UContainerComponent* OriginContainerComponent = IContainerOwnerInterface::Execute_GetContainerComponent(_getUObject());
 	NULLCHECK(OriginContainerComponent);
 	
-	OriginContainerComponent->ServerTryStoreItem(InstigatorController, ItemData);
+	// OriginContainerComponent->ServerTryStoreItem(InstigatorController, ItemData);
 }

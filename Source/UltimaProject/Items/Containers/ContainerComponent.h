@@ -205,7 +205,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
 
-	IContainerInterface* GetOwnerInterface() const;
+	IContainerOwnerInterface* GetOwnerInterface() const;
 	uint32 GenerateItemHandle() const;
 
 #pragma region Server low-level item transactions

@@ -19,10 +19,10 @@ public:
 	UItemFactoryHelper();
 
 	UFUNCTION(BlueprintCallable)
-	static FItemData& SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container);
+	static bool SpawnItemInContainer(const FItemDataDefinition& Definition, UContainerComponent* Container);
 
 	UFUNCTION(BlueprintCallable)
-	static FItemData&
+	static bool
 	SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset, UContainerComponent* Container);
 
 	UFUNCTION(BlueprintCallable)

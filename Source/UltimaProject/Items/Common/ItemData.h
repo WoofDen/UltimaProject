@@ -103,7 +103,10 @@ struct ULTIMAPROJECT_API FItemData
 protected:
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
-	TSoftObjectPtr<const UItemDataAsset> StaticData;
+	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
+	
+	UPROPERTY(Transient, BlueprintReadOnly)
+	TObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
@@ -124,8 +127,9 @@ public:
 	
 	FItemDataDefinition GetDataDefinition() const;
 
-	TSoftObjectPtr<const UItemDataAsset> GetStaticData() const;
+	const UItemDataAsset* GetStaticData() const;
 	void SetStaticData(const UItemDataAsset* InStaticData);
+	void LoadStaticData();
 
 	const FItemInstanceData& GetInstanceData() const;
 

@@ -12,15 +12,6 @@ class ULTIMAPROJECT_API UUPAbilitySystemComponent : public UAbilitySystemCompone
 {
 	GENERATED_BODY()
 
-#pragma region Tags
-private:
-	UPROPERTY(EditDefaultsOnly)
-	FGameplayTag PickupAbilityTag;
-
-public:
-	FORCEINLINE const FGameplayTag& GetPickupAbilityTag() const { return PickupAbilityTag; }
-#pragma endregion
-
 	TWeakInterfacePtr<IAbilitySystemInterface> ASCOwnerInterface;
 
 protected:

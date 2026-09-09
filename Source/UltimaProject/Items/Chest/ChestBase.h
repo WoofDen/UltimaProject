@@ -4,14 +4,14 @@
 
 // Game includes
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
-#include "UltimaProject/Items/Containers/Interfaces/ContainerInterface.h"
+#include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 
 // Generated includes
 #include "ChestBase.generated.h"
 
 // Base for any in-world container
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AChestBase : public AActor, public IContainerInterface
+class ULTIMAPROJECT_API AChestBase : public AActor, public IContainerOwnerInterface
 {
 	GENERATED_BODY()
 

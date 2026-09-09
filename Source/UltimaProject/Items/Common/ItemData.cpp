@@ -24,29 +24,26 @@ FItemData FItemData::EmptyItem = FItemData(FItemDataDefinition(nullptr, FItemIns
 
 bool FItemData::PreInitialize(FItemData* Source /* = nullptr */)
 {
-	check(StaticData.IsValid());
+	check(StaticDataSoftPtr.IsValid());
 
 	if (Source)
 	{
-		StaticData = Source->StaticData;
+		StaticDataSoftPtr = Source->StaticDataSoftPtr;
 		InstanceData = Source->InstanceData;
 	}
 
-	// Do not allow invalid UItemData
-	check(StaticData.IsValid());
-
-	StaticData->Icon.LoadSynchronous();
-	StaticData->WorldMesh.LoadSynchronous();
+	StaticDataSoftPtr->Icon.LoadSynchronous();
+	StaticDataSoftPtr->WorldMesh.LoadSynchronous();
 	return true;
 }
 
 bool FItemData::PreInitialize(const FItemDataDefinition& Definition)
 {
-	StaticData = Definition.StaticData;
+	StaticDataSoftPtr = Definition.StaticData;
 	InstanceData = Definition.InstanceData;
 
 	// Do not allow invalid UItemData
-	check(StaticData.IsValid() || this == &FItemData::EmptyItem);
+	check(StaticDataSoftPtr.IsValid() || this == &FItemData::EmptyItem);
 
 	return true;
 }
@@ -57,15 +54,25 @@ FItemDataDefinition FItemData::GetDataDefinition() const
 	return FItemDataDefinition(*This);
 }
 
-TSoftObjectPtr<const UItemDataAsset> FItemData::GetStaticData() const
+const UItemDataAsset* FItemData::GetStaticData() const
 {
 	return StaticData;
 }
 
 void FItemData::SetStaticData(const UItemDataAsset* InStaticData)
 {
-	check(!StaticData.IsValid());
-	StaticData = InStaticData;
+	ensureAlways(::IsValid(InStaticData));
+
+	StaticDataSoftPtr = InStaticData;
+	LoadStaticData();
+}
+
+void FItemData::LoadStaticData()
+{
+	if (!::IsValid(StaticData))
+	{
+		StaticData = StaticDataSoftPtr.LoadSynchronous();
+	}
 }
 
 const FItemInstanceData& FItemData::GetInstanceData() const
@@ -102,7 +109,6 @@ int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const
 
 FItemDataDefinition::FItemDataDefinition()
 {
-	checkNoEntry();
 }
 
 FItemDataDefinition::FItemDataDefinition(const FItemData& Item)
@@ -111,7 +117,8 @@ FItemDataDefinition::FItemDataDefinition(const FItemData& Item)
 {
 }
 
-FItemDataDefinition::FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn)
+FItemDataDefinition::FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn,
+                                         FItemInstanceData InstanceDataIn)
 {
 	StaticData = StaticDataIn;
 	InstanceData = InstanceDataIn;
@@ -126,7 +133,7 @@ FItemData::FItemData(const FItemDataDefinition& Definition)
 FText FItemData::GetDisplayName() const
 {
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
-	if (StaticData.IsValid())
+	if (StaticDataSoftPtr.IsValid())
 	{
 		return StaticData->Name;
 	}
@@ -136,7 +143,7 @@ FText FItemData::GetDisplayName() const
 
 UTexture2D* FItemData::GetViewIcon() const
 {
-	if (!ensureAlways(StaticData.IsValid()))
+	if (!ensureAlways(StaticDataSoftPtr.IsValid()))
 	{
 		return nullptr;
 	}

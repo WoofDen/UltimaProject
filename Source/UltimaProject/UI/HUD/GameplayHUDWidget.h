@@ -4,7 +4,7 @@
 
 // Engine includes
 #include "Blueprint/UserWidget.h"
-#include "UltimaProject/Items/Containers/Interfaces/ContainerInterface.h"
+#include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 
 // Generated include
 #include "GameplayHUDWidget.generated.h"

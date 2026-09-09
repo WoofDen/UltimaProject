@@ -9,24 +9,26 @@ UItemFactoryHelper::UItemFactoryHelper()
 {
 }
 
-FItemData& UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition,
+bool UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition,
                                                     UContainerComponent* Container)
 {
-	NULLCHECK_RETURN(Container, FItemData::EmptyItem);
+	NULLCHECK_RETURN(Container, false);
 
 	FItemData ItemData = FItemData(Definition);
+	ItemData.LoadStaticData();
+
 	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
 	{
-		return FItemData::EmptyItem;
+		return false;
 	}
 
-	return ItemData;
+	return true;
 }
 
-FItemData& UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
+bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
                                                              UContainerComponent* Container)
 {
-	NULLCHECK_RETURN(ItemDataAsset, FItemData::EmptyItem);
+	NULLCHECK_RETURN(ItemDataAsset, false);
 
 	FItemData ItemData;
 
@@ -36,10 +38,10 @@ FItemData& UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsse
 
 	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
 	{
-		return FItemData::EmptyItem;
+		return false;
 	}
 
-	return ItemData;
+	return true;
 }
 
 AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition& ItemData,
