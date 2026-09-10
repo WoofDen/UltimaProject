@@ -71,4 +71,8 @@ public:
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
 	// ~UGameplayAbility
+	
+	// UGameplayAbility_Interaction
+	virtual void OnInteractionFinished() override;
+	// ~UGameplayAbility_Interaction
 };

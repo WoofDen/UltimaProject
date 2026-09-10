@@ -18,7 +18,10 @@ bool FGameplayAbilityTargetData_DropOperation::NetSerialize(FArchive& Ar, class 
 
 bool UGameplayAbility_Drop::CanPerformDrop() const
 {
-	NULLCHECK_RETURN(Data.SourceContainer, false);
+	if (!Data.IsValid())
+	{
+		return false;
+	}
 	
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.SourceContainer->GetOwnerInterface();
 	NULLCHECK_RETURN(ContainerOwnerInterface, false);
@@ -70,24 +73,6 @@ void UGameplayAbility_Drop::PreActivate(const FGameplayAbilitySpecHandle Handle,
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
 		return;
 	}
-
-	switch (ActivationInfo.ActivationMode)
-	{
-	case EGameplayAbilityActivationMode::Predicting:
-		{
-			break;
-		}
-	case EGameplayAbilityActivationMode::Authority:
-		{
-			Data.SourceContainer->DropItem(Data.ContainerItemHandle, Data.ItemAmount);
-			EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
-			break;
-		}
-	default:
-		{
-			ensureAlways(false);
-		}
-	}
 }
 
 void UGameplayAbility_Drop::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -97,7 +82,21 @@ void UGameplayAbility_Drop::ActivateAbility(const FGameplayAbilitySpecHandle Han
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
-	switch (ActivationInfo.ActivationMode)
+	// Wait for interaction finish
+}
+
+void UGameplayAbility_Drop::OnInteractionFinished()
+{
+	Super::OnInteractionFinished();
+	
+	// If interaction took time, re-validate everything
+	if (InteractionTime > 0 && !CanPerformDrop())
+	{
+		CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true);
+		return;
+	}
+	
+	switch (GetCurrentActivationInfo().ActivationMode)
 	{
 	case EGameplayAbilityActivationMode::Predicting:
 		{
@@ -105,6 +104,7 @@ void UGameplayAbility_Drop::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		}
 	case EGameplayAbilityActivationMode::Authority:
 		{
+			Data.SourceContainer->DropItem(Data.ContainerItemHandle, Data.ItemAmount);
 			break;
 		}
 	default:
@@ -112,4 +112,6 @@ void UGameplayAbility_Drop::ActivateAbility(const FGameplayAbilitySpecHandle Han
 			ensureAlways(false);
 		}
 	}
+
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, false);
 }

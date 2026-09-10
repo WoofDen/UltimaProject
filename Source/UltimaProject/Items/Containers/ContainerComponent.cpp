@@ -99,7 +99,7 @@ uint32 UContainerComponent::GetSlotsInUse() const
 {
 	// todo cache values?
 	int32 Result = 0;
-	for (const auto& Item : ContainerItems.Items)
+	for (auto& Item : ContainerItems.Items)
 	{
 		Result += Item.ItemData.GetStaticData()->Slots;
 	}
@@ -319,9 +319,6 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, FConta
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
-	// todo should we?
-	// ItemData->GetStaticData().LoadSynchronous();
-
 	const int32 SlotIndex = GetSlotsInUse();
 	ensureAlways(SlotIndex < ItemSlotsCapacity);
 	// todo ensure get item at slot == null
@@ -529,7 +526,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	{
 		return GItemTransactionResult_Error;
 	}
-
+	
 	FTransform Transform;
 	if (!FindDropTransform(ContainerItemHandle, Transform))
 	{
@@ -597,6 +594,7 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	NULLCHECK_RETURN(WorldItem, GItemTransactionResult_Error);
 
 	FItemData& SourceItemData = WorldItem->GetItemDataMutable();
+
 	if (!ensureAlways(SourceItemData.IsValid()))
 	{
 		return GItemTransactionResult_Error;
@@ -728,6 +726,11 @@ TArray<FContainerItemData> UContainerComponent::GetItems()
 
 TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* InstigatorController)
 {
+	for (auto& Item : ContainerItems.Items)
+	{
+		Item.ItemData.LoadStaticData();
+	}
+	
 	// There we may differ results, based on the instigator.
 	return GetItems();
 }
@@ -770,26 +773,11 @@ bool UContainerComponent::CanStoreItem(const AController* Instigator, const AIte
 	return true;
 }
 
-
-void UContainerComponent::TryStoreItem(AController* Instigator, AItem* Item)
+void UContainerComponent::StoreItem(AItem* WorldItem, uint32 Amount)
 {
-	if (!IsValid(Item) || !CanStoreItem(Instigator, Item))
-	{
-		return;
-	}
+	check(GetOwner() && GetOwner()->HasAuthority());
 
-	// Server only
-	check(Item->HasAuthority());
-	MoveItem(Item);
-}
-
-void UContainerComponent::ServerTryStoreItem_Implementation(AController* Instigator, const FContainerItemData& ItemData)
-{
-	NULLCHECK(Instigator);
-	ensureAlways(ItemData.GetContainerComponent() && ItemData.GetContainerComponent()->HasItem(ItemData.GetHandle()));
-
-	FContainerItemData& ItemDataMutable = const_cast<FContainerItemData&>(ItemData);
-	MoveItem(ItemData.GetHandle());
+	MoveItem(WorldItem, Amount);
 }
 
 AItem* UContainerComponent::DropItem(uint32 Handle, uint32 Amount)

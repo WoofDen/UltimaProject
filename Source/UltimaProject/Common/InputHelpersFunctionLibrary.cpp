@@ -1,10 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "InputHelpers.h"
-
+#include "InputHelpersFunctionLibrary.h"
 #include "Macro.h"
 
-AActor* InputHelpers::GetActorUnderCursor(const APlayerController* PC)
+AActor* UInputHelpersFunctionLibrary::GetActorUnderCursor(const APlayerController* PC)
 {
 	NULLCHECK_RETURN(PC, nullptr);
 

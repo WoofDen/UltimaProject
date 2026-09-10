@@ -56,6 +56,11 @@ FItemDataDefinition FItemData::GetDataDefinition() const
 
 const UItemDataAsset* FItemData::GetStaticData() const
 {
+	if (!StaticData)
+	{
+		StaticData = StaticDataSoftPtr.LoadSynchronous();
+	}
+	
 	return StaticData;
 }
 
@@ -87,7 +92,7 @@ TSubclassOf<AItem> FItemData::GetActorClass() const
 
 bool FItemData::IsValid() const
 {
-	return StaticData && InstanceData.IsValid();
+	return (StaticData || StaticDataSoftPtr.IsValid()) && InstanceData.IsValid();
 }
 
 int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const

@@ -10,33 +10,44 @@
 #include "UltimaProject/Items/Common/Item.h"
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
 
-bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
+bool FGameplayAbilityTargetData_PickupOperation::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	// Validation
-	AUPCharacter* Character = Cast<AUPCharacter>(GetAvatarActorFromActorInfo());
-	NULLCHECK_RETURN(Item, false);
-	NULLCHECK_RETURN(Character, false);
-	NULLCHECK_SP_RETURN(GetActorInfo().AvatarActor, false);
+	Ar << ItemAmount;
+	Ar << SourceItem;
+	Ar << TargetContainer;
+	
+	return true;
+}
 
-	// Check inventory is not blocked
-	AUPPlayerController* Controller = Cast<AUPPlayerController>(Character->GetController());
-	if (!Character->CanBeOpened(Controller))
+bool UGameplayAbility_Pickup::CanPerformPickup()
+{
+	if (!Data.IsValid())
+	{
+		return false;
+	}
+	
+	// Check the container is accessible
+	IContainerOwnerInterface* ContainerOwnerInterface = Data.TargetContainer->GetOwnerInterface();
+	NULLCHECK_RETURN(ContainerOwnerInterface, false);
+	
+	AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
+	NULLCHECK_RETURN(PC, false);
+
+	if (!ContainerOwnerInterface->CanBeOpened(PC))
 	{
 		return false;
 	}
 
-	UInventoryComponent* InventoryComponent = Character->GetInventoryComponent();
-	NULLCHECK_RETURN(InventoryComponent, false);
-
 	// Distance check
-	float Distance = (GetActorInfo().AvatarActor->GetActorLocation() - Item->GetActorLocation()).Length();
+	// TOOD should it be here?
+	float Distance = (GetActorInfo().AvatarActor->GetActorLocation() - Data.SourceItem->GetActorLocation()).Length();
 	if (Distance > PickupRadius)
 	{
 		return false;
 	}
 
 	// Inventory capacity & other checks
-	if (!InventoryComponent->CanStoreItem(GetActorInfo().PlayerController.Get(), Item))
+	if (!Data.TargetContainer->CanStoreItem(PC, Data.SourceItem.Get()))
 	{
 		return false;
 	}
@@ -47,16 +58,11 @@ bool UGameplayAbility_Pickup::CanPickupItem(const AItem* Item)
 void UGameplayAbility_Pickup::PickupItemInternal()
 {
 	check(K2_HasAuthority()); // Server only
-	NULLCHECK_SP(TargetItem);
+	NULLCHECK_SP(Data.SourceItem);
 
 	if (AUPCharacter* Character = Cast<AUPCharacter>(GetAvatarActorFromActorInfo()))
 	{
-		if (UInventoryComponent* InventoryComponent = Character->GetInventoryComponent())
-		{
-			// TODO A check that the item hasn't been picked by someone else between client and server ability activation. Item actor may persist but it doesn't guarantee its valid.
-			// TODO call server RPC here
-			InventoryComponent->TryStoreItem(Character->GetController(), TargetItem.Get());
-		}
+		Data.TargetContainer->StoreItem(Data.SourceItem.Get(), Data.ItemAmount);
 	}
 
 	// Regardless of the result, end the ability
@@ -66,8 +72,26 @@ void UGameplayAbility_Pickup::PickupItemInternal()
 void UGameplayAbility_Pickup::OnInteractionFinished()
 {
 	Super::OnInteractionFinished();
+	
+	// If interaction took time, re-validate everything
+	if (InteractionTime > 0 && !CanPerformPickup())
+	{
+		CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true);
+		return;
+	}
 
-	PickupItemInternal();
+	switch (GetCurrentActivationInfo().ActivationMode)
+	{
+	case EGameplayAbilityActivationMode::Authority:
+		{
+			PickupItemInternal();
+			break;
+		}
+	default:
+		{
+			break;
+		}
+	}
 }
 
 UGameplayAbility_Pickup::UGameplayAbility_Pickup()
@@ -81,20 +105,40 @@ UGameplayAbility_Pickup::UGameplayAbility_Pickup()
 	AbilityTriggers.Add(TriggerData);
 }
 
+void UGameplayAbility_Pickup::PreActivate(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
+{
+	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
+	
+	if (TriggerEventData == nullptr)
+	{
+		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+		return;
+	}
+	
+	const FGameplayAbilityTargetData_PickupOperation* DropData = static_cast<const FGameplayAbilityTargetData_PickupOperation*>(TriggerEventData->TargetData.Get(0));
+
+	if (DropData == nullptr || !DropData->IsValid())
+	{
+		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+		return;
+	}
+	
+	Data = *DropData;
+	
+	if (!CanPerformPickup())
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+	}
+}
+
 void UGameplayAbility_Pickup::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                               const FGameplayAbilityActorInfo* ActorInfo,
                                               const FGameplayAbilityActivationInfo ActivationInfo,
                                               const FGameplayEventData* TriggerEventData)
 {
 	NULLCHECK(TriggerEventData);
-	NULLCHECK(TriggerEventData->Target);
-
-	TargetItem = Cast<AItem>(const_cast<AActor*>(TriggerEventData->Target.Get()));
-	if (!TargetItem.IsValid())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }

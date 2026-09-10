@@ -83,7 +83,7 @@ public:
 	void HandleDropAction(UContainerComponent* SourceContainer, int32 ContainerItemHandle, int32 ItemAmount) const;
 
 	UFUNCTION(BlueprintCallable)
-	void HandlePickupAction() const;
+	void HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const;
 	
 	UFUNCTION(BlueprintCallable)
 	void HandleActivateAction();

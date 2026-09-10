@@ -106,7 +106,7 @@ protected:
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
 	
 	UPROPERTY(Transient, BlueprintReadOnly)
-	TObjectPtr<const UItemDataAsset> StaticData;
+	mutable TObjectPtr<const UItemDataAsset> StaticData;
 
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))

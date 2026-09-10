@@ -56,13 +56,13 @@ public:
 
 	// UContainerComponent
 protected:
-	// World -> Container
+	// World->Container
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX) override;
 	
-	// Container -> Container
+	// Container->Container
 	virtual FItemTransactionResult MoveItem(uint32 Handle, uint32 AmountToMove = UINT32_MAX) override;
 	
-	// Container -> World
+	// Container->World
 	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX) override;
 	
 	virtual bool HasItem(uint32 Handle) const override;

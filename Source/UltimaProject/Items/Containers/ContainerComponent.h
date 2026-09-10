@@ -241,19 +241,12 @@ public:
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
 #pragma endregion
 
-#pragma region Client top-level item operations
-
-public:
-	// Store an external item
-	virtual void TryStoreItem(AController* Instigator, AItem* Item);
-#pragma endregion
 
 #pragma region Server top-level item operations
 
 public:
-	// Store item from another container
-	UFUNCTION(Server, Unreliable)
-	virtual void ServerTryStoreItem(AController* Instigator, const FContainerItemData& ItemData);
+	// Add item from an in-world actor
+	void StoreItem(AItem* WorldItem, uint32 Amount);
 
 	AItem* DropItem(uint32 Handle, uint32 Amount);
 #pragma endregion

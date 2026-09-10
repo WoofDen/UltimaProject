@@ -6,9 +6,10 @@
 #include "UPPlayerState.h"
 #include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Common/GameplayTags.h"
-#include "UltimaProject/Common/InputHelpers.h"
+#include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Drop.h"
+#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Pickup.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
@@ -281,24 +282,29 @@ void AUPPlayerController::HandleDropAction(UContainerComponent* SourceContainer,
 	ASC->HandleGameplayEvent(TAG_Ability_Container_Drop, &EventData);
 }
 
-void AUPPlayerController::HandlePickupAction() const
+void AUPPlayerController::HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const
 {
+	NULLCHECK(SourceItem);
+	NULLCHECK(TargetContainer);
+	
 	UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	NULLCHECK(ASC);
+	
+	FGameplayAbilityTargetData_PickupOperation* PickupDataPtr = new FGameplayAbilityTargetData_PickupOperation();
+	PickupDataPtr->ItemAmount = ItemAmount;
+	PickupDataPtr->SourceItem = SourceItem;
+	PickupDataPtr->TargetContainer = TargetContainer->GetOriginContainer();
 
 	FGameplayEventData EventData;
 	EventData.Instigator = this;
-	EventData.Target = InputHelpers::GetActorUnderCursor(this);
+	EventData.TargetData = FGameplayAbilityTargetDataHandle(PickupDataPtr);
 
-	if (EventData.Target)
-	{
-		ASC->HandleGameplayEvent(TAG_Ability_Container_Pickup.GetTag(), &EventData);
-	}
+	ASC->HandleGameplayEvent(TAG_Ability_Container_Pickup.GetTag(), &EventData);
 }
 
 void AUPPlayerController::HandleActivateAction()
 {
-	AActor* CursorItem = InputHelpers::GetActorUnderCursor(this);
+	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this);
 	NULLCHECK(CursorItem);
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
