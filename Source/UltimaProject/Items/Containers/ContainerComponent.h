@@ -25,6 +25,8 @@ struct FContainerItemData : public FFastArraySerializerItem
 	bool operator==(const FContainerItemData& Other) const;
 	FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
+	
+	static uint32 InvalidHandle;
 
 	uint32 GetHandle() const { return Handle; }
 	int32 GetSlot() const { return SlotIndex; }
@@ -162,6 +164,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UContainerWidget> ContainerWidgetClass;
+	
+	FContainerItemData& GetItemMutable(uint32 Handle) const;
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -189,7 +193,8 @@ public:
 	inline static int32 MaxItemsCapacity = MAX_int32;
 
 	FORCEINLINE int32 GetItemsCapacity() const;
-	virtual bool HasItem(const FContainerItemData& ItemData) const;
+	virtual bool HasItem(uint32 Handle) const;
+	const FContainerItemData& GetItem(uint32 Handle) const;
 
 	virtual void SetItemsCapacity(const int32 NewValue);
 
@@ -212,10 +217,10 @@ public:
 
 protected:
 	// Container->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove = UINT32_MAX);
+	virtual FItemTransactionResult MoveItem(uint32 Handle, uint32 AmountToMove = UINT32_MAX);
 
 	// Container->World move
-	virtual FItemTransactionResult MoveItem(FContainerItemData& SourceItem, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
+	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX);
@@ -229,7 +234,7 @@ public:
 	virtual UContainerComponent* GetListenContainer();
 
 	// Find a position nearby where we can safely drop an item
-	bool FindDropTransform(const FItemData& ItemData, FTransform& Result) const;
+	bool FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const;
 
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
@@ -241,10 +246,6 @@ public:
 public:
 	// Store an external item
 	virtual void TryStoreItem(AController* Instigator, AItem* Item);
-
-	UFUNCTION(BlueprintCallable)
-	virtual bool TryDropItem(AController* Instigator, UPARAM(ref) const FContainerItemData& Item);
-
 #pragma endregion
 
 #pragma region Server top-level item operations
@@ -254,7 +255,6 @@ public:
 	UFUNCTION(Server, Unreliable)
 	virtual void ServerTryStoreItem(AController* Instigator, const FContainerItemData& ItemData);
 
-	UFUNCTION(Server, Unreliable)
-	void ServerTryDropItem(AController* Instigator, const FContainerItemData& Item);
+	AItem* DropItem(uint32 Handle, uint32 Amount);
 #pragma endregion
 };

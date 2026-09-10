@@ -12,10 +12,10 @@ struct FGameplayAbilityTargetData_DropOperation : public FGameplayAbilityTargetD
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 ContainerItemHandle;
+	int32 ContainerItemHandle = FContainerItemData::InvalidHandle;
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 ItemAmount;
+	int32 ItemAmount = 0;
 
 	UPROPERTY(BlueprintReadWrite)
 	TWeakObjectPtr<UContainerComponent> SourceContainer;
@@ -25,6 +25,13 @@ struct FGameplayAbilityTargetData_DropOperation : public FGameplayAbilityTargetD
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
 		return FGameplayAbilityTargetData_DropOperation::StaticStruct();
+	}
+	
+	bool IsValid() const
+	{
+		return ContainerItemHandle != FContainerItemData::InvalidHandle
+			&& ItemAmount > 0
+			&& SourceContainer.IsValid();
 	}
 };
 
@@ -47,6 +54,10 @@ UCLASS()
 class ULTIMAPROJECT_API UGameplayAbility_Drop : public UGameplayAbility_Interaction
 {
 	GENERATED_BODY()
+	
+	FGameplayAbilityTargetData_DropOperation Data;
+	
+	bool CanPerformDrop() const;
 
 public:
 	UGameplayAbility_Drop();

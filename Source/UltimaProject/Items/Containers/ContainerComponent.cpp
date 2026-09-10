@@ -11,6 +11,8 @@
 
 DEFINE_LOG_CATEGORY(LogUPContainers)
 
+uint32 FContainerItemData::InvalidHandle = 0;
+
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
 	return Handle == Other.Handle;
@@ -116,6 +118,11 @@ FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDat
 	return AddItem(MoveTemp(NewItem));
 }
 
+FContainerItemData& UContainerComponent::GetItemMutable(uint32 Handle) const
+{
+	return const_cast<FContainerItemData&>(GetItem(Handle));
+}
+
 void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -174,7 +181,7 @@ void UContainerComponent::InitializeContainerWidget()
 }
 */
 
-bool UContainerComponent::FindDropTransform(const FItemData& ItemData, FTransform& Result) const
+bool UContainerComponent::FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const
 {
 	AActor* Owner = GetOwner();
 	if (APawn* Pawn = Cast<APawn>(GetOwner()))
@@ -279,9 +286,27 @@ void UContainerComponent::DisplayContainerWidget()
 }
 */
 
-bool UContainerComponent::HasItem(const FContainerItemData& ItemData) const
+bool UContainerComponent::HasItem(const uint32 ItemHandle) const
 {
-	return ContainerItems.Items.Contains(ItemData);
+	return ContainerItems.Items.ContainsByPredicate([&ItemHandle](const FContainerItemData& ContainerItemData)
+	{
+		return ContainerItemData.GetHandle() == ItemHandle;
+	});
+}
+
+const FContainerItemData& UContainerComponent::GetItem(uint32 Handle) const
+{
+	static FContainerItemData InvalidItem;
+	
+	for (const auto& Item : ContainerItems.Items)
+	{
+		if (Item.GetHandle() == Handle)
+		{
+			return Item;
+		}
+	}
+	
+	return InvalidItem;
 }
 
 FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData)
@@ -349,10 +374,12 @@ FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, 
 }
 */
 
-FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove)
+FItemTransactionResult UContainerComponent::MoveItem(uint32 Handle, uint32 AmountToMove)
 {
 	// Container->Container move
 	check(GetOwner()->HasAuthority());
+	
+	FContainerItemData& SourceItem = GetItemMutable(Handle);
 
 	// FContainerItemData should always have a valid container
 	if (!ensureAlways(SourceItem.IsValid()))
@@ -490,20 +517,21 @@ FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceI
 	return Result;
 }
 
-FItemTransactionResult UContainerComponent::MoveItem(FContainerItemData& SourceItem, AItem* OutItem,
+FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle, AItem* OutItem,
                                                      uint32 AmountToMove)
 {
 	// Container->World
 
 	check(GetOwner()->HasAuthority());
 
+	FContainerItemData& SourceItem = GetItemMutable(ContainerItemHandle);
 	if (!SourceItem.IsValid())
 	{
 		return GItemTransactionResult_Error;
 	}
 
 	FTransform Transform;
-	if (!FindDropTransform(SourceItem.ItemData, Transform))
+	if (!FindDropTransform(ContainerItemHandle, Transform))
 	{
 		return GItemTransactionResult_Error;
 	}
@@ -673,7 +701,7 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 
 uint32 UContainerComponent::GenerateItemHandle() const
 {
-	uint32 Handle = 0;
+	uint32 Handle = FContainerItemData::InvalidHandle + 1;
 	for (auto Item : ContainerItems.Items)
 	{
 		Handle = FMath::Max(Handle, Item.GetHandle());
@@ -758,33 +786,18 @@ void UContainerComponent::TryStoreItem(AController* Instigator, AItem* Item)
 void UContainerComponent::ServerTryStoreItem_Implementation(AController* Instigator, const FContainerItemData& ItemData)
 {
 	NULLCHECK(Instigator);
-	ensureAlways(ItemData.GetContainerComponent() && ItemData.GetContainerComponent()->HasItem(ItemData));
+	ensureAlways(ItemData.GetContainerComponent() && ItemData.GetContainerComponent()->HasItem(ItemData.GetHandle()));
 
 	FContainerItemData& ItemDataMutable = const_cast<FContainerItemData&>(ItemData);
-	MoveItem(ItemDataMutable);
+	MoveItem(ItemData.GetHandle());
 }
 
-bool UContainerComponent::TryDropItem(AController* Instigator, const FContainerItemData& Item)
+AItem* UContainerComponent::DropItem(uint32 Handle, uint32 Amount)
 {
-	ensureAlways(!GetOwner()->HasAuthority());
-	ensureAlways(Item.IsValid());
-	ensureAlways(Item.IsInContainer(GetOriginContainer()));
-
-	if (ensureAlways(HasItem(Item)))
-	{
-		ServerTryDropItem(Instigator, Item);
-	}
-
-	return true;
-}
-
-void UContainerComponent::ServerTryDropItem_Implementation(AController* Instigator, const FContainerItemData& Item)
-{
-	ensureAlways(Item.IsValid() && Item.IsInContainer(GetOriginContainer()));
-
-	if (ensureAlways(HasItem(Item)))
-	{
-		AItem* Result = nullptr;
-		MoveItem(const_cast<FContainerItemData&>(Item), Result);
-	}
+	check(GetOwner() && GetOwner()->HasAuthority());
+	
+	AItem* Result = nullptr;
+	MoveItem(Handle, Result, Amount);
+	
+	return Result;
 }

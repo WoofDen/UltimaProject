@@ -176,23 +176,24 @@ TSubclassOf<UContainerWidget> UProxyContainerComponent::GetContainerWidgetClass(
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)
 {
+	// World->Container move
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
 	return OriginContainer->MoveItem(WorldItem);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& SourceItem, uint32 AmountToMove)
+FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
-	return OriginContainer->MoveItem(SourceItem);
+	return OriginContainer->MoveItem(Handle, AmountToMove);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(FContainerItemData& Item, AItem* OutItem, uint32 AmountToMove)
+FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
-	return OriginContainer->MoveItem(Item, OutItem);
+	return OriginContainer->MoveItem(Handle, OutItem);
 }
 
-bool UProxyContainerComponent::HasItem(const FContainerItemData& ItemData) const
+bool UProxyContainerComponent::HasItem(uint32 Handle) const
 {
 	NULLCHECK_SP_RETURN(OriginContainer, false);
 
@@ -200,8 +201,11 @@ bool UProxyContainerComponent::HasItem(const FContainerItemData& ItemData) const
 	// Rely on the proxy copy for client checks
 	if (GetNetMode() == NM_Client)
 	{
-		return ProxyContainerItems.Items.Contains(ItemData);
+		return ProxyContainerItems.Items.ContainsByPredicate([&Handle](const FContainerItemData& ContainerItemData)
+		{
+			return ContainerItemData.GetHandle() == Handle;
+		});
 	}
 
-	return OriginContainer->HasItem(ItemData);
+	return OriginContainer->HasItem(Handle);
 }

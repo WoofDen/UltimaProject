@@ -270,16 +270,12 @@ void AUPPlayerController::HandleDropAction(UContainerComponent* SourceContainer,
 	
 	FGameplayAbilityTargetData_DropOperation* DropDataPtr = new FGameplayAbilityTargetData_DropOperation();
 	DropDataPtr->ItemAmount = ItemAmount;
-	DropDataPtr->SourceContainer = SourceContainer;
+	DropDataPtr->SourceContainer = SourceContainer->GetOriginContainer();
 	DropDataPtr->ContainerItemHandle = ContainerItemHandle;
-	
-	FGameplayAbilityTargetDataHandle ReturnDataHandle;
-	ReturnDataHandle.Add(DropDataPtr);
 	
 	FGameplayEventData EventData;
 	EventData.Instigator = this;
-	EventData.TargetData = FGameplayAbilityTargetDataHandle();
-	EventData.TargetData.Add(DropDataPtr);
+	EventData.TargetData = FGameplayAbilityTargetDataHandle(DropDataPtr);
 
 	// All validation will be provided by ability itself
 	ASC->HandleGameplayEvent(TAG_Ability_Container_Drop, &EventData);

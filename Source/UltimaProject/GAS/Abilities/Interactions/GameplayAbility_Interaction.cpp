@@ -37,9 +37,16 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 	ensureAlways(ActorInfo->OwnerActor.IsValid());
 
 	// (Server) Setup a delay task
-	if (ActorInfo->OwnerActor->GetNetMode() == NM_DedicatedServer)
+	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority)
 	{
 		check(ActorInfo->OwnerActor.IsValid());
+		check(ActorInfo->OwnerActor->GetNetMode() == NM_DedicatedServer);
+		
+		if (InteractionTime <= 0)
+		{
+			OnInteractionFinished();
+		}
+		else{
 		WaitDelayTaskInstance = UAbilityTask_WaitDelay::WaitDelay(this, InteractionTime);
 
 		if (!WaitDelayTaskInstance)
@@ -50,10 +57,16 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 
 		WaitDelayTaskInstance->OnFinish.AddDynamic(this, &ThisClass::OnInteractionFinished);
 		WaitDelayTaskInstance->ReadyForActivation();
+		}
 	}
 	// (Client) Setup interaction UI
-	else if (ActorInfo->OwnerActor->GetNetMode() == NM_Client)
+	else if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{
+		if ( InteractionTime == 0 )
+		{
+			return;
+		}
+		
 		AUPPlayerController* OwnerController = Cast<AUPPlayerController>(ActorInfo->PlayerController.Get());
 		if (!ensureAlways(IsValid(OwnerController)))
 		{
