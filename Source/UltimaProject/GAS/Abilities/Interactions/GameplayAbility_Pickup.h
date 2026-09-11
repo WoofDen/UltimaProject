@@ -19,7 +19,7 @@ struct FGameplayAbilityTargetData_PickupOperation : public FGameplayAbilityTarge
 	TWeakObjectPtr<UContainerComponent> TargetContainer;
 	
 	UPROPERTY(BlueprintReadWrite)
-	int32 ItemAmount;	
+	int32 ItemAmount = 0;	
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
@@ -56,7 +56,7 @@ class ULTIMAPROJECT_API UGameplayAbility_Pickup : public UGameplayAbility_Intera
 {
 	GENERATED_BODY()
 	
-	// Server only
+	UPROPERTY()
 	FGameplayAbilityTargetData_PickupOperation Data;
 
 	bool CanPerformPickup();

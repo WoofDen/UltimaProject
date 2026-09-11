@@ -39,7 +39,8 @@ protected:
 
 	bool IsInteractionFinished() const;
 
-	// If after the interaction ends some loginc should be conducted, this one has to be overriden
+	// If after the interaction ends some logic should be conducted, this one has to be overriden
+	// Server only
 	UFUNCTION()
 	virtual void OnInteractionFinished();
 

@@ -51,7 +51,7 @@ protected:
 	FItemData ItemData;
 
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly)
-	int32 Handle;
+	int32 Handle = InvalidHandle;
 
 	UPROPERTY(NotReplicated)
 	int32 SlotIndex = INDEX_NONE;

@@ -22,24 +22,24 @@ bool UGameplayAbility_Drop::CanPerformDrop() const
 	{
 		return false;
 	}
-	
+
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.SourceContainer->GetOwnerInterface();
 	NULLCHECK_RETURN(ContainerOwnerInterface, false);
-	
+
 	const AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
 	if (!ContainerOwnerInterface->CanBeOpened(PC))
 	{
 		return false;
 	}
-	
+
 	// TODO distance / reachability check
-	
+
 	return true;
 }
 
 UGameplayAbility_Drop::UGameplayAbility_Drop()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerExecution;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced; // No parallel drops
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 
 	AbilityTags.AddTag(TAG_Ability_Container_Drop);
@@ -57,15 +57,16 @@ void UGameplayAbility_Drop::PreActivate(const FGameplayAbilitySpecHandle Handle,
                                         FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
                                         const FGameplayEventData* TriggerEventData)
 {
-	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
+	const FGameplayAbilityTargetData_DropOperation* DropData = static_cast<const
+		FGameplayAbilityTargetData_DropOperation*>(TriggerEventData->TargetData.Get(0));
 
-	const FGameplayAbilityTargetData_DropOperation* DropData = static_cast<const FGameplayAbilityTargetData_DropOperation*>(TriggerEventData->TargetData.Get(0));
-
-	if (DropData == nullptr || !DropData->IsValid())
+	if (DropData == nullptr || !DropData->IsValid() || IsActive())
 	{
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
 		return;
 	}
+
+	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
 
 	Data = *DropData;
 	if (!CanPerformDrop())
@@ -88,30 +89,15 @@ void UGameplayAbility_Drop::ActivateAbility(const FGameplayAbilitySpecHandle Han
 void UGameplayAbility_Drop::OnInteractionFinished()
 {
 	Super::OnInteractionFinished();
-	
-	// If interaction took time, re-validate everything
-	if (InteractionTime > 0 && !CanPerformDrop())
+
+	// Re-validate everything
+	if (!CanPerformDrop())
 	{
 		CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true);
 		return;
 	}
-	
-	switch (GetCurrentActivationInfo().ActivationMode)
-	{
-	case EGameplayAbilityActivationMode::Predicting:
-		{
-			break;
-		}
-	case EGameplayAbilityActivationMode::Authority:
-		{
-			Data.SourceContainer->DropItem(Data.ContainerItemHandle, Data.ItemAmount);
-			break;
-		}
-	default:
-		{
-			ensureAlways(false);
-		}
-	}
 
-	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), false, false);
+	Data.SourceContainer->DropItem(Data.ContainerItemHandle, Data.ItemAmount);
+
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }

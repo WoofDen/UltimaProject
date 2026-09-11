@@ -646,8 +646,8 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	// Can't stack anything, remains will be added as new items
 	uint32 RemainingAmount = AmountToMove - Result.MovedAmount;
 	const uint32 SlotsAvailable = GetSlotsAvailable();
-	const uint32 SlotsPerStack = SourceItemData.StaticData->Slots;
-	const uint32 ItemsPerStack = SourceItemData.StaticData->MaxAmountPerStack;
+	const uint32 SlotsPerStack = SourceItemData.GetStaticData()->Slots;
+	const uint32 ItemsPerStack = SourceItemData.GetStaticData()->MaxAmountPerStack;
 
 	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack, a = RemainingAmount)
 	{
@@ -686,12 +686,18 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
+	// Invalidate item early as the next array removal might change the referenced value
+	ItemData.Container = nullptr;
+
 	if (ContainerItems.Items.RemoveSingle(ItemData) > 0)
 	{
-		ItemData.Container = nullptr;
-
 		ContainerItems.MarkArrayDirty();
 		NotifyContainerItemsChanged();
+	}
+	else
+	{
+		// Restore
+		ItemData.Container = this;
 	}
 
 	return true;

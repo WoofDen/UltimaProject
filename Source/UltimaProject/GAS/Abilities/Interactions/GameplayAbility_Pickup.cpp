@@ -15,7 +15,7 @@ bool FGameplayAbilityTargetData_PickupOperation::NetSerialize(FArchive& Ar, clas
 	Ar << ItemAmount;
 	Ar << SourceItem;
 	Ar << TargetContainer;
-	
+
 	return true;
 }
 
@@ -25,11 +25,11 @@ bool UGameplayAbility_Pickup::CanPerformPickup()
 	{
 		return false;
 	}
-	
+
 	// Check the container is accessible
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.TargetContainer->GetOwnerInterface();
 	NULLCHECK_RETURN(ContainerOwnerInterface, false);
-	
+
 	AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
 	NULLCHECK_RETURN(PC, false);
 
@@ -72,61 +72,58 @@ void UGameplayAbility_Pickup::PickupItemInternal()
 void UGameplayAbility_Pickup::OnInteractionFinished()
 {
 	Super::OnInteractionFinished();
-	
-	// If interaction took time, re-validate everything
-	if (InteractionTime > 0 && !CanPerformPickup())
+
+	// Re-validate everything
+	if (!CanPerformPickup())
 	{
 		CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true);
 		return;
 	}
 
-	switch (GetCurrentActivationInfo().ActivationMode)
-	{
-	case EGameplayAbilityActivationMode::Authority:
-		{
-			PickupItemInternal();
-			break;
-		}
-	default:
-		{
-			break;
-		}
-	}
+	PickupItemInternal();
+
+	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
 }
 
 UGameplayAbility_Pickup::UGameplayAbility_Pickup()
 {
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;  // No parallel pickups
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
 	AbilityTags.AddTag(TAG_Ability_Container_Pickup);
 
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;
 	TriggerData.TriggerTag = TAG_Ability_Container_Pickup;
-	
+
 	AbilityTriggers.Add(TriggerData);
 }
 
 void UGameplayAbility_Pickup::PreActivate(const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-	FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
+                                          const FGameplayAbilityActorInfo* ActorInfo,
+                                          const FGameplayAbilityActivationInfo ActivationInfo,
+                                          FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
+                                          const FGameplayEventData* TriggerEventData)
 {
-	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
-	
-	if (TriggerEventData == nullptr)
+	if (TriggerEventData == nullptr || IsActive())
 	{
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
 		return;
 	}
-	
-	const FGameplayAbilityTargetData_PickupOperation* DropData = static_cast<const FGameplayAbilityTargetData_PickupOperation*>(TriggerEventData->TargetData.Get(0));
+
+	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
+
+	const FGameplayAbilityTargetData_PickupOperation* DropData = static_cast<const
+		FGameplayAbilityTargetData_PickupOperation*>(TriggerEventData->TargetData.Get(0));
 
 	if (DropData == nullptr || !DropData->IsValid())
 	{
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
 		return;
 	}
-	
+
 	Data = *DropData;
-	
+
 	if (!CanPerformPickup())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);

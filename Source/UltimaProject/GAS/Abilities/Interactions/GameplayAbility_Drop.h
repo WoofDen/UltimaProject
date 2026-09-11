@@ -55,6 +55,7 @@ class ULTIMAPROJECT_API UGameplayAbility_Drop : public UGameplayAbility_Interact
 {
 	GENERATED_BODY()
 	
+	UPROPERTY()
 	FGameplayAbilityTargetData_DropOperation Data;
 	
 	bool CanPerformDrop() const;

@@ -60,7 +60,7 @@ const UItemDataAsset* FItemData::GetStaticData() const
 	{
 		StaticData = StaticDataSoftPtr.LoadSynchronous();
 	}
-	
+
 	return StaticData;
 }
 
@@ -87,18 +87,18 @@ const FItemInstanceData& FItemData::GetInstanceData() const
 
 TSubclassOf<AItem> FItemData::GetActorClass() const
 {
-	return StaticData->ActorClass;
+	return GetStaticData()->ActorClass;
 }
 
 bool FItemData::IsValid() const
 {
-	return (StaticData || StaticDataSoftPtr.IsValid()) && InstanceData.IsValid();
+	return StaticDataSoftPtr.IsValid() && InstanceData.IsValid();
 }
 
 int32 FItemData::GetStackableAmount(const FItemData& TargetItem) const
 {
 	ensureAlways(TargetItem.IsValid());
-	if (StaticData != TargetItem.StaticData)
+	if (StaticDataSoftPtr != TargetItem.StaticDataSoftPtr)
 	{
 		return 0;
 	}
@@ -140,7 +140,7 @@ FText FItemData::GetDisplayName() const
 	static FText Unnamed = FText::FromString(TEXT("Unnamed"));
 	if (StaticDataSoftPtr.IsValid())
 	{
-		return StaticData->Name;
+		return GetStaticData()->Name;
 	}
 
 	return Unnamed;
@@ -153,7 +153,7 @@ UTexture2D* FItemData::GetViewIcon() const
 		return nullptr;
 	}
 
-	return StaticData->Icon.LoadSynchronous();
+	return GetStaticData()->Icon.LoadSynchronous();
 }
 
 uint32 FItemData::GetAmount() const
@@ -163,7 +163,7 @@ uint32 FItemData::GetAmount() const
 
 uint32 FItemData::GetMaxAmountPerStack() const
 {
-	return StaticCast<uint32>(StaticData->MaxAmountPerStack);
+	return StaticCast<uint32>(GetStaticData()->MaxAmountPerStack);
 }
 
 uint32 FItemData::SetAmount(const uint32 Value)
@@ -171,7 +171,7 @@ uint32 FItemData::SetAmount(const uint32 Value)
 	if (Value != InstanceData.Amount)
 	{
 		const int32 Value32 = StaticCast<int32>(Value);
-		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, Value32);
+		InstanceData.Amount = FMath::Min(GetStaticData()->MaxAmountPerStack, Value32);
 		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
 
@@ -183,7 +183,7 @@ uint32 FItemData::ModifyAmount(const int32 Value)
 	if (Value != 0)
 	{
 		const int32 NewAmount = InstanceData.Amount + Value;
-		InstanceData.Amount = FMath::Min(StaticData->MaxAmountPerStack, FMath::Max(0, NewAmount));
+		InstanceData.Amount = FMath::Min(GetStaticData()->MaxAmountPerStack, FMath::Max(0, NewAmount));
 
 		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, InstanceData, this);
 	}
@@ -193,10 +193,5 @@ uint32 FItemData::ModifyAmount(const int32 Value)
 
 TSoftObjectPtr<UStaticMesh> FItemData::GetStaticMesh() const
 {
-	if (StaticData)
-	{
-		return StaticData->WorldMesh;
-	}
-
-	return nullptr;
+	return GetStaticData()->WorldMesh;
 }
