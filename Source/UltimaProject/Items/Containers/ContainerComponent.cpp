@@ -238,7 +238,8 @@ void UContainerComponent::NotifyContainerItemChanged_Implementation(const FConta
 {
 	if (UContainerComponent* ListenContainer = GetListenContainer())
 	{
-		ListenContainer->OnContainerItemChanged.Broadcast(Item);
+		int32 Handle = Item.GetHandle();
+		ListenContainer->OnContainerItemChanged.Broadcast(Handle);
 	}
 }
 
@@ -332,54 +333,16 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, FConta
 	return GItemTransactionResult_Success;
 }
 
-/*
-FItemTransactionResult UContainerComponent::SplitItem(FContainerItemData& Data, const int32 SplitAmount)
-{
-	if (!ensureAlways(HasItem(Data)))
-	{
-		return GItemTransactionResult_Error;
-	}
-
-	// we need at least one extra slot
-	if (ContainerItems.Items.Num() >= ItemSlotsCapacity)
-	{
-		return GItemTransactionResult_Capacity;
-	}
-
-	FItemData NewItemData;
-	if (!Data.ItemData.SplitItem(SplitAmount, NewItemData))
-	{
-		return GItemTransactionResult_Error;
-	}
-
-	// The origin has been changed
-	ContainerItems.MarkItemDirty(Data);
-
-	FItemTransactionResult Result = AddItem(MoveTemp(NewItemData));
-	if (!Result.IsSuccess())
-	{
-		// todo
-		UE_LOG(LogUPContainers, Error,
-		       TEXT("Unable to add item to container during split operation - the origin item amount has been reduced"
-		       ));
-	}
-	else
-	{
-		NotifyContainerItemsChanged();
-	}
-	return Result;
-}
-*/
-
-FItemTransactionResult UContainerComponent::MoveItem(uint32 Handle, uint32 AmountToMove)
+FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove)
 {
 	// Container->Container move
-	check(GetOwner()->HasAuthority());
+	check(GetOwner() && GetOwner()->HasAuthority());
+	NULLCHECK_RETURN(SourceContainer, EItemTransactionResultCode::Error);
 	
-	FContainerItemData& SourceItem = GetItemMutable(Handle);
+	FContainerItemData& SourceItem = SourceContainer->GetItemMutable(Handle);
 
 	// FContainerItemData should always have a valid container
-	if (!ensureAlways(SourceItem.IsValid()))
+	if (!ensureAlways(SourceItem.IsValid()) || AmountToMove <= 0)
 	{
 		return GItemTransactionResult_Error;
 	}
@@ -419,7 +382,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 Handle, uint32 Amoun
 			SourceItemData.ModifyAmount(-StackableAmount);
 
 			ContainerItems.MarkItemDirty(Item); // This ( Target ) container
-			SourceItem.Container->ContainerItems.MarkItemDirty(SourceItem); // Other ( Source container )
+			SourceContainer->ContainerItems.MarkItemDirty(SourceItem); // Other ( Source container )
 
 			NotifyContainerItemChanged(Item);
 
@@ -434,8 +397,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 Handle, uint32 Amoun
 		// If the item amount is 0, remove the item 
 		if (SourceItem.GetAmount() == 0)
 		{
-			UContainerComponent* SourceItemContainer = SourceItem.Container.Get();
-			SourceItemContainer->RemoveItem(SourceItem);
+			SourceContainer->RemoveItem(SourceItem);
 
 			Result += EItemTransactionResultCode::FullyMoved;
 			return Result;
@@ -784,6 +746,13 @@ void UContainerComponent::StoreItem(AItem* WorldItem, uint32 Amount)
 	check(GetOwner() && GetOwner()->HasAuthority());
 
 	MoveItem(WorldItem, Amount);
+}
+
+void UContainerComponent::RelocateItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 Amount)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+
+	MoveItem(SourceContainer, Handle, Amount);
 }
 
 AItem* UContainerComponent::DropItem(uint32 Handle, uint32 Amount)

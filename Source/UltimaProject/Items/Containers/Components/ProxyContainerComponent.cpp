@@ -61,6 +61,12 @@ void UProxyContainerComponent::OnOriginContainerItemsChanged()
 	}
 }
 
+void UProxyContainerComponent::OnOriginContainerItemChanged(int32 Handle)
+{
+	// TODO Too lazy to write per-item update at this point
+	OnOriginContainerItemsChanged();
+}
+
 UProxyContainerComponent::UProxyContainerComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -95,6 +101,7 @@ void UProxyContainerComponent::InitializeServer(AUPPlayerController* InOwner, UC
 
 	// Track origin container changes and reflect them to the proxy
 	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
+	OriginContainer->OnContainerItemChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemChanged);
 
 	// Send to client
 	SetIsReplicated(true);
@@ -118,6 +125,7 @@ void UProxyContainerComponent::InitializeClient()
 	HUD->AddContainerWidget(this);
 
 	OriginContainer->OnContainerItemsChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
+	OriginContainer->OnContainerItemChanged.AddDynamic(this, &ThisClass::OnOriginContainerItemChanged);
 
 	ProxyContainerItems.ContainerComponent = this;
 
@@ -132,30 +140,14 @@ void UProxyContainerComponent::BeginPlay()
 
 void UProxyContainerComponent::BeginDestroy()
 {
+	// Clear the update delegate on server
+	if (OriginContainer.Get())
+	{
+		OriginContainer->OnContainerItemsChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
+		OriginContainer->OnContainerItemChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemChanged);
+	}
+	
 	Super::BeginDestroy();
-
-	if (GetOwner() && GetOwner()->HasAuthority())
-	{
-		// Clear the update delegate on server
-		if (OriginContainer.Get())
-		{
-			OriginContainer->OnContainerItemsChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
-		}
-	}
-}
-
-bool UProxyContainerComponent::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
-                                                   FReplicationFlags* RepFlags)
-{
-	// Skip parent as it replicates the UContainerComponent::ContainerItems - proxy has always this value empty
-	bool WroteSomething = UActorComponent::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	for (auto& Item : ProxyContainerItems.Items)
-	{
-		//WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
-	}
-
-	return WroteSomething;
 }
 
 TArray<FContainerItemData> UProxyContainerComponent::GetItemsForDisplay(AController* InstigatorController)
@@ -181,10 +173,10 @@ FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint
 	return OriginContainer->MoveItem(WorldItem);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, uint32 AmountToMove)
+FItemTransactionResult UProxyContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
-	return OriginContainer->MoveItem(Handle, AmountToMove);
+	return OriginContainer->MoveItem(SourceContainer, Handle, AmountToMove);
 }
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove)

@@ -22,7 +22,7 @@ void UGameplayAbility_Interaction::OnInteractionFinished()
 
 UGameplayAbility_Interaction::UGameplayAbility_Interaction()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerExecution;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 

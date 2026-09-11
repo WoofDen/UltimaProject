@@ -39,9 +39,6 @@ bool UGameplayAbility_Drop::CanPerformDrop() const
 
 UGameplayAbility_Drop::UGameplayAbility_Drop()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced; // No parallel drops
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
-
 	AbilityTags.AddTag(TAG_Ability_Container_Drop);
 
 	FAbilityTriggerData TriggerData;

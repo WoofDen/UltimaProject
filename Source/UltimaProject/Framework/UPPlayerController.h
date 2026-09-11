@@ -61,10 +61,6 @@ private:
 	UFUNCTION(Client, Unreliable)
 	void ClientForceCloseContainer(UObject* ContainerInterfaceObject);
 	
-	bool TryRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer);
-	
-	UFUNCTION(Server, Unreliable)
-	void ServerTryStoreItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer);
 #pragma endregion
 
 protected:
@@ -92,7 +88,7 @@ public:
 	void HandleInventoryToggle();
 
 	UFUNCTION(BlueprintCallable)
-	void HandleRelocateItem(UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle, UContainerComponent* TargetContainerComponent);
+	void HandleRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer, int32 ItemAmount);
 #pragma endregion
 
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }

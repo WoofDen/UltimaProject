@@ -174,7 +174,7 @@ protected:
 	// ~UActorComponent
 
 public:
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, const FContainerItemData&, ContainerItem);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, int32, Handle);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerItemsChanged);
 
@@ -217,7 +217,7 @@ public:
 
 protected:
 	// Container->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(uint32 Handle, uint32 AmountToMove = UINT32_MAX);
+	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove = UINT32_MAX);
 
 	// Container->World move
 	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
@@ -247,6 +247,8 @@ public:
 public:
 	// Add item from an in-world actor
 	void StoreItem(AItem* WorldItem, uint32 Amount);
+	
+	void RelocateItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 Amount);
 
 	AItem* DropItem(uint32 Handle, uint32 Amount);
 #pragma endregion

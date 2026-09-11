@@ -27,6 +27,9 @@ class ULTIMAPROJECT_API UProxyContainerComponent : public UContainerComponent
 	
 	UFUNCTION()
 	void OnOriginContainerItemsChanged();
+
+	UFUNCTION()
+	void OnOriginContainerItemChanged(int32 Handle);
 	
 	UPROPERTY(Transient, Replicated, ReplicatedUsing=OnRep_ProxyContainerItems)
 	FContainerItems ProxyContainerItems;
@@ -51,7 +54,6 @@ public:
 	// UActorComponent
 	virtual void BeginPlay() override;
 	virtual void BeginDestroy() override;
-	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	// ~UActorComponent
 
 	// UContainerComponent
@@ -60,7 +62,7 @@ protected:
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX) override;
 	
 	// Container->Container
-	virtual FItemTransactionResult MoveItem(uint32 Handle, uint32 AmountToMove = UINT32_MAX) override;
+	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove = UINT32_MAX) override;
 	
 	// Container->World
 	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX) override;

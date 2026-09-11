@@ -87,9 +87,6 @@ void UGameplayAbility_Pickup::OnInteractionFinished()
 
 UGameplayAbility_Pickup::UGameplayAbility_Pickup()
 {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::NonInstanced;  // No parallel pickups
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
-
 	AbilityTags.AddTag(TAG_Ability_Container_Pickup);
 
 	FAbilityTriggerData TriggerData;

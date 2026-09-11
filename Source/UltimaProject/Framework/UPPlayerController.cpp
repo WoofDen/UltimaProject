@@ -10,6 +10,7 @@
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Drop.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Pickup.h"
+#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Relocate.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
@@ -138,40 +139,6 @@ void AUPPlayerController::OnOpenedContainerAccessibilityUpdated(IContainerOwnerI
 	ClientForceCloseContainer(ContainerInterfaceObject);
 }
 
-bool AUPPlayerController::TryRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle,
-                                          UContainerComponent* TargetContainer)
-{
-	NULLCHECK_RETURN(SourceContainer, false);
-	NULLCHECK_RETURN(TargetContainer, false);
-	check(!HasAuthority()); // Client only
-
-	IContainerOwnerInterface* TargetContainerInterface = TargetContainer->GetOwnerInterface();
-	NULLCHECK_RETURN(TargetContainer, false);
-
-	if (!TargetContainerInterface->CanStoreItem(this, SourceContainer, ContainerItemHandle))
-	{
-		return false;
-	}
-
-	ServerTryStoreItem(SourceContainer, ContainerItemHandle, TargetContainer);
-	return true;
-}
-
-void AUPPlayerController::ServerTryStoreItem_Implementation(UContainerComponent* SourceContainer,
-                                                            int32 ContainerItemHandle,
-                                                            UContainerComponent* TargetContainer)
-{
-	NULLCHECK(TargetContainer);
-
-	IContainerOwnerInterface* TargetContainerOwner = TargetContainer->GetOwnerInterface();
-	if (!TargetContainerOwner->CanStoreItem(this, SourceContainer, ContainerItemHandle))
-	{
-		return;
-	}
-
-	TargetContainerOwner->StoreItemImpl(this, SourceContainer, ContainerItemHandle);
-}
-
 void AUPPlayerController::ClientForceCloseContainer_Implementation(UObject* ContainerInterfaceObject)
 {
 	IContainerOwnerInterface* ContainerInterface = Cast<IContainerOwnerInterface>(ContainerInterfaceObject);
@@ -264,16 +231,16 @@ void AUPPlayerController::HandleDropAction(UContainerComponent* SourceContainer,
                                            int32 ItemAmount) const
 {
 	UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	
+
 	NULLCHECK(SourceContainer);
 	NULLCHECK(ASC);
 	ensureAlways(IsValid(ASC));
-	
+
 	FGameplayAbilityTargetData_DropOperation* DropDataPtr = new FGameplayAbilityTargetData_DropOperation();
 	DropDataPtr->ItemAmount = ItemAmount;
 	DropDataPtr->SourceContainer = SourceContainer->GetOriginContainer();
 	DropDataPtr->ContainerItemHandle = ContainerItemHandle;
-	
+
 	FGameplayEventData EventData;
 	EventData.Instigator = this;
 	EventData.TargetData = FGameplayAbilityTargetDataHandle(DropDataPtr);
@@ -282,14 +249,15 @@ void AUPPlayerController::HandleDropAction(UContainerComponent* SourceContainer,
 	ASC->HandleGameplayEvent(TAG_Ability_Container_Drop, &EventData);
 }
 
-void AUPPlayerController::HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const
+void AUPPlayerController::HandlePickupAction(AItem* SourceItem, int32 ItemAmount,
+                                             UContainerComponent* TargetContainer) const
 {
 	NULLCHECK(SourceItem);
 	NULLCHECK(TargetContainer);
-	
+
 	UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent();
 	NULLCHECK(ASC);
-	
+
 	FGameplayAbilityTargetData_PickupOperation* PickupDataPtr = new FGameplayAbilityTargetData_PickupOperation();
 	PickupDataPtr->ItemAmount = ItemAmount;
 	PickupDataPtr->SourceItem = SourceItem;
@@ -336,10 +304,26 @@ void AUPPlayerController::HandleInventoryToggle()
 	}
 }
 
-void AUPPlayerController::HandleRelocateItem(UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle,
-                                             UContainerComponent* TargetContainerComponent)
+void AUPPlayerController::HandleRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle,
+                                             UContainerComponent* TargetContainer, int32 ItemAmount)
 {
-	TryRelocateItem(SourceContainerComponent, ContainerItemHandle, TargetContainerComponent);
+	NULLCHECK(SourceContainer);
+	NULLCHECK(TargetContainer);
+
+	UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	NULLCHECK(ASC);
+
+	FGameplayAbilityTargetData_RelocateOperation* SourceDataPtr = new FGameplayAbilityTargetData_RelocateOperation();
+	SourceDataPtr->ItemAmount = ItemAmount;
+	SourceDataPtr->ItemHandle = ContainerItemHandle;
+	SourceDataPtr->SourceContainer = SourceContainer;
+	SourceDataPtr->TargetContainer = TargetContainer->GetOriginContainer();
+
+	FGameplayEventData EventData;
+	EventData.Instigator = this;
+	EventData.TargetData = FGameplayAbilityTargetDataHandle(SourceDataPtr);
+
+	ASC->HandleGameplayEvent(TAG_Ability_Container_Relocate.GetTag(), &EventData);
 }
 
 UUPAbilitySystemComponent* AUPPlayerController::GetAbilitySystemComponent() const
