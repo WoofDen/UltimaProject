@@ -25,7 +25,7 @@ struct FContainerItemData : public FFastArraySerializerItem
 	bool operator==(const FContainerItemData& Other) const;
 	FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
-	
+
 	static uint32 InvalidHandle;
 
 	uint32 GetHandle() const { return Handle; }
@@ -142,12 +142,6 @@ class UContainerComponent : public UActorComponent
 	friend class UItemFactoryHelper;
 	friend class UProxyContainerComponent;
 
-	UPROPERTY(VisibleAnywhere, Transient, Replicated)
-	FContainerItems ContainerItems;
-
-	uint32 GetSlotsInUse() const;
-	uint32 GetSlotsAvailable() const;
-
 	// Creates A NEW item and adds to container
 	virtual FItemTransactionResult AddItem(FItemDataDefinition& ItemDataDefinition);
 
@@ -155,23 +149,31 @@ class UContainerComponent : public UActorComponent
 	virtual FItemTransactionResult AddItem(FItemData&& ItemData);
 
 	// Adds an existing item ( UItemData ) to container, returns FContainerItemData
-	virtual FItemTransactionResult AddItem(FItemData&& ItemData, FContainerItemData& AddedItem);
+	virtual FItemTransactionResult AddItem(FItemData&& ItemData, uint32& ResultHandle);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 protected:
+	UPROPERTY(VisibleAnywhere, Transient, Replicated)
+	FContainerItems ContainerItems;
+
 	UPROPERTY(EditDefaultsOnly)
 	int32 ItemSlotsCapacity = 10;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_ContainerWidgetClass)
 	TSubclassOf<UContainerWidget> ContainerWidgetClass;
 	
+	UFUNCTION()
+	virtual void OnRep_ContainerWidgetClass();
+
 	FContainerItemData& GetItemMutable(uint32 Handle) const;
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	// virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	virtual void BeginPlay() override;
 	// ~UActorComponent
+
+	uint32 GetSlotsInUse() const;
+	uint32 GetSlotsAvailable() const;
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, int32, Handle);
@@ -183,6 +185,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemsChanged OnContainerItemsChanged;
+	
+	virtual void OnClientOpened(AUPPlayerController* Instigator);
+	virtual void OnClientContainerClosed(AUPPlayerController* Instigator);
 
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemChanged(const FContainerItemData& Item);
@@ -241,15 +246,19 @@ public:
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
 #pragma endregion
 
-
 #pragma region Server top-level item operations
 
 public:
 	// Add item from an in-world actor
+	// World->Container
 	void StoreItem(AItem* WorldItem, uint32 Amount);
-	
+
+	// Container->Container
 	void RelocateItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 Amount);
 
+	// Container->World
 	AItem* DropItem(uint32 Handle, uint32 Amount);
+
+	uint32 SpawnItem(const FItemDataDefinition& ItemDataDefinition);
 #pragma endregion
 };

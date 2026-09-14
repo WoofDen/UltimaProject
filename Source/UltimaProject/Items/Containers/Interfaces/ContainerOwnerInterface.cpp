@@ -39,9 +39,9 @@ bool IContainerOwnerInterface::CanStoreItem(AController* Instigator, const UCont
 	// TODO shouldbe some other kind of check other than to pawn
 	const APawn* Pawn = PlayerController->GetPawn();
 	const bool bSourceContainerOpened = GetOwningActor() == Pawn || PlayerController->IsContainerOpened(
-		SourceContainer);
+		GetContainerComponent());
 	const bool bTargetContainerIsOpened = GetOwningActor() == Pawn || PlayerController->IsContainerOpened(
-		this);
+		GetContainerComponent());
 
 	if (!bSourceContainerOpened ||
 		!bTargetContainerIsOpened)

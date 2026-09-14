@@ -53,7 +53,7 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FI
 		return nullptr;
 	}
 
-	TSubclassOf<AItem> Actorclass = ItemData.StaticData->ActorClass;
+	TSubclassOf<AItem> Actorclass = ItemData.StaticDataSoftPtr->ActorClass;
 	if (!ensureAlways(Actorclass))
 	{
 		return nullptr;

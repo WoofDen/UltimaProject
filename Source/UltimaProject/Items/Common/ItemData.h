@@ -21,7 +21,7 @@ struct FItemInstanceData
 
 	FItemInstanceData();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Amount;
 
 	bool operator==(const FItemInstanceData& Other) const
@@ -70,13 +70,20 @@ struct FItemDataDefinition
 {
 	GENERATED_BODY()
 	
+private:
+	UPROPERTY(Transient)
+	mutable TObjectPtr<const UItemDataAsset> StaticData;
+	
+public:
+	
 	FItemDataDefinition();
 	FItemDataDefinition(const FItemData& Item);
 	FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn);
+	
 
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSoftObjectPtr<const UItemDataAsset> StaticData;
+	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
 
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -84,8 +91,18 @@ struct FItemDataDefinition
 	
 	bool IsValid() const
 	{
-		return StaticData.IsValid() && InstanceData.IsValid();
+		return StaticDataSoftPtr.IsValid() && InstanceData.IsValid();
 	};
+	
+	const UItemDataAsset* GetStaticData() const
+	{
+		if (!StaticData)
+		{
+			StaticData = StaticDataSoftPtr.LoadSynchronous();
+		}
+		
+		return StaticData;
+	}
 };
 
 /**

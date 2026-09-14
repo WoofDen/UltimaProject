@@ -34,7 +34,7 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	 * Client version of the array contains all opened containers while server version - only external containers. 
 	 * ( Currently, no need to track own containers on the server like inventories or own pursue )
 	 */
-	TArray<TWeakInterfacePtr<const IContainerOwnerInterface>> OpenedContainers;
+	TArray<TWeakInterfacePtr<const UContainerComponent>> OpenedContainers;
 
 	// List of opened proxy containers. Server only
 	// Key is the origin container ( UExternalContainerComponent ) and value is the corresponding proxy for this client
@@ -44,12 +44,11 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 #pragma region Containers
 
 public:
-	bool IsContainerOpened(const IContainerOwnerInterface* ContainerInterface) const;
+	bool IsContainerOpened(const UContainerComponent* ContainerComponent) const;
 
+	void TryOpenContainer(UContainerComponent* ContainerComponent, EContainerRelationType Relation);
+	void TryCloseContainer(UContainerComponent* ContainerComponent);
 private:
-	void TryOpenContainer(IContainerOwnerInterface* ContainerInterface, EContainerRelationType Relation);
-	void TryCloseContainer(IContainerOwnerInterface* ContainerInterface);
-
 	void OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface);
 
 	UFUNCTION(Server, Unreliable)
@@ -58,6 +57,7 @@ private:
 	UFUNCTION(Server, Unreliable)
 	void ServerCloseProxyContainer(UObject* ContainerInterfaceObject);
 
+	// Called when the container was closed by server
 	UFUNCTION(Client, Unreliable)
 	void ClientForceCloseContainer(UObject* ContainerInterfaceObject);
 	

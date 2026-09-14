@@ -39,7 +39,7 @@ bool FItemData::PreInitialize(FItemData* Source /* = nullptr */)
 
 bool FItemData::PreInitialize(const FItemDataDefinition& Definition)
 {
-	StaticDataSoftPtr = Definition.StaticData;
+	StaticDataSoftPtr = Definition.StaticDataSoftPtr;
 	InstanceData = Definition.InstanceData;
 
 	// Do not allow invalid UItemData
@@ -125,7 +125,7 @@ FItemDataDefinition::FItemDataDefinition(const FItemData& Item)
 FItemDataDefinition::FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn,
                                          FItemInstanceData InstanceDataIn)
 {
-	StaticData = StaticDataIn;
+	StaticDataSoftPtr = StaticDataIn;
 	InstanceData = InstanceDataIn;
 }
 

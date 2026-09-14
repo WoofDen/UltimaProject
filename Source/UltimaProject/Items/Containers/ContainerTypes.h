@@ -8,5 +8,8 @@ enum class EContainerRelationType : uint8
 	Inventory,
 
 	// World actor container
-	InWorldContainer
+	InWorldContainer,
+	
+	// One-time disposable container
+	Disposable
 };

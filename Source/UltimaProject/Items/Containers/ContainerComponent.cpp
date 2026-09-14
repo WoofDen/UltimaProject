@@ -118,6 +118,10 @@ FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDat
 	return AddItem(MoveTemp(NewItem));
 }
 
+void UContainerComponent::OnRep_ContainerWidgetClass()
+{
+}
+
 FContainerItemData& UContainerComponent::GetItemMutable(uint32 Handle) const
 {
 	return const_cast<FContainerItemData&>(GetItem(Handle));
@@ -130,10 +134,12 @@ void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	{
 		FDoRepLifetimeParams Params;
 		Params.bIsPushBased = true;
-		Params.Condition = COND_None;
+		Params.Condition = COND_OwnerOnly;
 
 		DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ContainerItems, Params);
 	}
+	
+	DOREPLIFETIME_CONDITION(ThisClass, ContainerWidgetClass, COND_InitialOnly);
 }
 
 /*
@@ -243,6 +249,14 @@ void UContainerComponent::NotifyContainerItemChanged_Implementation(const FConta
 	}
 }
 
+void UContainerComponent::OnClientOpened(AUPPlayerController* Instigator)
+{
+}
+
+void UContainerComponent::OnClientContainerClosed(AUPPlayerController* Instigator)
+{
+}
+
 int32 UContainerComponent::GetItemsCapacity() const
 {
 	return ItemSlotsCapacity;
@@ -298,7 +312,7 @@ bool UContainerComponent::HasItem(const uint32 ItemHandle) const
 const FContainerItemData& UContainerComponent::GetItem(uint32 Handle) const
 {
 	static FContainerItemData InvalidItem;
-	
+
 	for (const auto& Item : ContainerItems.Items)
 	{
 		if (Item.GetHandle() == Handle)
@@ -306,17 +320,17 @@ const FContainerItemData& UContainerComponent::GetItem(uint32 Handle) const
 			return Item;
 		}
 	}
-	
+
 	return InvalidItem;
 }
 
 FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData)
 {
-	FContainerItemData AddedItem;
-	return AddItem(MoveTemp(ItemData), AddedItem);
+	uint32 Handle;
+	return AddItem(MoveTemp(ItemData), Handle);
 }
 
-FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, FContainerItemData& AddedItem)
+FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32& ResultHandle)
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
@@ -325,20 +339,23 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, FConta
 	// todo ensure get item at slot == null
 
 	FContainerItemData ContainerItemData(MoveTemp(ItemData), this, SlotIndex);
-	AddedItem = ContainerItems.Items.Add_GetRef(MoveTemp(ContainerItemData));
+	FContainerItemData& AddedItem = ContainerItems.Items.Add_GetRef(MoveTemp(ContainerItemData));
 
 	ContainerItems.MarkItemDirty(AddedItem);
 	NotifyContainerItemsChanged();
+	
+	ResultHandle = AddedItem.GetHandle();
 
 	return GItemTransactionResult_Success;
 }
 
-FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove)
+FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle,
+                                                     uint32 AmountToMove)
 {
 	// Container->Container move
 	check(GetOwner() && GetOwner()->HasAuthority());
 	NULLCHECK_RETURN(SourceContainer, EItemTransactionResultCode::Error);
-	
+
 	FContainerItemData& SourceItem = SourceContainer->GetItemMutable(Handle);
 
 	// FContainerItemData should always have a valid container
@@ -488,7 +505,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	{
 		return GItemTransactionResult_Error;
 	}
-	
+
 	FTransform Transform;
 	if (!FindDropTransform(ContainerItemHandle, Transform))
 	{
@@ -611,7 +628,8 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	const uint32 SlotsPerStack = SourceItemData.GetStaticData()->Slots;
 	const uint32 ItemsPerStack = SourceItemData.GetStaticData()->MaxAmountPerStack;
 
-	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack, a = RemainingAmount)
+	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack, a =
+	     RemainingAmount)
 	{
 		FItemDataDefinition ItemDefinition(SourceItemData);
 		int32 CurrentIterationAmount = FMath::Min(AmountToMove, ItemsPerStack);
@@ -698,7 +716,7 @@ TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* 
 	{
 		Item.ItemData.LoadStaticData();
 	}
-	
+
 	// There we may differ results, based on the instigator.
 	return GetItems();
 }
@@ -758,9 +776,19 @@ void UContainerComponent::RelocateItem(UContainerComponent* SourceContainer, uin
 AItem* UContainerComponent::DropItem(uint32 Handle, uint32 Amount)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	
+
 	AItem* Result = nullptr;
 	MoveItem(Handle, Result, Amount);
-	
+
 	return Result;
+}
+
+uint32 UContainerComponent::SpawnItem(const FItemDataDefinition& ItemDataDefinition)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+
+	uint32 ResultHandle = FContainerItemData::InvalidHandle;
+	AddItem(ItemDataDefinition, ResultHandle);
+
+	return ResultHandle;
 }

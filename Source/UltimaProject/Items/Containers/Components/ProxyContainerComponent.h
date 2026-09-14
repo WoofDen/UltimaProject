@@ -8,7 +8,7 @@
 
 /** 
  * Proxies are local player representation of external containers
- * When a player opens an external container (a chest) a temproral proxy container is created and provides its replicated content as long as it is open
+ * When a player opens an external container (a chest) a temporary proxy container is created and provides its replicated content as long as it is open
  * The items array will be always empty there to avoid dupe risks
  */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -21,19 +21,19 @@ class ULTIMAPROJECT_API UProxyContainerComponent : public UContainerComponent
 
 	UFUNCTION()
 	void OnRep_OwnerController();
-	
+
 	UFUNCTION()
 	void OnRep_ProxyContainerItems();
-	
+
 	UFUNCTION()
 	void OnOriginContainerItemsChanged();
 
 	UFUNCTION()
 	void OnOriginContainerItemChanged(int32 Handle);
-	
+
 	UPROPERTY(Transient, Replicated, ReplicatedUsing=OnRep_ProxyContainerItems)
 	FContainerItems ProxyContainerItems;
-	
+
 	bool bInitialized = false;
 
 protected:
@@ -60,17 +60,19 @@ public:
 protected:
 	// World->Container
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX) override;
-	
+
 	// Container->Container
-	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove = UINT32_MAX) override;
-	
+	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer,
+	                                        uint32 Handle,
+	                                        uint32 AmountToMove = UINT32_MAX) override;
+
 	// Container->World
 	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX) override;
-	
+
 	virtual bool HasItem(uint32 Handle) const override;
 	virtual UContainerComponent* GetOriginContainer() override;
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const override;
-	
+
 public:
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;
 
