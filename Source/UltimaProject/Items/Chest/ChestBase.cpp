@@ -26,7 +26,7 @@ void AChestBase::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-UContainerComponent* AChestBase::GetContainerComponent_Implementation() const
+UContainerComponent* AChestBase::GetMainContainerComponent_Implementation() const
 {
 	return ContainerComponent;
 }

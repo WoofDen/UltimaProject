@@ -52,14 +52,14 @@ private:
 	void OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface);
 
 	UFUNCTION(Server, Unreliable)
-	void ServerOpenProxyContainer(UObject* ContainerInterfaceObject);
+	void ServerOpenProxyContainer(UContainerComponent* ContainerComponent);
 
 	UFUNCTION(Server, Unreliable)
-	void ServerCloseProxyContainer(UObject* ContainerInterfaceObject);
+	void ServerCloseProxyContainer(UContainerComponent* ContainerComponent);
 
 	// Called when the container was closed by server
 	UFUNCTION(Client, Unreliable)
-	void ClientForceCloseContainer(UObject* ContainerInterfaceObject);
+	void ClientForceCloseContainer(UContainerComponent* ContainerComponent);
 	
 #pragma endregion
 

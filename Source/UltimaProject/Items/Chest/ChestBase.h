@@ -28,7 +28,7 @@ public:
 	// ~AActor
 
 	// IContainerInterface
-	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
+	virtual UContainerComponent* GetMainContainerComponent_Implementation() const override;
 	virtual bool CanBeOpened(const class AUPPlayerController* Controller) const override;
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
 	

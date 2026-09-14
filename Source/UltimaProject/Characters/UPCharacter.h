@@ -97,7 +97,7 @@ public:
 	FORCEINLINE UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; };
 
 	// IContainerInterface
-	virtual UContainerComponent* GetContainerComponent_Implementation() const override;
+	virtual UContainerComponent* GetMainContainerComponent_Implementation() const override;
 	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) const override;
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
 	// ~IContainerInterface

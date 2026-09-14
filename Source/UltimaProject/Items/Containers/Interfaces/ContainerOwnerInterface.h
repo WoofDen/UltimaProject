@@ -19,7 +19,7 @@ class IContainerOwnerInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	UContainerComponent* GetContainerComponent() const;
+	UContainerComponent* GetMainContainerComponent() const;
 
 	virtual bool CanBeOpened(const class AUPPlayerController* Controller) const;
 
@@ -27,7 +27,4 @@ public:
 	// Server only ( could be called predictively on the client in future )
 	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const;
 	AActor* GetOwningActor() const;
-
-	bool CanStoreItem(AController* Instigator, const UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle) const;
-	virtual void StoreItemImpl(AController* InstigatorController, UContainerComponent* SourceContainerComponent, int32 ContainerItemHandle);
 };

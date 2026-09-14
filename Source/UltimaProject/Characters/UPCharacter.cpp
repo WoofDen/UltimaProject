@@ -25,7 +25,7 @@ void AUPCharacter::OnRep_InventoryComponent()
 	UpdateGameplayReadyState();
 }
 
-UContainerComponent* AUPCharacter::GetContainerComponent_Implementation() const
+UContainerComponent* AUPCharacter::GetMainContainerComponent_Implementation() const
 {
 	return InventoryComponent;
 }
