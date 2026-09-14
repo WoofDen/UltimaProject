@@ -39,7 +39,7 @@ bool UGameplayAbility_Drop::CanPerformDrop() const
 
 UGameplayAbility_Drop::UGameplayAbility_Drop()
 {
-	AbilityTags.AddTag(TAG_Ability_Container_Drop);
+	SetAssetTags(FGameplayTagContainer(TAG_Ability_Container_Drop));
 
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;

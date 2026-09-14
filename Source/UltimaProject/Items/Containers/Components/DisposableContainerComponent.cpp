@@ -82,14 +82,14 @@ void UDisposableContainerComponent::OnClientContainerClosed(AUPPlayerController*
 void UDisposableContainerComponent::OnRep_ContainerWidgetClass()
 {
 	Super::OnRep_ContainerWidgetClass();
-	
+
 	/*
 	 * Dynamic components seems doesn't send the replicated properties with initial bunch. 
 	 * Thus WidgetClass won't be available in BeginPlay
 	 * Wait for the property to be updated on Client and open the container
 	 * TODO how to handle a possible package loss? no widget class no container
 	 */
-	
+
 	if (APawn* PawnOwner = GetOwner<APawn>(); PawnOwner && PawnOwner->GetNetMode() == NM_Client)
 	{
 		ContainerOrigin = PawnOwner->GetActorLocation();
@@ -99,6 +99,11 @@ void UDisposableContainerComponent::OnRep_ContainerWidgetClass()
 			PC->TryOpenContainer(this, EContainerRelationType::Disposable);
 		}
 	}
+}
+
+bool UDisposableContainerComponent::CanStoreItem(const AController* Instigator, const AItem* Item) const
+{
+	return false;
 }
 
 UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableContainer(
@@ -142,6 +147,6 @@ UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableCo
 	// Ready to replicate
 	ContainerComponent->RegisterComponent();
 	ContainerComponent->SetIsReplicated(true);
-	
+
 	return ContainerComponent;
 }

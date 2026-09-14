@@ -41,6 +41,7 @@ public:
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;
 	virtual void OnClientContainerClosed(AUPPlayerController* Instigator) override;
 	virtual void OnRep_ContainerWidgetClass() override;
+	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const override;
 	// ~UContainerComponent
 
 	UFUNCTION(BlueprintCallable)

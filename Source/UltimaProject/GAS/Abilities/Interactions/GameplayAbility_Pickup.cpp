@@ -87,7 +87,7 @@ void UGameplayAbility_Pickup::OnInteractionFinished()
 
 UGameplayAbility_Pickup::UGameplayAbility_Pickup()
 {
-	AbilityTags.AddTag(TAG_Ability_Container_Pickup);
+	SetAssetTags(FGameplayTagContainer(TAG_Ability_Container_Pickup));
 
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;

@@ -26,7 +26,7 @@ bool UGameplayAbility_Relocate::CanPerformRelocate()
 
 UGameplayAbility_Relocate::UGameplayAbility_Relocate()
 {
-	AbilityTags.AddTag(TAG_Ability_Container_Relocate);
+	SetAssetTags(FGameplayTagContainer(TAG_Ability_Container_Relocate));
 
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;

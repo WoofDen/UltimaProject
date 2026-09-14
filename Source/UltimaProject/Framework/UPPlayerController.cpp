@@ -72,7 +72,7 @@ void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerCompone
 		GameplayHUDWidgetInstance->AddContainerWidget(ContainerComponent);
 		break;
 	case EContainerRelationType::InWorldContainer:
-		ServerOpenProxyContainer(ContainerInterface->_getUObject());
+		ServerOpenProxyContainer(Cast<UObject>(ContainerInterface));
 		break;
 	case EContainerRelationType::Invalid:
 		UE_LOG(LogController, Error, TEXT("Invalid container type"));
@@ -104,7 +104,7 @@ void AUPPlayerController::TryCloseContainer(UContainerComponent* ContainerCompon
 
 	if (ContainerComponent->IsA<UExternalContainerComponent>())
 	{
-		ServerCloseProxyContainer(ContainerInterface->_getUObject());
+		ServerCloseProxyContainer(Cast<UObject>(ContainerInterface));
 	}
 
 	ContainerComponent->OnClientContainerClosed(this);
@@ -121,7 +121,7 @@ void AUPPlayerController::OnOpenedContainerAccessibilityUpdated(IContainerOwnerI
 		return;
 	}
 
-	UObject* ContainerInterfaceObject = ContainerInterface->_getUObject();
+	UObject* ContainerInterfaceObject = Cast<UObject>(ContainerInterface);
 
 	UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetContainerComponent(
 		ContainerInterfaceObject);
@@ -148,7 +148,7 @@ void AUPPlayerController::ClientForceCloseContainer_Implementation(UObject* Cont
 	NULLCHECK(ContainerInterface);
 
 	UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetContainerComponent(
-		ContainerInterface->_getUObject());
+		Cast<UObject>(ContainerInterface));
 	NULLCHECK(ContainerComponent);
 
 	if (GameplayHUDWidgetInstance)
@@ -288,7 +288,7 @@ void AUPPlayerController::HandleActivateAction()
 	NULLCHECK(CursorContainer);
 	
 	UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetContainerComponent(
-		CursorContainer->_getUObject());
+		Cast<UObject>(CursorContainer));
 	NULLCHECK(ContainerComponent);
 
 	if (IsContainerOpened(ContainerComponent))
@@ -307,7 +307,7 @@ void AUPPlayerController::HandleInventoryToggle()
 	NULLCHECK(InventoryInterface);
 	
 	UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetContainerComponent(
-	InventoryInterface->_getUObject());
+	Cast<UObject>(InventoryInterface));
 	NULLCHECK(ContainerComponent);
 
 	if (IsContainerOpened(ContainerComponent))
