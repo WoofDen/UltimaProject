@@ -30,17 +30,6 @@ UContainerComponent* AUPCharacter::GetMainContainerComponent_Implementation() co
 	return InventoryComponent;
 }
 
-bool AUPCharacter::CanBeOpened(const AUPPlayerController* InstigatorController) const
-{
-	return GetController() == InstigatorController;
-}
-
-FOnContainerAccessibilityUpdated AUPCharacter::GetAccessibilityChangedDelegate() const
-{
-	ensureAlways(HasAuthority());
-	return OnPlayerInventoryAccessibilityChanged;
-}
-
 // Sets default values
 AUPCharacter::AUPCharacter()
 {
@@ -87,16 +76,6 @@ void AUPCharacter::BeginPlay()
 	}
 
 	UpdateGameplayReadyState();
-}
-
-void AUPCharacter::BeginDestroy()
-{
-	if (HasAuthority())
-	{
-		GetAccessibilityChangedDelegate().Broadcast(this);
-	}
-
-	Super::BeginDestroy();
 }
 
 // Called every frame

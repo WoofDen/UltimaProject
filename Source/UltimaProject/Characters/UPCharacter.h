@@ -34,7 +34,6 @@ public:
 	// AActor
 	virtual void Tick(float DeltaTime) override;
 	virtual void BeginPlay() override;
-	virtual void BeginDestroy() override;
 	// ~AActor
 
 	// Called to bind functionality to input
@@ -95,8 +94,6 @@ public:
 
 	// IContainerInterface
 	virtual UContainerComponent* GetMainContainerComponent_Implementation() const override;
-	virtual bool CanBeOpened(const AUPPlayerController* InstigatorController) const override;
-	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
 	// ~IContainerInterface
 
 #pragma endregion

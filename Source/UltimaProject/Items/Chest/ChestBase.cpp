@@ -16,37 +16,7 @@ AChestBase::AChestBase()
 	}
 }
 
-void AChestBase::BeginDestroy()
-{
-	if (HasAuthority())
-	{
-		GetAccessibilityChangedDelegate().Broadcast(this);
-	}
-	
-	Super::BeginDestroy();
-}
-
 UContainerComponent* AChestBase::GetMainContainerComponent_Implementation() const
 {
 	return ContainerComponent;
 }
-
-bool AChestBase::CanBeOpened(const class AUPPlayerController* Controller) const 
-{
-	// TODO Locked logic, skip for now, visibility & distance check 
-
-	return true;
-}
-
-FOnContainerAccessibilityUpdated AChestBase::GetAccessibilityChangedDelegate() const
-{
-	ensureAlways(HasAuthority());
-	return OnChestAccessibilityChanged;
-}
-
-/*
-void AChestBase::CallServerTryStoreItem_Implementation(AController* InstigatorController, const FContainerItemData& ItemData)
-{
-	IContainerInterface::ServerTryStoreItemImpl(InstigatorController, ItemData);
-}
-*/

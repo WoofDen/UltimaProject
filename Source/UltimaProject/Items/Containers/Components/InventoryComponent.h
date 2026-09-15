@@ -14,5 +14,11 @@ protected:
 public:
 	UInventoryComponent();
 
+	// UActorComponent
 	virtual void BeginPlay() override;
+	// ~UActorComponent
+	
+	// UContainerComponent
+	virtual bool IsAccessible(const AController* Instigator) const override;
+	// ~UContainerComponent
 };

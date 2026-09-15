@@ -33,7 +33,7 @@ bool UGameplayAbility_Pickup::CanPerformPickup()
 	AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
 	NULLCHECK_RETURN(PC, false);
 
-	if (!ContainerOwnerInterface->CanBeOpened(PC))
+	if(!Data.TargetContainer->IsAccessible(PC))
 	{
 		return false;
 	}

@@ -2,6 +2,8 @@
 
 #include "GameplayAbility_Relocate.h"
 #include "UltimaProject/Common/GameplayTags.h"
+#include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 bool FGameplayAbilityTargetData_RelocateOperation::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
@@ -20,6 +22,13 @@ bool UGameplayAbility_Relocate::CanPerformRelocate()
 		return false;
 	}
 
+	AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
+	NULLCHECK_RETURN(PC, false);
+
+	if (!Data.TargetContainer->IsAccessible(PC) || !Data.SourceContainer->IsAccessible(PC))
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -63,7 +72,8 @@ void UGameplayAbility_Relocate::PreActivate(const FGameplayAbilitySpecHandle Han
 	if (!CanPerformRelocate())
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-	}}
+	}
+}
 
 void UGameplayAbility_Relocate::OnInteractionFinished()
 {

@@ -4,11 +4,12 @@
 #include <UltimaProject/Items/Common/ItemFactoryHelper.h>
 
 // Engine includes
-#include "Engine/ActorChannel.h"
 #include "Engine/AssetManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "Net/Core/PushModel/PushModel.h"
+#include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 DEFINE_LOG_CATEGORY(LogUPContainers)
 
@@ -199,6 +200,19 @@ void UContainerComponent::BeginPlay()
 	}
 }
 
+void UContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		if (AUPPlayerController* UPPC = Cast<AUPPlayerController>(PC); UPPC && UPPC->GetNetMode() == NM_Client)
+		{
+			UPPC->TryCloseContainer(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 bool UContainerComponent::FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const
 {
 	AActor* Owner = GetOwner();
@@ -234,6 +248,26 @@ TSubclassOf<UContainerWidget> UContainerComponent::GetContainerWidgetClass() con
 	}
 
 	return nullptr;
+}
+
+float UContainerComponent::GetInteractionRadius() const
+{
+	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())
+	{
+		return DataAsset->InteractionRadius;
+	}
+
+	return 0;
+}
+
+FVector UContainerComponent::GetContainerOrigin() const
+{
+	if (const AActor* Owner = GetOwner())
+	{
+		return Owner->GetActorLocation();
+	}
+
+	return UPGlobals::InvalidLocation;
 }
 
 void UContainerComponent::NotifyContainerItemsChanged_Implementation()
@@ -541,7 +575,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	}
 	else
 	{
-		SourceItem.ModifyAmount(-((int32)AmountToMove));
+		SourceItem.ModifyAmount(-static_cast<int32>(AmountToMove));
 	}
 
 	if (AItem* ResultItem = UItemFactoryHelper::SpawnItem(GetWorld(), DataDefinition, Transform))
@@ -727,6 +761,12 @@ TArray<FContainerItemData> UContainerComponent::GetItems()
 
 TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* InstigatorController)
 {
+	if (!IsAccessible(InstigatorController))
+	{
+		// Anti-cheat check
+		return {};
+	}
+
 	for (auto& Item : ContainerItems.Items)
 	{
 		Item.ItemData.LoadStaticData();
@@ -767,6 +807,26 @@ bool UContainerComponent::CanStoreItem(const AController* Instigator, const AIte
 		Params
 	);
 	if (bHasObstacle)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UContainerComponent::IsAccessible(const AController* Instigator) const
+{
+	NULLCHECK_RETURN(Instigator, false);
+
+	const APawn* Pawn = Instigator->GetPawn();
+	const AActor* Owner = GetOwner();
+	NULLCHECK_RETURN(Pawn, false);
+	NULLCHECK_RETURN(Owner, false);
+
+	const float InteractionRadius = GetInteractionRadius();
+	const float Distance = FVector::Distance(Pawn->GetActorLocation(), GetContainerOrigin());
+
+	if (Distance > InteractionRadius)
 	{
 		return false;
 	}

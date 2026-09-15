@@ -25,6 +25,7 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	AUPPlayerController();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
@@ -34,12 +35,12 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	 * Client version of the array contains all opened containers while server version - only external containers. 
 	 * ( Currently, no need to track own containers on the server like inventories or own pursue )
 	 */
-	TArray<TWeakInterfacePtr<const UContainerComponent>> OpenedContainers;
+	TArray<TWeakInterfacePtr<UContainerComponent>> OpenedContainers;
 
 	// List of opened proxy containers. Server only
 	// Key is the origin container ( UExternalContainerComponent ) and value is the corresponding proxy for this client
 	UPROPERTY()
-	TMap<class UContainerComponent*, class UProxyContainerComponent*> OpenedProxyContainers;
+	TMap<const UContainerComponent*, class UProxyContainerComponent*> OpenedProxyContainers;
 
 #pragma region Containers
 
@@ -49,6 +50,11 @@ public:
 	void TryOpenContainer(UContainerComponent* ContainerComponent, EContainerRelationType Relation);
 	void TryCloseContainer(UContainerComponent* ContainerComponent);
 private:
+	
+	FTimerHandle ContainerAccessibilityTimerHandle;
+	
+	void UpdateContainerAccessibility();
+	
 	void OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface);
 
 	UFUNCTION(Server, Unreliable)

@@ -4,6 +4,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/UI/ContainerWidget.h"
 
 void UDisposableContainerComponent::OnLifetimeExpired()
@@ -104,6 +105,11 @@ void UDisposableContainerComponent::OnClientReady()
 bool UDisposableContainerComponent::CanStoreItem(const AController* Instigator, const AItem* Item) const
 {
 	return false;
+}
+
+FVector UDisposableContainerComponent::GetContainerOrigin() const
+{
+	return ContainerOrigin;
 }
 
 UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableContainer(

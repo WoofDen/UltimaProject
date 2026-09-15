@@ -72,6 +72,7 @@ protected:
 	virtual bool HasItem(uint32 Handle) const override;
 	virtual UContainerComponent* GetOriginContainer() override;
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const override;
+	virtual FVector GetContainerOrigin() const override;
 
 public:
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;

@@ -18,20 +18,13 @@ class ULTIMAPROJECT_API AChestBase : public AActor, public IContainerOwnerInterf
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UExternalContainerComponent> ContainerComponent;
-		FOnContainerAccessibilityUpdated OnChestAccessibilityChanged;
 
 public:
 	AChestBase();
-	
-	// AActor
-	virtual void BeginDestroy() override;
-	// ~AActor
 
 	// IContainerInterface
 	virtual UContainerComponent* GetMainContainerComponent_Implementation() const override;
-	virtual bool CanBeOpened(const class AUPPlayerController* Controller) const override;
-	virtual FOnContainerAccessibilityUpdated GetAccessibilityChangedDelegate() const override;
-	
+
 	//UFUNCTION(Server, Unreliable)
 	//virtual void CallServerTryStoreItem(AController* InstigatorController, const FContainerItemData& ItemData) override;
 	// ~IContainerInterface

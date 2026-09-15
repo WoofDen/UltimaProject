@@ -18,7 +18,7 @@ class ULTIMAPROJECT_API UGameplayHUDWidget : public UUserWidget
 	GENERATED_BODY()
 
 	TMap<TWeakObjectPtr<const UContainerComponent>, TObjectPtr<UUserWidget>> OpenedContainers;
-	
+
 	FVector2D LastOpenedContainerPosition;
 
 	FVector2D GetNewContainerPosition(const UUserWidget* ContainerWidget, const class UCanvasPanelSlot* CanvasSlot) const;
@@ -29,10 +29,10 @@ protected:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> ContainersStackWidget;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category="Containers")
 	FVector2D ContainerDefaultOffset = FVector2D(50, 100);
-	
+
 	UPROPERTY(EditDefaultsOnly, Category="Containers")
 	FVector2D ContainerOffsetStep = FVector2D(50, 50);
 
@@ -43,9 +43,9 @@ public:
 
 	void AddInteractionWidget(UUserWidget* InteractionWidget);
 
-	bool IsContainerOpened(UContainerComponent* ContainerComponent) const;
-	
+	bool IsContainerOpened(UContainerComponent* ContainerComponent);
+
 	bool AddContainerWidget(UContainerComponent* ContainerComponent);
-	
+
 	void CloseContainerWidget(UContainerComponent* ContainerComponent);
 };

@@ -36,11 +36,31 @@ void AUPPlayerController::BeginPlay()
 
 		GameplayHUDWidgetInstance->AddToViewport();
 	}
+
+	// Setup containers sanitizer
+	if (GetWorld() && IsLocalController())
+	{
+		FTimerDelegate Delegate;
+		Delegate.BindUObject(this, &ThisClass::UpdateContainerAccessibility);
+
+		GetWorld()->GetTimerManager().SetTimer(ContainerAccessibilityTimerHandle, Delegate
+		                                       , 1.f, true);
+	}
+}
+
+void AUPPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ContainerAccessibilityTimerHandle);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 bool AUPPlayerController::IsContainerOpened(const UContainerComponent* ContainerComponent) const
 {
-	return OpenedContainers.Contains(ContainerComponent);
+	return OpenedContainers.Contains(const_cast<UContainerComponent*>(ContainerComponent));
 }
 
 void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerComponent,
@@ -52,13 +72,8 @@ void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerCompone
 	IContainerOwnerInterface* ContainerInterface = ContainerComponent->GetOwnerInterface();
 	NULLCHECK(ContainerInterface);
 
-	// Already opened
-	if (IsContainerOpened(ContainerComponent))
-	{
-		return;
-	}
-
-	if (!ContainerInterface->CanBeOpened(this))
+	// Already opened or is not reachable
+	if (IsContainerOpened(ContainerComponent) || !ContainerComponent->IsAccessible(this))
 	{
 		return;
 	}
@@ -116,21 +131,42 @@ void AUPPlayerController::TryCloseContainer(UContainerComponent* ContainerCompon
 	ContainerComponent->OnClientContainerClosed(this);
 }
 
+void AUPPlayerController::UpdateContainerAccessibility()
+{
+	// Close the opened container if its no longer accessible
+	for (int32 i = OpenedContainers.Num() - 1; i >= 0; i--)
+	{
+		if (OpenedContainers[i]->IsAccessible(this))
+		{
+			continue;
+		}
+
+		if (HasAuthority())
+		{
+			ClientForceCloseContainer(OpenedContainers[i].Get());
+		}
+		else
+		{
+			TryCloseContainer(OpenedContainers[i].Get());
+		}
+	}
+}
+
 void AUPPlayerController::OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface)
 {
 	NULLCHECK(ContainerInterface);
 	check(HasAuthority()); // Server only
 
-	if (ContainerInterface->CanBeOpened(this))
-	{
-		// Container is still accessible
-		return;
-	}
-
 	UObject* ContainerInterfaceObject = Cast<UObject>(ContainerInterface);
 
 	UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetMainContainerComponent(
 		ContainerInterfaceObject);
+
+	if (ContainerComponent->IsAccessible(this))
+	{
+		// Stilla accessible
+		return;
+	}
 
 	// Container is no longer accessible
 	OpenedContainers.Remove(ContainerComponent);

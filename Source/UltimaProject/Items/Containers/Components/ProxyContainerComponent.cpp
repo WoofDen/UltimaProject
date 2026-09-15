@@ -1,10 +1,10 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ProxyContainerComponent.h"
-
-#include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
+#include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 void UProxyContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -155,7 +155,7 @@ TArray<FContainerItemData> UProxyContainerComponent::GetItemsForDisplay(AControl
 	return ProxyContainerItems.Items;
 }
 
-UContainerComponent* UProxyContainerComponent::GetOriginContainer()
+UContainerComponent* UProxyContainerComponent::GetOriginContainer() 
 {
 	return OriginContainer.Get();
 }
@@ -164,6 +164,12 @@ TSubclassOf<UContainerWidget> UProxyContainerComponent::GetContainerWidgetClass(
 {
 	NULLCHECK_SP_RETURN(OriginContainer, nullptr);
 	return OriginContainer->GetContainerWidgetClass();
+}
+
+FVector UProxyContainerComponent::GetContainerOrigin() const
+{
+	NULLCHECK_SP_RETURN(OriginContainer, UPGlobals::InvalidLocation);
+	return OriginContainer->GetContainerOrigin();
 }
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)

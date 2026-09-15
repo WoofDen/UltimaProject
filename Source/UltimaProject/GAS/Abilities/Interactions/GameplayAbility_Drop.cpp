@@ -3,6 +3,7 @@
 #include "GameplayAbility_Drop.h"
 #include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 
 bool FGameplayAbilityTargetData_DropOperation::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
@@ -22,17 +23,17 @@ bool UGameplayAbility_Drop::CanPerformDrop() const
 	{
 		return false;
 	}
+	
 
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.SourceContainer->GetOwnerInterface();
 	NULLCHECK_RETURN(ContainerOwnerInterface, false);
 
 	const AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
-	if (!ContainerOwnerInterface->CanBeOpened(PC))
+	
+	if(!Data.SourceContainer->IsAccessible(PC))
 	{
 		return false;
 	}
-
-	// TODO distance / reachability check
 
 	return true;
 }

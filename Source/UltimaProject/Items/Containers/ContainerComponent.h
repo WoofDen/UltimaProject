@@ -2,8 +2,8 @@
 
 // Engine includes
 #include "ContainerCategoriesDataAsset.h"
+#include "Interfaces/ContainerOwnerInterface.h"
 #include "Net/Serialization/FastArraySerializer.h"
-#include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/Items/Common/ItemData.h"
 
 // Generated include
@@ -178,6 +178,7 @@ protected:
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	// ~UActorComponent
 
@@ -197,8 +198,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemsChanged OnContainerItemsChanged;
 
-	virtual void OnClientOpened(AUPPlayerController* Instigator);
-	virtual void OnClientContainerClosed(AUPPlayerController* Instigator);
+	virtual void OnClientOpened(class AUPPlayerController* Instigator);
+	virtual void OnClientContainerClosed(class AUPPlayerController* Instigator);
 
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemChanged(const FContainerItemData& Item);
@@ -220,6 +221,10 @@ public:
 	virtual int32 GetItemCapacity() const;
 
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
+	float GetInteractionRadius() const;
+	
+	// Get container location
+	virtual FVector GetContainerOrigin() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItems();
@@ -256,6 +261,9 @@ public:
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
+
+	// Can reach & access this container
+	virtual bool IsAccessible(const AController* Instigator) const;
 #pragma endregion
 
 #pragma region Server top-level item operations

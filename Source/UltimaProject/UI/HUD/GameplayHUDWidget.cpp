@@ -30,7 +30,7 @@ FVector2D UGameplayHUDWidget::GetNewContainerPosition(const UUserWidget* Contain
 	{
 		NewPosition.Y = ContainerDefaultOffset.Y;
 	}
-	
+
 	return NewPosition;
 }
 
@@ -55,11 +55,11 @@ void UGameplayHUDWidget::AddInteractionWidget(UUserWidget* InteractionWidget)
 	}
 }
 
-bool UGameplayHUDWidget::IsContainerOpened(UContainerComponent* ContainerComponent) const
+bool UGameplayHUDWidget::IsContainerOpened(UContainerComponent* ContainerComponent)
 {
 	NULLCHECK_RETURN_LOG(ContainerComponent, false, Error, "UGameplayHUDWidget::IsContainerOpened null container");
 	check(ContainerComponent->GetNetMode() != NM_DedicatedServer);
-	
+
 	return OpenedContainers.Contains(ContainerComponent->GetOriginContainer());
 }
 
@@ -113,6 +113,6 @@ void UGameplayHUDWidget::CloseContainerWidget(UContainerComponent* ContainerComp
 	{
 		ContainerWidget->RemoveFromParent();
 	}
-	
+
 	LastOpenedContainerPosition -= ContainerOffsetStep;
 }

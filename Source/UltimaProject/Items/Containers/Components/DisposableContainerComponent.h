@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "DisposableContainerComponent.generated.h"
 
@@ -23,7 +23,7 @@ protected:
 	FTimerHandle LifetimeTimerHandle;
 	
 	// Where the container was opened
-	FVector ContainerOrigin = FAISystem::InvalidLocation;
+	FVector ContainerOrigin = UPGlobals::InvalidLocation;
 
 	void OnLifetimeExpired();
 	
@@ -42,6 +42,7 @@ public:
 	virtual void OnClientContainerClosed(AUPPlayerController* Instigator) override;
 	virtual void OnClientReady() override;
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const override;
+	virtual FVector GetContainerOrigin() const override;
 	// ~UContainerComponent
 
 	UFUNCTION(BlueprintCallable)
