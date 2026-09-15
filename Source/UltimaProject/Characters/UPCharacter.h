@@ -24,10 +24,6 @@ class ULTIMAPROJECT_API AUPCharacter : public ACharacter, public IContainerOwner
 {
 	GENERATED_BODY()
 
-protected:
-	// When player moved ( considerably distance ), died, some form alternations ( TODO )
-	FOnContainerAccessibilityUpdated OnPlayerInventoryAccessibilityChanged;
-
 public:
 	AUPCharacter();
 
