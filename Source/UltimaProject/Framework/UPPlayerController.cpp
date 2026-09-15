@@ -65,14 +65,16 @@ void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerCompone
 
 	ensureAlways(!ContainerComponent->IsA<UProxyContainerComponent>()); // Shouldn't ever occur :E
 
+	bool bResult = true;
 	switch (Relation)
 	{
 	case EContainerRelationType::Inventory:
 	case EContainerRelationType::Disposable:
 		// Personal containers are natively replicated
-		GameplayHUDWidgetInstance->AddContainerWidget(ContainerComponent);
+		bResult = GameplayHUDWidgetInstance->AddContainerWidget(ContainerComponent);
 		break;
 	case EContainerRelationType::InWorldContainer:
+		// TODO bResult if server failed?
 		ServerOpenProxyContainer(ContainerComponent);
 		break;
 	case EContainerRelationType::Invalid:
@@ -80,8 +82,11 @@ void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerCompone
 		return;
 	}
 
-	OpenedContainers.Add(ContainerComponent);
-	ContainerComponent->OnClientOpened(this);
+	if (bResult)
+	{
+		OpenedContainers.Add(ContainerComponent);
+		ContainerComponent->OnClientOpened(this);
+	}
 }
 
 void AUPPlayerController::TryCloseContainer(UContainerComponent* ContainerComponent)
@@ -279,6 +284,7 @@ void AUPPlayerController::HandleActivateAction()
 
 	IContainerOwnerInterface* CursorContainer = Cast<IContainerOwnerInterface>(CursorItem);
 	NULLCHECK(CursorContainer);
+	ensureAlways(IsValid(CursorItem));
 
 	UContainerComponent* ContainerComponent = CursorItem->FindComponentByClass<UContainerComponent>();
 	NULLCHECK(ContainerComponent);

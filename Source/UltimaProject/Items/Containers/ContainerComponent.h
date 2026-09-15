@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 // Engine includes
+#include "ContainerCategoriesDataAsset.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/Items/Common/ItemData.h"
@@ -141,6 +142,8 @@ class UContainerComponent : public UActorComponent
 
 	friend class UItemFactoryHelper;
 	friend class UProxyContainerComponent;
+	
+	// mutable TWeakObjectPtr<UContainerCategoriesDataAsset> CategoryDataAssetCache;
 
 	// Creates A NEW item and adds to container
 	virtual FItemTransactionResult AddItem(FItemDataDefinition& ItemDataDefinition);
@@ -151,26 +154,34 @@ class UContainerComponent : public UActorComponent
 	// Adds an existing item ( UItemData ) to container, returns FContainerItemData
 	virtual FItemTransactionResult AddItem(FItemData&& ItemData, uint32& ResultHandle);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
+	
+	static const TCHAR* EnumToString(EContainerCategory Category);
 
 protected:
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Category)
+	EContainerCategory Category = EContainerCategory::None;
+	
 	UPROPERTY(VisibleAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 ItemSlotsCapacity = 10;
 
-	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_ContainerWidgetClass)
-	TSubclassOf<UContainerWidget> ContainerWidgetClass;
+	FContainerItemData& GetItemMutable(uint32 Handle) const;
 	
 	UFUNCTION()
-	virtual void OnRep_ContainerWidgetClass();
+	void OnRep_Category();
 
-	FContainerItemData& GetItemMutable(uint32 Handle) const;
+	// When all the essential data was replicated
+	virtual void OnClientReady();
 
 	// UActorComponent
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	// ~UActorComponent
+
+	UContainerCategoriesDataAsset* GetCategoryData() const;
 
 	uint32 GetSlotsInUse() const;
 	uint32 GetSlotsAvailable() const;
@@ -185,7 +196,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemsChanged OnContainerItemsChanged;
-	
+
 	virtual void OnClientOpened(AUPPlayerController* Instigator);
 	virtual void OnClientContainerClosed(AUPPlayerController* Instigator);
 
@@ -194,6 +205,8 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemsChanged();
+	
+	void SetCategory(EContainerCategory InCategory);
 
 	inline static int32 MaxItemsCapacity = MAX_int32;
 
@@ -207,7 +220,6 @@ public:
 	virtual int32 GetItemCapacity() const;
 
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
-	void SetContainerWidgetClass(TSubclassOf<UContainerWidget> Class);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItems();

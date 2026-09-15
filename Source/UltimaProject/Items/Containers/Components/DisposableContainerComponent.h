@@ -40,13 +40,14 @@ public:
 	// UContainerComponent
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;
 	virtual void OnClientContainerClosed(AUPPlayerController* Instigator) override;
-	virtual void OnRep_ContainerWidgetClass() override;
+	virtual void OnClientReady() override;
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const override;
 	// ~UContainerComponent
 
 	UFUNCTION(BlueprintCallable)
 	static UDisposableContainerComponent* CreateDisposableContainer(APlayerController* OwnerController,
 	                                                                FString Name,
+	                                                                EContainerCategory ContainerCategory,
 	                                                                TSubclassOf<UContainerWidget> WidgetClass,
 	                                                                TArray<FItemDataDefinition> Items);
 };

@@ -45,7 +45,7 @@ public:
 
 	bool IsContainerOpened(UContainerComponent* ContainerComponent) const;
 	
-	void AddContainerWidget(UContainerComponent* ContainerComponent);
+	bool AddContainerWidget(UContainerComponent* ContainerComponent);
 	
 	void CloseContainerWidget(UContainerComponent* ContainerComponent);
 };

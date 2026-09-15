@@ -3,6 +3,7 @@
 
 UInventoryComponent::UInventoryComponent()
 {
+	Category = EContainerCategory::Inventory;
 }
 
 void UInventoryComponent::BeginPlay()

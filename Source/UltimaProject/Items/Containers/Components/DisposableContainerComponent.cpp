@@ -79,9 +79,9 @@ void UDisposableContainerComponent::OnClientContainerClosed(AUPPlayerController*
 	DisposeContainer();
 }
 
-void UDisposableContainerComponent::OnRep_ContainerWidgetClass()
+void UDisposableContainerComponent::OnClientReady()
 {
-	Super::OnRep_ContainerWidgetClass();
+	Super::OnClientReady();
 
 	/*
 	 * Dynamic components seems doesn't send the replicated properties with initial bunch. 
@@ -109,6 +109,7 @@ bool UDisposableContainerComponent::CanStoreItem(const AController* Instigator, 
 UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableContainer(
 	APlayerController* OwnerController,
 	FString Name,
+	EContainerCategory ContainerCategory,
 	TSubclassOf<UContainerWidget> WidgetClass,
 	TArray<FItemDataDefinition> Items)
 {
@@ -128,7 +129,7 @@ UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableCo
 	UDisposableContainerComponent* ContainerComponent = NewObject<UDisposableContainerComponent>(OwnerPawn, UDisposableContainerComponent::StaticClass(), FName(Name), ContainerFlags);
 	NULLCHECK_RETURN(ContainerComponent, nullptr);
 
-	ContainerComponent->SetContainerWidgetClass(WidgetClass);
+	ContainerComponent->SetCategory(ContainerCategory);
 	ContainerComponent->Rename(*Name);
 
 	// Populate Items

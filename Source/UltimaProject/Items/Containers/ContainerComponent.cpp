@@ -5,6 +5,7 @@
 
 // Engine includes
 #include "Engine/ActorChannel.h"
+#include "Engine/AssetManager.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "UltimaProject/Common/Macro.h"
@@ -95,6 +96,25 @@ void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices
 	}
 }
 
+
+const TCHAR* UContainerComponent::EnumToString(EContainerCategory Category)
+{
+	switch (Category)
+	{
+	case EContainerCategory::Inventory:
+		return TEXT("Inventory");
+	case EContainerCategory::Foraging:
+		return TEXT("Foraging");
+	case EContainerCategory::ChestBase:
+		return TEXT("ChestBase");
+	default:
+		break;
+	}
+
+	UE_LOG(LogUPContainers, Error, TEXT("Invalid category"));
+	return TEXT("");
+}
+
 uint32 UContainerComponent::GetSlotsInUse() const
 {
 	// todo cache values?
@@ -118,13 +138,19 @@ FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDat
 	return AddItem(MoveTemp(NewItem));
 }
 
-void UContainerComponent::OnRep_ContainerWidgetClass()
-{
-}
-
 FContainerItemData& UContainerComponent::GetItemMutable(uint32 Handle) const
 {
 	return const_cast<FContainerItemData&>(GetItem(Handle));
+}
+
+void UContainerComponent::OnRep_Category()
+{
+	ensureAlways(Category != EContainerCategory::None);
+	OnClientReady();
+}
+
+void UContainerComponent::OnClientReady()
+{
 }
 
 void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -138,54 +164,40 @@ void UContainerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
 		DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ContainerItems, Params);
 	}
-	
-	DOREPLIFETIME_CONDITION(ThisClass, ContainerWidgetClass, COND_InitialOnly);
+
+	DOREPLIFETIME_CONDITION(ThisClass, Category, COND_InitialOnly);
 }
 
-/*
 bool UContainerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	// FContainerItemData::ItemData is not replicated by default as a struct member
-	for (auto& Item : ContainerItems.Items)
-	{
-		WroteSomething |= Channel->ReplicateSubobject(Item.ItemData, *Bunch, *RepFlags);
-	}
-
 	return WroteSomething;
 }
-*/
+
+UContainerCategoriesDataAsset* UContainerComponent::GetCategoryData() const
+{
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	// Load if not in memory
+	const FPrimaryAssetId PrimaryAssetId("ContainerCategory", EnumToString(Category));
+	if (TSharedPtr<FStreamableHandle> StreamHandle = AssetManager.LoadPrimaryAsset(PrimaryAssetId))
+	{
+		StreamHandle->WaitUntilComplete();
+	}
+
+	return UAssetManager::Get().GetPrimaryAssetObject<UContainerCategoriesDataAsset>(PrimaryAssetId);
+}
 
 void UContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	ContainerItems.ContainerComponent = this;
-}
 
-/*
-void UContainerComponent::InitializeContainerWidget()
-{
-	if (!IsValid(ContainerWidgetClass))
+	if (GetOwner() && GetOwner()->GetNetMode() == NM_Client && Category != EContainerCategory::None)
 	{
-		UE_LOG(LogUPContainers, Error, TEXT("ContainerWidgetClass is not set for %s/%s"), *GetNameSafe(this),
-		       *GetNameSafe(GetOwner()));
-		return;
-	}
-
-	if (IsValid(ContainerWidget))
-	{
-		ContainerWidget->RemoveFromParent();
-	}
-
-	ContainerWidget = CreateWidget<UContainerWidget>(GetWorld(), ContainerWidgetClass);
-
-	if (ContainerWidget)
-	{
-		ContainerWidget->SetContainerComponent(this);
+		OnClientReady();
 	}
 }
-*/
 
 bool UContainerComponent::FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const
 {
@@ -216,15 +228,12 @@ bool UContainerComponent::FindDropTransform(uint32 ContainerItemDataHandle, FTra
 
 TSubclassOf<UContainerWidget> UContainerComponent::GetContainerWidgetClass() const
 {
-	return ContainerWidgetClass;
-}
+	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())
+	{
+		return DataAsset->ContainerWidgetClass;
+	}
 
-void UContainerComponent::SetContainerWidgetClass(TSubclassOf<UContainerWidget> Class)
-{
-	// Should be initialized before the component registration
-	ensureAlways(!IsRegistered());
-
-	ContainerWidgetClass = MoveTemp(Class);
+	return nullptr;
 }
 
 void UContainerComponent::NotifyContainerItemsChanged_Implementation()
@@ -343,13 +352,14 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32
 
 	ContainerItems.MarkItemDirty(AddedItem);
 	NotifyContainerItemsChanged();
-	
+
 	ResultHandle = AddedItem.GetHandle();
 
 	return GItemTransactionResult_Success;
 }
 
-FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle,
+FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer,
+                                                     uint32 Handle,
                                                      uint32 AmountToMove)
 {
 	// Container->Container move
@@ -375,7 +385,6 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 
 	if (bSameContainer && bMoveWholeStack)
 	{
-		ensureAlways(false);
 		return GItemTransactionResult_Success;
 	}
 
@@ -493,7 +502,8 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 	return Result;
 }
 
-FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle, AItem* OutItem,
+FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
+                                                     AItem* OutItem,
                                                      uint32 AmountToMove)
 {
 	// Container->World
@@ -681,6 +691,11 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 	}
 
 	return true;
+}
+
+void UContainerComponent::SetCategory(EContainerCategory InCategory)
+{
+	Category = InCategory;
 }
 
 uint32 UContainerComponent::GenerateItemHandle() const

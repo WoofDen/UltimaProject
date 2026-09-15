@@ -86,9 +86,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInventoryComponent> InventoryComponentClass;
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class UContainerWidget> InventoryWidgetClass;
-
 	UFUNCTION()
 	void OnRep_InventoryComponent();
 

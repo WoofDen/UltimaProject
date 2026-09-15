@@ -63,26 +63,26 @@ bool UGameplayHUDWidget::IsContainerOpened(UContainerComponent* ContainerCompone
 	return OpenedContainers.Contains(ContainerComponent->GetOriginContainer());
 }
 
-void UGameplayHUDWidget::AddContainerWidget(UContainerComponent* ContainerComponent)
+bool UGameplayHUDWidget::AddContainerWidget(UContainerComponent* ContainerComponent)
 {
-	NULLCHECK(ContainersStackWidget);
-	NULLCHECK(ContainerComponent);
+	NULLCHECK_RETURN(ContainersStackWidget, false);
+	NULLCHECK_RETURN(ContainerComponent, false);
 
 	check(ContainerComponent->GetNetMode() != NM_DedicatedServer);
 
 	if (IsContainerOpened(ContainerComponent))
 	{
-		return;
+		return false;
 	}
 
 	TSubclassOf<UContainerWidget> ContainerClass = ContainerComponent->GetContainerWidgetClass();
 	if (!IsValid(ContainerClass))
 	{
-		return;
+		return false;
 	}
 
 	UContainerWidget* Widget = CreateWidget<UContainerWidget>(GetOwningPlayer(), ContainerClass);
-	NULLCHECK(Widget);
+	NULLCHECK_RETURN(Widget, false);
 
 	Widget->SetContainerComponent(ContainerComponent);
 
@@ -98,6 +98,7 @@ void UGameplayHUDWidget::AddContainerWidget(UContainerComponent* ContainerCompon
 	}
 
 	OpenedContainers.Add(ContainerComponent->GetOriginContainer(), Widget);
+	return true;
 }
 
 void UGameplayHUDWidget::CloseContainerWidget(UContainerComponent* ContainerComponent)
