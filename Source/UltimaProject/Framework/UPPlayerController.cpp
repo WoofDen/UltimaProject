@@ -67,6 +67,7 @@ void AUPPlayerController::TryOpenContainer(UContainerComponent* ContainerCompone
                                            EContainerRelationType Relation)
 {
 	NULLCHECK(ContainerComponent);
+	NULLCHECK(GameplayHUDWidgetInstance);
 	check(!HasAuthority()); // Client only
 
 	IContainerOwnerInterface* ContainerInterface = ContainerComponent->GetOwnerInterface();
