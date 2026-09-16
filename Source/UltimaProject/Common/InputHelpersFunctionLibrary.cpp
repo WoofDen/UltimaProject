@@ -3,12 +3,12 @@
 #include "InputHelpersFunctionLibrary.h"
 #include "Macro.h"
 
-AActor* UInputHelpersFunctionLibrary::GetActorUnderCursor(const APlayerController* PC)
+AActor* UInputHelpersFunctionLibrary::GetActorUnderCursor(const APlayerController* PC, ECollisionChannel CollisionChannel)
 {
 	NULLCHECK_RETURN(PC, nullptr);
 
 	// Client-only
-	if (!PC->GetNetMode() == NM_DedicatedServer)
+	if (PC->GetNetMode() == NM_DedicatedServer)
 	{
 		return nullptr;
 	}
@@ -25,7 +25,7 @@ AActor* UInputHelpersFunctionLibrary::GetActorUnderCursor(const APlayerControlle
 
 			PC->GetHitResultAtScreenPosition(
 				MousePosition,
-				ObjectTypes,
+				CollisionChannel,
 				false,
 				HitResult);
 		}

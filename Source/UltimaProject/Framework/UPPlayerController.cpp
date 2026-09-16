@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 // Game includes
 #include "UPPlayerController.h"
 #include "UPPlayerState.h"
@@ -11,6 +10,7 @@
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Drop.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Pickup.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Relocate.h"
+#include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
@@ -21,6 +21,41 @@ AUPPlayerController::AUPPlayerController()
 {
 	SetShowMouseCursor(true);
 	PathFollowingComponent = CreateDefaultSubobject<UUPPathFollowingComponent>("PathFollowingComponent");
+}
+
+void AUPPlayerController::UpdateCursor()
+{
+	AActor* HitActor = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
+	const bool bHit = HitActor != nullptr;
+
+	const bool bFocusLost = !bHit && CurrentInteractionFocus.IsValid();
+	const bool bFocusChanged = bHit && HitActor && CurrentInteractionFocus != HitActor;
+	
+	if (!bFocusLost && !bFocusChanged)
+	{
+		return;
+	}
+
+	if (CurrentInteractionFocus.IsValid())
+	{
+		IInteractable::Execute_SetFocus(Cast<UObject>(CurrentInteractionFocus.Get()), false, false);
+		CurrentInteractionFocus.Reset();
+	}
+
+	if (bFocusLost)
+	{
+		return;
+	}
+
+	NULLCHECK(HitActor);
+	if (HitActor->Implements<UInteractable>())
+	{
+		IInteractable* Interactable = Cast<IInteractable>(HitActor);
+		const bool bAccessible = Interactable->IsInteractionAccessible(this);
+
+		IInteractable::Execute_SetFocus(HitActor, true, bAccessible);
+		CurrentInteractionFocus = Interactable;
+	}
 }
 
 void AUPPlayerController::BeginPlay()
@@ -56,6 +91,15 @@ void AUPPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 	Super::EndPlay(EndPlayReason);
+}
+
+void AUPPlayerController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!HasAuthority())
+	{
+		UpdateCursor();
+	}
 }
 
 bool AUPPlayerController::IsContainerOpened(const UContainerComponent* ContainerComponent) const
@@ -315,25 +359,14 @@ void AUPPlayerController::HandlePickupAction(AItem* SourceItem,
 
 void AUPPlayerController::HandleActivateAction()
 {
-	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this);
+	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
 	NULLCHECK(CursorItem);
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
-	IContainerOwnerInterface* CursorContainer = Cast<IContainerOwnerInterface>(CursorItem);
-	NULLCHECK(CursorContainer);
-	ensureAlways(IsValid(CursorItem));
-
-	UContainerComponent* ContainerComponent = CursorItem->FindComponentByClass<UContainerComponent>();
-	NULLCHECK(ContainerComponent);
-
-	if (IsContainerOpened(ContainerComponent))
-	{
-		TryCloseContainer(ContainerComponent);
-	}
-	else
-	{
-		TryOpenContainer(ContainerComponent, EContainerRelationType::InWorldContainer);
-	}
+	IInteractable* Interactable = Cast<IInteractable>(CursorItem);
+	NULLCHECK(Interactable);
+	
+	Interactable->AttemptInteraction(this);
 }
 
 void AUPPlayerController::HandleInventoryToggle()

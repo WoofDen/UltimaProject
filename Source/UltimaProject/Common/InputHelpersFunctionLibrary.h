@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
+#include "UltimaProject/Items/Common/Interactable.h"
 
 #include "InputHelpersFunctionLibrary.generated.h"
 
@@ -11,5 +12,5 @@ class UInputHelpersFunctionLibrary : public UBlueprintFunctionLibrary
 	
 public:
 	UFUNCTION(Blueprintable, BlueprintPure)
-	static AActor* GetActorUnderCursor(const APlayerController* PC);
+	static AActor* GetActorUnderCursor(const APlayerController* PC, ECollisionChannel CollisionChannel);
 };

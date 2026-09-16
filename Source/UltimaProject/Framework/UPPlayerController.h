@@ -8,6 +8,7 @@
 
 // Engine includes
 #include "GameFramework/PlayerController.h"
+#include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/ContainerTypes.h"
 
@@ -23,9 +24,16 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	GENERATED_BODY()
 
 	AUPPlayerController();
+	
+	TWeakInterfacePtr<IInteractable> CurrentInteractionFocus;
+	
+	void UpdateCursor();
 
+	// AActor
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Tick(float DeltaSeconds) override;
+	// ~AActor
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;

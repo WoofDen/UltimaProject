@@ -3,6 +3,7 @@
 #pragma once
 
 // Game includes
+#include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 
@@ -11,7 +12,9 @@
 
 // Base for any in-world container
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AChestBase : public AActor, public IContainerOwnerInterface
+class ULTIMAPROJECT_API AChestBase : public AActor,
+                                     public IContainerOwnerInterface,
+                                     public IInteractable
 {
 	GENERATED_BODY()
 
@@ -24,8 +27,10 @@ public:
 
 	// IContainerInterface
 	virtual UContainerComponent* GetMainContainerComponent_Implementation() const override;
-
-	//UFUNCTION(Server, Unreliable)
-	//virtual void CallServerTryStoreItem(AController* InstigatorController, const FContainerItemData& ItemData) override;
 	// ~IContainerInterface
+	
+	// IInteractable
+	virtual bool IsInteractionAccessible(const AController* InstigatorController) const override;
+	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::Main) override;
+	// ~IInteractable
 };
