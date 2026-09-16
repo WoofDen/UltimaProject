@@ -23,6 +23,6 @@ public:
 	UFUNCTION()
 	virtual void Unregister();
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintNativeEvent)
 	void Heartbeat(int64 CurrentTime, int32 TimePassed);
 };
