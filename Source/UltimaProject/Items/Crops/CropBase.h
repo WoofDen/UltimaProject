@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "PlantCultureDataAsset.h"
 #include "GameFramework/Actor.h"
 #include "UltimaProject/World/HeartbeatSystem/HeartbeatInterface.h"
 #include "CropBase.generated.h"
@@ -12,21 +13,30 @@ class ULTIMAPROJECT_API ACropBase : public AActor, public IHeartbeatInterface
 	GENERATED_BODY()
 
 	int64 CurrentCycleTime;
+	
+	float CurrentVisualsMilestone = -1.f;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float GrowTime = 10.f;
-
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_GrowProgress)
 	float GrowProgress = 0.f;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInstancedStaticMeshComponent> CropsISM;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UPlantCultureDataAsset> CultureDataAsset;
+	
 	UFUNCTION()
-	void OnRep_GrowProgress();
+	void OnRep_GrowProgress(float PrevProgress);
+	
+	void UpdateProgressVisuals(const FPlantCultureGrowVisuals& VisualsData);
 
 	void SetProgress(float NewProgress);
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnProgressUpdated(float Progress);
+	UFUNCTION(BlueprintNativeEvent)
+	void OnProgressUpdated(float PrevValue);
+	
+	const UPlantCultureDataAsset* GetCultureDataAsset() const;
 
 public:
 	ACropBase();

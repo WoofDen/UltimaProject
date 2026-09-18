@@ -30,7 +30,7 @@ void AUPPlayerController::UpdateCursor()
 
 	const bool bFocusLost = !bHit && CurrentInteractionFocus.IsValid();
 	const bool bFocusChanged = bHit && HitActor && CurrentInteractionFocus != HitActor;
-	
+
 	if (!bFocusLost && !bFocusChanged)
 	{
 		return;
@@ -361,11 +361,12 @@ void AUPPlayerController::HandleActivateAction()
 {
 	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
 	NULLCHECK(CursorItem);
+
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
 	IInteractable* Interactable = Cast<IInteractable>(CursorItem);
 	NULLCHECK(Interactable);
-	
+
 	Interactable->AttemptInteraction(this);
 }
 
