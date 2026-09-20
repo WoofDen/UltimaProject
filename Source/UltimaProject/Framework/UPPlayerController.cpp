@@ -367,7 +367,11 @@ void AUPPlayerController::HandleActivateAction()
 	IInteractable* Interactable = Cast<IInteractable>(CursorItem);
 	NULLCHECK(Interactable);
 
-	Interactable->AttemptInteraction(this);
+	const bool bAccessible = Interactable->IsInteractionAccessible(this);
+	if (bAccessible)
+	{
+		Interactable->AttemptInteraction(this);
+	}
 }
 
 void AUPPlayerController::HandleInventoryToggle()

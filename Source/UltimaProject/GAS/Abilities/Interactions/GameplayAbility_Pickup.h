@@ -17,9 +17,9 @@ struct FGameplayAbilityTargetData_PickupOperation : public FGameplayAbilityTarge
 
 	UPROPERTY(BlueprintReadWrite)
 	TWeakObjectPtr<UContainerComponent> TargetContainer;
-	
+
 	UPROPERTY(BlueprintReadWrite)
-	int32 ItemAmount = 0;	
+	int32 ItemAmount = 0;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
@@ -27,7 +27,7 @@ struct FGameplayAbilityTargetData_PickupOperation : public FGameplayAbilityTarge
 	{
 		return FGameplayAbilityTargetData_PickupOperation::StaticStruct();
 	}
-	
+
 	bool IsValid() const
 	{
 		return SourceItem.IsValid()
@@ -55,25 +55,34 @@ UCLASS()
 class ULTIMAPROJECT_API UGameplayAbility_Pickup : public UGameplayAbility_Interaction
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY()
 	FGameplayAbilityTargetData_PickupOperation Data;
 
 	bool CanPerformPickup();
 	void PickupItemInternal();
+
 protected:
-	UPROPERTY(EditDefaultsOnly)
-	float PickupRadius;
-	
 	// UGameplayAbility_Interaction
 	virtual void OnInteractionFinished() override;
 	// ~UGameplayAbility_Interaction
 public:
 	UGameplayAbility_Pickup();
-	
+
 	// UGameplayAbility
-	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData = nullptr) override;
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle,
+	                         const FGameplayAbilityActorInfo* ActorInfo,
+	                         const FGameplayAbilityActivationInfo ActivationInfo,
+	                         FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
+	                         const FGameplayEventData* TriggerEventData = nullptr) override;
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	                             const FGameplayAbilityActorInfo* ActorInfo,
+	                             const FGameplayAbilityActivationInfo ActivationInfo,
+	                             const FGameplayEventData* TriggerEventData) override;
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
+	                        const FGameplayAbilityActorInfo* ActorInfo,
+	                        const FGameplayAbilityActivationInfo ActivationInfo,
+	                        bool bReplicateEndAbility,
+	                        bool bWasCancelled) override;
 	// ~UGameplayAbility
 };

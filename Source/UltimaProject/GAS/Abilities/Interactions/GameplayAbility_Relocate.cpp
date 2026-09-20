@@ -25,7 +25,9 @@ bool UGameplayAbility_Relocate::CanPerformRelocate()
 	AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
 	NULLCHECK_RETURN(PC, false);
 
-	if (!Data.TargetContainer->IsAccessible(PC) || !Data.SourceContainer->IsAccessible(PC))
+	const bool bTargetContainerAccessible=  Data.TargetContainer->IsAccessible(PC);
+	const bool bSourceContainerAccessible=  Data.SourceContainer->IsAccessible(PC);
+	if (!bTargetContainerAccessible || !bSourceContainerAccessible)
 	{
 		return false;
 	}

@@ -2,11 +2,11 @@
 
 #include "Interactable.h"
 
-bool IInteractable::IsInteractionAccessible(const AController* Instigator) const
+bool IInteractable::IsInteractionAccessible(const AController* InstigatorController) const
 {
 	return true;
 }
 
-void IInteractable::AttemptInteraction(AController* Instigator, EInteractionType Type)
+void IInteractable::AttemptInteraction(AController* InstigatorController, EInteractionType Type)
 {
 }

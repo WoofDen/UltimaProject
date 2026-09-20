@@ -54,5 +54,10 @@
 	return return_value; \
 }
 
+#define ABILITYCHECK(variable, replicate) if (!(variable)) { \
+	CancelAbility(Handle, ActorInfo, ActivationInfo, replicate); \
+	return; \
+}
+
 #define DBGPRINT(x) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT(x));
 #define DBGSPHERE(l, c) DrawDebugSphere(GetWorld(), l, 10.f, 6, c, false, 3.f);

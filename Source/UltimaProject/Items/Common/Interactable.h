@@ -22,6 +22,7 @@ class UInteractable : public UInterface
 /**
  * Describes an actor(!) user can send an input ( mouse dblcl. ) to activate
  * For chests it will be an attempt to open it or trying to harvest a field crop
+ * All validations and calls are client only
  */
 class ULTIMAPROJECT_API IInteractable
 {
@@ -33,7 +34,7 @@ public:
 	void SetFocus(bool Focus, bool IsAccessible);
 
 	// Can we access this object? ( visibility, distance or other obstacles )
-	virtual bool IsInteractionAccessible(const AController* Instigator) const;
+	virtual bool IsInteractionAccessible(const AController* InstigatorController) const;
 
-	virtual void AttemptInteraction(AController* Instigator, EInteractionType Type = EInteractionType::Main);
+	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::Main);
 };

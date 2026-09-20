@@ -1,15 +1,25 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CropBase.h"
-
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Common/Utils.h"
+#include "UltimaProject/Framework/UPPlayerState.h"
 
 const UPlantCultureDataAsset* ACropBase::GetCultureDataAsset() const
 {
 	return CultureDataAsset;
+}
+
+void ACropBase::ResetProgress()
+{
+	CurrentCycleTime = 0;
+	SetProgress(0.f);
+	ForceNetUpdate();
 }
 
 ACropBase::ACropBase()
@@ -70,6 +80,29 @@ void ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 	}
 }
 
+bool ACropBase::IsInteractionAccessible(const AController* InstigatorController) const
+{
+	return GrowProgress >= 1.f;
+}
+
+void ACropBase::AttemptInteraction(AController* InstigatorController, EInteractionType Type)
+{
+	NULLCHECK(InstigatorController);
+
+	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(InstigatorController->GetPlayerState<AUPPlayerState>());
+	NULLCHECK(ASI);
+
+	UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
+	NULLCHECK(ASC);
+
+	FGameplayEventData EventData;
+	EventData.Instigator = InstigatorController;
+	EventData.Target = this;
+
+	// All validation will be provided by ability itself
+	ASC->HandleGameplayEvent(TAG_Ability_Container_HarvestCrops, &EventData);
+}
+
 void ACropBase::OnRep_GrowProgress(float PrevValue)
 {
 	OnProgressUpdated(PrevValue);
@@ -112,7 +145,7 @@ void ACropBase::UpdateProgressVisuals(const FPlantCultureGrowVisuals& VisualsDat
 		for (int32 i = 0; i < InstancesToAdd; i++)
 		{
 			FTransform Transform = FTransform::Identity;
-			Transform.SetLocation(Utils::RandomPointInSquare(FVector::ZeroVector, FVector2d(Data->FieldSize)));
+			Transform.SetLocation(Utils::RandomPointInSquare(FVector::ZeroVector, FVector2d(Data->FieldSize * 2)));
 
 			FQuat Rotation = FRotator(0.f, FMath::RandRange(0, 180), 0.f).Quaternion();
 			Transform.SetRotation(Rotation);
@@ -195,6 +228,12 @@ void ACropBase::OnProgressUpdated_Implementation(float PrevValue)
 
 	if (TargetMilestone != CurrentVisualsMilestone)
 	{
+		if (TargetMilestone < CurrentVisualsMilestone && CropsISM)
+		{
+			// Regression case ( probably progress reset )
+			CropsISM->ClearInstances();
+		}
+
 		UpdateProgressVisuals(CultureData->ProgressVisuals[TargetMilestone]);
 		CurrentVisualsMilestone = TargetMilestone;
 	}

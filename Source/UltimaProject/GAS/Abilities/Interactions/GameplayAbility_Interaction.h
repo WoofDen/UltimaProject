@@ -33,6 +33,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	FText InteractionName;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float InteractionRadius = 600.f;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UInteractionProgressWidget> ProgressWidgetClass;

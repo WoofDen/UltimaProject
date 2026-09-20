@@ -33,6 +33,12 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
+	// Check the ability was cancelled during PreActivate
+	if (!bIsActive)
+	{
+		return;
+	}
+
 	check(ActorInfo);
 	ensureAlways(ActorInfo->OwnerActor.IsValid());
 
@@ -100,10 +106,9 @@ void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHan
 void UGameplayAbility_Interaction::EndAbility(const FGameplayAbilitySpecHandle Handle,
                                               const FGameplayAbilityActorInfo* ActorInfo,
                                               const FGameplayAbilityActivationInfo ActivationInfo,
-                                              bool bReplicateEndAbility, bool bWasCancelled)
+                                              bool bReplicateEndAbility,
+                                              bool bWasCancelled)
 {
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-
 	if (IsValid(WaitDelayTaskInstance))
 	{
 		WaitDelayTaskInstance->ExternalCancel();
@@ -119,4 +124,6 @@ void UGameplayAbility_Interaction::EndAbility(const FGameplayAbilitySpecHandle H
 
 	check(ActorInfo);
 	ensureAlways(ActorInfo->OwnerActor.IsValid());
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

@@ -41,7 +41,7 @@ bool UGameplayAbility_Pickup::CanPerformPickup()
 	// Distance check
 	// TOOD should it be here?
 	float Distance = (GetActorInfo().AvatarActor->GetActorLocation() - Data.SourceItem->GetActorLocation()).Length();
-	if (Distance > PickupRadius)
+	if (Distance > InteractionRadius)
 	{
 		return false;
 	}

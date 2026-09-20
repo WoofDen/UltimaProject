@@ -50,6 +50,11 @@ void UDisposableContainerComponent::BeginPlay()
 		                                  FTimerDelegate::CreateUObject(this, &ThisClass::OnLifetimeExpired),
 		                                  MaxLifetime, false);
 	}
+
+	if (AActor* PawnOwner = GetOwner<APawn>(); PawnOwner && PawnOwner->HasAuthority())
+	{
+		ContainerOrigin = PawnOwner->GetActorLocation();
+	}
 }
 
 void UDisposableContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -116,11 +121,9 @@ UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableCo
 	APlayerController* OwnerController,
 	FString Name,
 	EContainerCategory ContainerCategory,
-	TSubclassOf<UContainerWidget> WidgetClass,
 	TArray<FItemDataDefinition> Items)
 {
 	NULLCHECK_RETURN(OwnerController, nullptr);
-	NULLCHECK_RETURN(WidgetClass, nullptr);
 
 	// Server only
 	if (!OwnerController->HasAuthority())

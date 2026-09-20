@@ -49,6 +49,5 @@ public:
 	static UDisposableContainerComponent* CreateDisposableContainer(APlayerController* OwnerController,
 	                                                                FString Name,
 	                                                                EContainerCategory ContainerCategory,
-	                                                                TSubclassOf<UContainerWidget> WidgetClass,
 	                                                                TArray<FItemDataDefinition> Items);
 };
