@@ -146,14 +146,15 @@ FText FItemData::GetDisplayName() const
 	return Unnamed;
 }
 
-UTexture2D* FItemData::GetViewIcon() const
+template<typename T>
+T* FItemData::GetViewIcon() const
 {
 	if (!ensureAlways(StaticDataSoftPtr.IsValid()))
 	{
 		return nullptr;
 	}
 
-	return GetStaticData()->Icon.LoadSynchronous();
+	return Cast<T>(GetStaticData()->Icon.LoadSynchronous());
 }
 
 uint32 FItemData::GetAmount() const

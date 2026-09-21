@@ -54,7 +54,7 @@ public:
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<UTexture2D> Icon;
+	TSoftObjectPtr<UObject> Icon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 Slots = 1;
@@ -159,7 +159,8 @@ public:
 
 	virtual FText GetDisplayName() const;
 
-	virtual UTexture2D* GetViewIcon() const;
+	template<typename T>
+	T* GetViewIcon() const;
 
 	virtual uint32 GetAmount() const;
 
