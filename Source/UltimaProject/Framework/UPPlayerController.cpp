@@ -406,7 +406,7 @@ void AUPPlayerController::HandleRelocateItem(UContainerComponent* SourceContaine
 	FGameplayAbilityTargetData_RelocateOperation* SourceDataPtr = new FGameplayAbilityTargetData_RelocateOperation();
 	SourceDataPtr->ItemAmount = ItemAmount;
 	SourceDataPtr->ItemHandle = ContainerItemHandle;
-	SourceDataPtr->SourceContainer = SourceContainer;
+	SourceDataPtr->SourceContainer = SourceContainer->GetOriginContainer();
 	SourceDataPtr->TargetContainer = TargetContainer->GetOriginContainer();
 
 	FGameplayEventData EventData;

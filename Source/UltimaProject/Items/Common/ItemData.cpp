@@ -2,17 +2,35 @@
 
 #include "ItemData.h"
 
-#include "Net/UnrealNetwork.h"
-#include "Net/Core/PushModel/PushModel.h"
-
 FItemInstanceData::FItemInstanceData()
 {
 	Amount = 0; // Invalid item marker
+
+	IntProps.Init(0, static_cast<uint8>(EItemIntProperty::MAX));
+
+	SetProp(EItemIntProperty::IP_Humidity, UP::ItemProperty::Humidity::Default);
+	SetProp(EItemIntProperty::IP_Temperature, UP::ItemProperty::Temperature::Default);
 }
 
 bool FItemInstanceData::IsValid() const
 {
 	return Amount >= 0;
+}
+
+void FItemInstanceData::SetProp(EItemIntProperty Prop, uint8 Value)
+{
+	IntProps[static_cast<int8>(Prop)] = Value;
+}
+
+int8 FItemInstanceData::GetIntProp(EItemIntProperty Prop) const
+{
+	return IntProps[static_cast<int8>(Prop)];
+}
+
+float FItemInstanceData::GetIntPropNormalized(EItemIntProperty Prop) const
+{
+	uint8 PropValue = IntProps[static_cast<int8>(Prop)];
+	return static_cast<float>(PropValue) / UINT8_MAX;
 }
 
 FItemData::FItemData()
@@ -146,15 +164,14 @@ FText FItemData::GetDisplayName() const
 	return Unnamed;
 }
 
-template<typename T>
-T* FItemData::GetViewIcon() const
+UObject* FItemData::GetViewIcon() const
 {
 	if (!ensureAlways(StaticDataSoftPtr.IsValid()))
 	{
 		return nullptr;
 	}
 
-	return Cast<T>(GetStaticData()->Icon.LoadSynchronous());
+	return GetStaticData()->Icon.LoadSynchronous();
 }
 
 uint32 FItemData::GetAmount() const

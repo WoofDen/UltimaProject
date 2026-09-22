@@ -12,6 +12,34 @@
 // Generated include
 #include "ItemData.generated.h"
 
+UENUM()
+enum class EItemIntProperty : uint8
+{
+	IP_Humidity = 0,
+	IP_Temperature = 1,
+	
+	MAX
+};
+
+namespace UP::ItemProperty
+{
+	namespace Temperature
+	{
+		constexpr uint8 Frozen = UINT8_MAX * .1f;
+		constexpr uint8 Cold = UINT8_MAX * .25f;
+		constexpr uint8 Default = UINT8_MAX * .5f;
+		constexpr uint8 Hot = UINT8_MAX * .75f;
+		constexpr uint8 Burning = UINT8_MAX * 0.9;
+	}
+
+	namespace Humidity
+	{
+		constexpr uint8 Default = UINT8_MAX * 0.1f;
+		constexpr uint8 Moist = UINT8_MAX * 0.5f;
+		constexpr uint8 Wet = UINT8_MAX * 0.7f;
+	}
+}
+
 class AItem;
 
 USTRUCT(BlueprintType)
@@ -21,15 +49,22 @@ struct FItemInstanceData
 
 	FItemInstanceData();
 
+	TArray<uint8> IntProps;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Amount;
 
 	bool operator==(const FItemInstanceData& Other) const
 	{
-		return Amount == Other.Amount;
+		return Amount == Other.Amount
+			&& IntProps == Other.IntProps;
 	}
-	
+
 	bool IsValid() const;
+	void SetProp(EItemIntProperty Prop, uint8 Value);
+
+	int8 GetIntProp(EItemIntProperty Prop) const;
+	float GetIntPropNormalized(EItemIntProperty Prop) const;
 };
 
 /**
@@ -69,17 +104,16 @@ USTRUCT(BlueprintType)
 struct FItemDataDefinition
 {
 	GENERATED_BODY()
-	
+
 private:
 	UPROPERTY(Transient)
 	mutable TObjectPtr<const UItemDataAsset> StaticData;
-	
+
 public:
-	
 	FItemDataDefinition();
 	FItemDataDefinition(const FItemData& Item);
 	FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn);
-	
+
 
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -88,19 +122,19 @@ public:
 	// Item runtime values ( amount, durability, etc )
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FItemInstanceData InstanceData;
-	
+
 	bool IsValid() const
 	{
 		return StaticDataSoftPtr.IsValid() && InstanceData.IsValid();
 	};
-	
+
 	const UItemDataAsset* GetStaticData() const
 	{
 		if (!StaticData)
 		{
 			StaticData = StaticDataSoftPtr.LoadSynchronous();
 		}
-		
+
 		return StaticData;
 	}
 };
@@ -121,7 +155,7 @@ protected:
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
-	
+
 	UPROPERTY(Transient, BlueprintReadOnly)
 	mutable TObjectPtr<const UItemDataAsset> StaticData;
 
@@ -133,15 +167,15 @@ public:
 	FItemData();
 	FItemData(const FItemDataDefinition& Definition);
 	virtual ~FItemData() = default;
-	
+
 	// ItemData cannot be compared, compare in-world actors or FContainerItemData
 	bool operator==(const FItemData&) const = delete;
-	
+
 	static FItemData EmptyItem;
 
 	bool PreInitialize(FItemData* Source = nullptr);
 	bool PreInitialize(const FItemDataDefinition& Definition);
-	
+
 	FItemDataDefinition GetDataDefinition() const;
 
 	const UItemDataAsset* GetStaticData() const;
@@ -151,7 +185,7 @@ public:
 	const FItemInstanceData& GetInstanceData() const;
 
 	TSubclassOf<AItem> GetActorClass() const;
-	
+
 	bool IsValid() const;
 
 	// Get a number of items that can be moved TO the TargetItem
@@ -159,8 +193,7 @@ public:
 
 	virtual FText GetDisplayName() const;
 
-	template<typename T>
-	T* GetViewIcon() const;
+	UObject* GetViewIcon() const;
 
 	virtual uint32 GetAmount() const;
 
