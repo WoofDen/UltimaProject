@@ -17,6 +17,7 @@ class ULTIMAPROJECT_API UContainerItem : public UUserWidget
 	GENERATED_BODY()
 
 	UObject* GetTemperatureIcon(uint8 Temperature) const;
+	UObject* GetHumidityIcon(uint8 Humidity) const;
 	void AddStatusIcon(UObject* ResourceObject);
 
 protected:
@@ -79,9 +80,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ResetItem();
-	
-	UFUNCTION(BlueprintCallable)
-	UContainerWidget* GetContainerWidget() const;
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsEmpty() const;

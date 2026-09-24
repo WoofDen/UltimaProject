@@ -5,11 +5,7 @@
 FItemInstanceData::FItemInstanceData()
 {
 	Amount = 0; // Invalid item marker
-
 	IntProps.Init(0, static_cast<uint8>(EItemIntProperty::MAX));
-
-	SetProp(EItemIntProperty::IP_Humidity, UP::ItemProperty::Humidity::Default);
-	SetProp(EItemIntProperty::IP_Temperature, UP::ItemProperty::Temperature::Default);
 }
 
 bool FItemInstanceData::IsValid() const
@@ -17,24 +13,27 @@ bool FItemInstanceData::IsValid() const
 	return Amount >= 0;
 }
 
-void FItemInstanceData::SetProp(EItemIntProperty Prop, uint8 Value)
+void FItemData::SetProp(EItemIntProperty Prop, uint8 Value)
 {
-	IntProps[static_cast<int8>(Prop)] = Value;
+	Value = FMath::Max(Value, UINT8_MAX);
+	InstanceData.IntProps[static_cast<int8>(Prop)] = Value;
 }
 
-int8 FItemInstanceData::GetIntProp(EItemIntProperty Prop) const
+int8 FItemData::GetIntProp(EItemIntProperty Prop) const
 {
-	return IntProps[static_cast<int8>(Prop)];
+	return InstanceData.IntProps[static_cast<int8>(Prop)];
 }
 
-float FItemInstanceData::GetIntPropNormalized(EItemIntProperty Prop) const
+float FItemData::GetIntPropNormalized(EItemIntProperty Prop) const
 {
-	uint8 PropValue = IntProps[static_cast<int8>(Prop)];
+	uint8 PropValue = InstanceData.IntProps[static_cast<int8>(Prop)];
 	return static_cast<float>(PropValue) / UINT8_MAX;
 }
 
 FItemData::FItemData()
 {
+	SetProp(EItemIntProperty::Humidity, UP::ItemProperty::Humidity::Default);
+	SetProp(EItemIntProperty::Temperature, UP::ItemProperty::Temperature::Default);
 }
 
 

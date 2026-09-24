@@ -69,7 +69,7 @@ void ACropBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 	DOREPLIFETIME(ACropBase, GrowProgress);
 }
 
-void ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
+bool ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 {
 	IHeartbeatInterface::Heartbeat_Implementation(CurrentTime, TimePassed);
 
@@ -77,7 +77,11 @@ void ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 	{
 		CurrentCycleTime += TimePassed;
 		SetProgress(static_cast<float>(CurrentCycleTime) / Data->GrowTime);
+		
+		return true;
 	}
+	
+	return false;
 }
 
 bool ACropBase::IsInteractionAccessible(const AController* InstigatorController) const

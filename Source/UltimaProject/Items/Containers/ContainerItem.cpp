@@ -30,6 +30,20 @@ UObject* UContainerItem::GetTemperatureIcon(uint8 Temperature) const
 	return nullptr;
 }
 
+UObject* UContainerItem::GetHumidityIcon(uint8 Humidity) const
+{
+	if (Humidity >= UP::ItemProperty::Humidity::Wet)
+	{
+		return IconStatusHumid;
+	}
+	if (Humidity >= UP::ItemProperty::Humidity::Soaked)
+	{
+		return IconStatusWet;
+	}
+
+	return nullptr;
+}
+
 void UContainerItem::AddStatusIcon(UObject* ResourceObject)
 {
 	NULLCHECK(ResourceObject);
@@ -88,8 +102,13 @@ void UContainerItem::SetItem(const FContainerItemData& Item)
 
 	if (StatusList)
 	{
-		const uint8 Temperature = Item.GetItemData().GetInstanceData().GetIntProp(EItemIntProperty::IP_Temperature);
+		StatusList->ClearChildren();
+
+		const uint8 Temperature = Item.GetItemData().GetIntProp(EItemIntProperty::Temperature);
 		AddStatusIcon(GetTemperatureIcon(Temperature));
+
+		const uint8 Humidity = Item.GetItemData().GetIntProp(EItemIntProperty::Humidity);
+		AddStatusIcon(GetHumidityIcon(Humidity));
 	}
 }
 
@@ -114,20 +133,4 @@ void UContainerItem::ResetItem()
 	{
 		StatusList->ClearChildren();
 	}
-}
-
-UContainerWidget* UContainerItem::GetContainerWidget() const
-{
-	UPanelWidget* Parent = GetParent();
-	while (Parent)
-	{
-		if (Parent->IsA<UContainerWidget>())
-		{
-			return Cast<UContainerWidget>(GetParent());
-		}
-
-		Parent = Parent->GetParent();
-	}
-
-	return nullptr;
 }

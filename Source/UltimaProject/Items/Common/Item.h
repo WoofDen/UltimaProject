@@ -2,18 +2,20 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "ItemData.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/Actor.h"
+#include "UltimaProject/World/HeartbeatSystem/HeartbeatInterface.h"
 #include "Item.generated.h"
 
 /**
  * In-world representation of every item
  */
 UCLASS(Abstract, BlueprintType)
-class ULTIMAPROJECT_API AItem : public AActor
+class ULTIMAPROJECT_API AItem :
+	public AActor,
+	public IHeartbeatInterface
 {
 	GENERATED_BODY()
 
@@ -45,13 +47,17 @@ protected:
 	FItemInstanceData DefaultInstanceData;
 
 	virtual void PostInitializeComponents() override;
-	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnItemDataChanged();
 
 public:
 	AItem();
+	
+	// AActor
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	// AActor
 
 	void RemoveFromWorld();
 
@@ -69,4 +75,8 @@ public:
 	}
 
 	const FItemData GetItemDataConst() const { return ItemData; }
+	
+	// IHeartbeatInterface
+	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
+	// ~IHeartbeatInterface
 };

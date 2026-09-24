@@ -13,4 +13,10 @@ UCLASS()
 class ULTIMAPROJECT_API UCropsHeartbeatItemProcessor : public UHeartbeatItemProcessor
 {
 	GENERATED_BODY()
+
+	float GerminationPerMinute = 50.f;
+
+	// UHeartbeatItemProcessor
+	virtual bool HeartbeatInternal(FItemData& ItemData, bool bWorldItem, int64 CurrentTime, int32 TimePassed) override;
+	// ~UHeartbeatItemProcessor
 };

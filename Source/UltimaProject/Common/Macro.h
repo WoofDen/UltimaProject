@@ -1,5 +1,13 @@
 ﻿#pragma once
 
+#define IS_VALID(variable) if (!IsValid(variable)) { \
+	return; \
+}
+
+#define IS_VALID_RETURN(variable, return_value) if (!IsValid(variable)) { \
+	return return_value; \
+}
+
 #define NULLCHECK(variable) if(variable == nullptr) { \
 	return; \
 }

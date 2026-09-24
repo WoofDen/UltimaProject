@@ -194,9 +194,17 @@ void UContainerComponent::BeginPlay()
 	Super::BeginPlay();
 	ContainerItems.ContainerComponent = this;
 
-	if (GetOwner() && GetOwner()->GetNetMode() == NM_Client && Category != EContainerCategory::None)
+	if (AActor* Owner = GetOwner())
 	{
-		OnClientReady();
+		if (Owner->GetNetMode() == NM_Client && Category != EContainerCategory::None)
+		{
+			OnClientReady();
+		}
+
+		if (Owner->HasAuthority())
+		{
+			IHeartbeatInterface::Register();
+		}
 	}
 }
 
@@ -207,6 +215,14 @@ void UContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (AUPPlayerController* UPPC = Cast<AUPPlayerController>(PC); UPPC && UPPC->GetNetMode() == NM_Client)
 		{
 			UPPC->TryCloseContainer(this);
+		}
+	}
+
+	if (AActor* Owner = GetOwner())
+	{
+		if (Owner->HasAuthority())
+		{
+			IHeartbeatInterface::Unregister();
 		}
 	}
 

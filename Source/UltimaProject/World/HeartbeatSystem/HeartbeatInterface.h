@@ -6,6 +6,8 @@
 #include "UObject/Interface.h"
 #include "HeartbeatInterface.generated.h"
 
+class IHeartbeatProcessor;
+
 UINTERFACE(Blueprintable)
 class UHeartbeatInterface : public UInterface
 {
@@ -24,5 +26,5 @@ public:
 	virtual void Unregister();
 
 	UFUNCTION(BlueprintNativeEvent)
-	void Heartbeat(int64 CurrentTime, int32 TimePassed);
+	bool Heartbeat(int64 CurrentTime, int32 TimePassed);
 };

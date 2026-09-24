@@ -5,6 +5,7 @@
 #include "Interfaces/ContainerOwnerInterface.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UltimaProject/Items/Common/ItemData.h"
+#include "UltimaProject/World/HeartbeatSystem/HeartbeatInterface.h"
 
 // Generated include
 #include "ContainerComponent.generated.h"
@@ -42,6 +43,7 @@ struct FContainerItemData : public FFastArraySerializerItem
 	bool IsInContainer(const UContainerComponent* AnotherContainer) const { return Container == AnotherContainer; }
 
 	const FItemData& GetItemData() const { return ItemData; }
+	FItemData& GetItemDataMutable() { return ItemData; }
 	UContainerComponent* GetContainerComponent() const { return Container.Get(); };
 
 protected:
@@ -136,13 +138,15 @@ static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionRe
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
  */
 UCLASS(Abstract)
-class UContainerComponent : public UActorComponent
+class UContainerComponent :
+	public UActorComponent,
+	public IHeartbeatInterface
 {
 	GENERATED_BODY()
 
 	friend class UItemFactoryHelper;
 	friend class UProxyContainerComponent;
-	
+
 	// mutable TWeakObjectPtr<UContainerCategoriesDataAsset> CategoryDataAssetCache;
 
 	// Creates A NEW item and adds to container
@@ -154,13 +158,13 @@ class UContainerComponent : public UActorComponent
 	// Adds an existing item ( UItemData ) to container, returns FContainerItemData
 	virtual FItemTransactionResult AddItem(FItemData&& ItemData, uint32& ResultHandle);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
-	
+
 	static const TCHAR* EnumToString(EContainerCategory Category);
 
 protected:
 	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Category)
 	EContainerCategory Category = EContainerCategory::None;
-	
+
 	UPROPERTY(VisibleAnywhere, Transient, Replicated)
 	FContainerItems ContainerItems;
 
@@ -168,7 +172,7 @@ protected:
 	int32 ItemSlotsCapacity = 10;
 
 	FContainerItemData& GetItemMutable(uint32 Handle) const;
-	
+
 	UFUNCTION()
 	void OnRep_Category();
 
@@ -206,7 +210,7 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemsChanged();
-	
+
 	void SetCategory(EContainerCategory InCategory);
 
 	inline static int32 MaxItemsCapacity = MAX_int32;
@@ -222,7 +226,7 @@ public:
 
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
 	float GetInteractionRadius() const;
-	
+
 	// Get container location
 	virtual FVector GetContainerOrigin() const;
 

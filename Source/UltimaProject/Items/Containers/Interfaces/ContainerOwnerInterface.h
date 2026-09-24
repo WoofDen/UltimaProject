@@ -5,7 +5,7 @@
 
 struct FContainerItemData;
 // Interface for actors that represents a container or has some container logic ( chests, shelfs )
-UINTERFACE(Blueprintable)
+UINTERFACE(Blueprintable, BlueprintType)
 class UContainerOwnerInterface : public UInterface
 {
 	GENERATED_BODY()

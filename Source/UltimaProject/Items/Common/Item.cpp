@@ -1,7 +1,10 @@
 ﻿#include "Item.h"
 
+#include "Misc/TypeContainer.h"
 #include "Net/UnrealNetwork.h"
+#include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Framework/UPPlayerState.h"
+#include "UltimaProject/World/HeartbeatSystem/HeartbeatItemProcessor.h"
 
 AItem::AItem()
 {
@@ -94,6 +97,21 @@ void AItem::PostInitializeComponents()
 void AItem::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		IHeartbeatInterface::Register();
+	}
+}
+
+void AItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority())
+	{
+		IHeartbeatInterface::Register();
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AItem::OnRep_ItemData()
@@ -111,4 +129,18 @@ void AItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimePro
 void AItem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+bool AItem::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
+{
+	check(HasAuthority());
+	IS_VALID_RETURN(ItemData.StaticData, false);
+	
+	auto ProcessorClass = ItemData.StaticData->HeartbeatProcessorClass;
+	NULLCHECK_RETURN(ProcessorClass, false);
+	
+	UHeartbeatItemProcessor* ProcessorInstance = UHeartbeatItemProcessor::GetInstance(ProcessorClass);
+	NULLCHECK_RETURN(ProcessorInstance, false);
+	
+	return ProcessorInstance->ProcessHeartbeat(this, CurrentTime, TimePassed);
 }

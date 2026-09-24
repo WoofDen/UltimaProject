@@ -15,9 +15,14 @@
 UENUM()
 enum class EItemIntProperty : uint8
 {
-	IP_Humidity = 0,
-	IP_Temperature = 1,
+	Humidity = 0,
+	Temperature = 1,
 	
+	// Meaning varies from item to item
+	Progress = 2,
+	
+	Durability = 3,
+
 	MAX
 };
 
@@ -35,8 +40,8 @@ namespace UP::ItemProperty
 	namespace Humidity
 	{
 		constexpr uint8 Default = UINT8_MAX * 0.1f;
-		constexpr uint8 Moist = UINT8_MAX * 0.5f;
-		constexpr uint8 Wet = UINT8_MAX * 0.7f;
+		constexpr uint8 Wet = UINT8_MAX * 0.2f;
+		constexpr uint8 Soaked = UINT8_MAX * 0.5f;
 	}
 }
 
@@ -49,6 +54,7 @@ struct FItemInstanceData
 
 	FItemInstanceData();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<uint8> IntProps;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -61,10 +67,8 @@ struct FItemInstanceData
 	}
 
 	bool IsValid() const;
-	void SetProp(EItemIntProperty Prop, uint8 Value);
-
-	int8 GetIntProp(EItemIntProperty Prop) const;
-	float GetIntPropNormalized(EItemIntProperty Prop) const;
+	
+	// Don't add methods here but FItemData
 };
 
 /**
@@ -95,7 +99,7 @@ public:
 	int32 Slots = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UGameplayAbility_Interaction> PickupAbilityClass;
+	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
 };
 
 // Item data definition without an existing item
@@ -204,4 +208,9 @@ public:
 	virtual uint32 ModifyAmount(const int32 Value);
 
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
+	
+	// Props
+	void SetProp(EItemIntProperty Prop, uint8 Value);
+	int8 GetIntProp(EItemIntProperty Prop) const;
+	float GetIntPropNormalized(EItemIntProperty Prop) const;
 };

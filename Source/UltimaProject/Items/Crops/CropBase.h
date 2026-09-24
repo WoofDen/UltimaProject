@@ -48,7 +48,7 @@ public:
 	// ~AActor
 
 	// IHeartbeatInterface
-	virtual void Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
+	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
 	// ~IHeartbeatInterface
 
 	// IInteractable
