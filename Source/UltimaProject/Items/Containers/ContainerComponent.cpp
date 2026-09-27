@@ -30,6 +30,8 @@ FContainerItemData::FContainerItemData(FItemData&& InitData, UContainerComponent
 
 FContainerItemData::FContainerItemData()
 {
+	// Invalid item
+	ItemData.SetAmount(0);
 }
 
 void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
@@ -688,7 +690,7 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	const uint32 SlotsPerStack = SourceItemData.GetStaticData()->Slots;
 	const uint32 ItemsPerStack = SourceItemData.GetStaticData()->MaxAmountPerStack;
 
-	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s > SlotsPerStack; s -= SlotsPerStack, a =
+	for (uint32 s = SlotsAvailable, a = RemainingAmount; a > 0 && s >= SlotsPerStack; s -= SlotsPerStack, a =
 	     RemainingAmount)
 	{
 		FItemDataDefinition ItemDefinition(SourceItemData);
@@ -812,6 +814,18 @@ bool UContainerComponent::CanStoreItem(const AController* Instigator, const AIte
 	Params.AddIgnoredActor(Pawn);
 	Params.AddIgnoredActor(Item);
 
+	// If item itself is a container, do not allow pickup unless its empty
+	if (Item->Implements<UContainerOwnerInterface>())
+	{
+		if (UContainerComponent* ContainerComponent = IContainerOwnerInterface::Execute_GetMainContainerComponent(Item))
+		{
+			if (ContainerComponent->GetNumItems() != 0)
+			{
+				return false;
+			}
+		}
+	}
+
 	FHitResult Result;
 	// move trace a bit up to avoid ground collision
 	const FVector TraceEnd = Item->GetActorLocation() + FVector(0, 0, 1.f);
@@ -848,6 +862,11 @@ bool UContainerComponent::IsAccessible(const AController* Instigator) const
 	}
 
 	return true;
+}
+
+uint32 UContainerComponent::GetNumItems() const
+{
+	return ContainerItems.Items.Num();
 }
 
 void UContainerComponent::StoreItem(AItem* WorldItem, uint32 Amount)

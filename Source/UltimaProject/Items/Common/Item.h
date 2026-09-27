@@ -34,7 +34,7 @@ protected:
 	TObjectPtr<UWidgetComponent> HoverWidget;
 
 	// Data object represents current item.
-	UPROPERTY(BlueprintReadOnly, Replicated, VisibleInstanceOnly, Category="Runtime data",
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Replicated, Category="Runtime data",
 		ReplicatedUsing=OnRep_ItemData)
 	FItemData ItemData = FItemData::EmptyItem;
 

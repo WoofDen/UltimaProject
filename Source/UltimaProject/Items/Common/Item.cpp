@@ -28,6 +28,8 @@ AItem::AItem()
 
 	bReplicates = true;
 	bReplicateUsingRegisteredSubObjectList = true;
+	
+	DefaultInstanceData.Amount = 1;
 }
 
 void AItem::RemoveFromWorld()

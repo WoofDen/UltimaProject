@@ -12,7 +12,7 @@
 
 // Base for any in-world container
 UCLASS(Blueprintable)
-class ULTIMAPROJECT_API AChestBase : public AActor,
+class ULTIMAPROJECT_API AChestBase : public AItem,
                                      public IContainerOwnerInterface,
                                      public IInteractable
 {

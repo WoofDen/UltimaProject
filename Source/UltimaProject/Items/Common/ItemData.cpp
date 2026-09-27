@@ -4,8 +4,17 @@
 
 FItemInstanceData::FItemInstanceData()
 {
-	Amount = 0; // Invalid item marker
+	Amount = 1;
 	IntProps.Init(0, static_cast<uint8>(EItemIntProperty::MAX));
+
+	IntProps[static_cast<uint8>(EItemIntProperty::Humidity)] = UP::ItemProperty::Humidity::Default;
+	IntProps[static_cast<uint8>(EItemIntProperty::Temperature)] = UP::ItemProperty::Temperature::Default;
+}
+
+FItemInstanceData::FItemInstanceData(uint32 InAmount)
+	: FItemInstanceData()
+{
+	Amount = InAmount;
 }
 
 bool FItemInstanceData::IsValid() const
@@ -15,7 +24,7 @@ bool FItemInstanceData::IsValid() const
 
 void FItemData::SetProp(EItemIntProperty Prop, uint8 Value)
 {
-	Value = FMath::Max(Value, UINT8_MAX);
+	Value = FMath::Min(Value, UINT8_MAX);
 	InstanceData.IntProps[static_cast<int8>(Prop)] = Value;
 }
 
@@ -32,10 +41,8 @@ float FItemData::GetIntPropNormalized(EItemIntProperty Prop) const
 
 FItemData::FItemData()
 {
-	SetProp(EItemIntProperty::Humidity, UP::ItemProperty::Humidity::Default);
-	SetProp(EItemIntProperty::Temperature, UP::ItemProperty::Temperature::Default);
+	InstanceData.Amount = 1;
 }
-
 
 FItemData FItemData::EmptyItem = FItemData(FItemDataDefinition(nullptr, FItemInstanceData()));
 

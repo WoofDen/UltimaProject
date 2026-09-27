@@ -53,6 +53,7 @@ struct FItemInstanceData
 	GENERATED_BODY()
 
 	FItemInstanceData();
+	FItemInstanceData(uint32 InAmount);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<uint8> IntProps;
