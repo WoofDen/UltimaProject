@@ -65,6 +65,7 @@ class ULTIMAPROJECT_API UGameplayAbility_Pickup : public UGameplayAbility_Intera
 protected:
 	// UGameplayAbility_Interaction
 	virtual void OnInteractionFinished() override;
+	virtual float GetInteractionRadius() const override;
 	// ~UGameplayAbility_Interaction
 public:
 	UGameplayAbility_Pickup();

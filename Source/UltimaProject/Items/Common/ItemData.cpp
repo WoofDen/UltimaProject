@@ -44,7 +44,7 @@ FItemData::FItemData()
 	InstanceData.Amount = 1;
 }
 
-FItemData FItemData::EmptyItem = FItemData(FItemDataDefinition(nullptr, FItemInstanceData()));
+FItemData FItemData::InvalidItemData = FItemData(FItemDataDefinition(nullptr, FItemInstanceData(0)));
 
 bool FItemData::PreInitialize(FItemData* Source /* = nullptr */)
 {
@@ -67,7 +67,7 @@ bool FItemData::PreInitialize(const FItemDataDefinition& Definition)
 	InstanceData = Definition.InstanceData;
 
 	// Do not allow invalid UItemData
-	check(StaticDataSoftPtr.IsValid() || this == &FItemData::EmptyItem);
+	check(StaticDataSoftPtr.IsValid() || this == &FItemData::InvalidItemData);
 
 	return true;
 }

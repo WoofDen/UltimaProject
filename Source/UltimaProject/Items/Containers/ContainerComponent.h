@@ -268,8 +268,10 @@ public:
 
 	// Can reach & access this container
 	virtual bool IsAccessible(const AController* Instigator) const;
-	
+
 	uint32 GetNumItems() const;
+
+	virtual bool IsEmpty() const;
 #pragma endregion
 
 #pragma region Server top-level item operations

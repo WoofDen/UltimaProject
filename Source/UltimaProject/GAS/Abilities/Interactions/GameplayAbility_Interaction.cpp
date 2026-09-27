@@ -14,6 +14,11 @@ bool UGameplayAbility_Interaction::IsInteractionFinished() const
 	return bInteractionFinished;
 }
 
+float UGameplayAbility_Interaction::GetInteractionRadius() const
+{
+	return InteractionRadius;
+}
+
 void UGameplayAbility_Interaction::OnInteractionFinished()
 {
 	check(K2_HasAuthority());
@@ -24,6 +29,9 @@ UGameplayAbility_Interaction::UGameplayAbility_Interaction()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
+	bServerRespectsRemoteAbilityCancellation = true;
+	bIsCancelable = true;
 }
 
 void UGameplayAbility_Interaction::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

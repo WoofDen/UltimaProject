@@ -7,8 +7,12 @@
 #include "UltimaProject/UI/ContainerWidget.h"
 
 // Engine includes
+#include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
+#include "Kismet/GameplayStatics.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
+#include "UltimaProject/UI/GameLogWidget.h"
 
 FVector2D UGameplayHUDWidget::GetNewContainerPosition(const UUserWidget* ContainerWidget,
                                                       const UCanvasPanelSlot* CanvasSlot) const
@@ -32,6 +36,12 @@ FVector2D UGameplayHUDWidget::GetNewContainerPosition(const UUserWidget* Contain
 	}
 
 	return NewPosition;
+}
+
+void UGameplayHUDWidget::GameLogInternal(const FText& Text, const FString& Style)
+{
+	NULLCHECK(GameLogWidget);
+	GameLogWidget->AddLogEntry(Text, Style);
 }
 
 void UGameplayHUDWidget::NativeConstruct()
@@ -115,4 +125,27 @@ void UGameplayHUDWidget::CloseContainerWidget(UContainerComponent* ContainerComp
 	}
 
 	LastOpenedContainerPosition -= ContainerOffsetStep;
+}
+
+void UGameplayHUDWidget::GameLog(APlayerController* PlayerController, FText Text, bool bReplicate, const FString& LogFormat)
+{
+	AUPPlayerController* PC = Cast<AUPPlayerController>(PlayerController);
+	NULLCHECK(PC);
+
+	if (PlayerController->GetNetMode() != NM_DedicatedServer)
+	{
+		if (UGameplayHUDWidget* HUD = PC->GetGameplayHUD())
+		{
+			HUD->GameLogInternal(Text, LogFormat);
+		}
+	}
+	else if (bReplicate)
+	{
+		PC->GameLogClient(Text, LogFormat);
+	}
+}
+
+void UGameplayHUDWidget::GameLog(APlayerController* PlayerController, const wchar_t* Text, bool bReplicate, const FString& LogFormat)
+{
+	GameLog(PlayerController, FText::FromString(Text), bReplicate, LogFormat);
 }

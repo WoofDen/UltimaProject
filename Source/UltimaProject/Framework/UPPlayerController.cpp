@@ -16,6 +16,7 @@
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
 #include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
+#include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
 
 AUPPlayerController::AUPPlayerController()
 {
@@ -174,6 +175,17 @@ void AUPPlayerController::TryCloseContainer(UContainerComponent* ContainerCompon
 	}
 
 	ContainerComponent->OnClientContainerClosed(this);
+}
+
+UProxyContainerComponent* AUPPlayerController::GetProxyContainerComponent(class UExternalContainerComponent* ContainerComponent)
+{
+	UProxyContainerComponent** Result = OpenedProxyContainers.Find(ContainerComponent);
+	if (Result != nullptr)
+	{
+		return *Result;
+	}
+
+	return nullptr;
 }
 
 void AUPPlayerController::UpdateContainerAccessibility()
@@ -429,4 +441,9 @@ UUPAbilitySystemComponent* AUPPlayerController::GetAbilitySystemComponent() cons
 	NULLCHECK_RETURN(ASC, nullptr);
 
 	return Cast<UUPAbilitySystemComponent>(ASC);
+}
+
+void AUPPlayerController::GameLogClient_Implementation(const FText& Text, const FString& LogFormat)
+{
+	UGameplayHUDWidget::GameLog(this, Text, false, LogFormat);
 }

@@ -176,7 +176,7 @@ public:
 	// ItemData cannot be compared, compare in-world actors or FContainerItemData
 	bool operator==(const FItemData&) const = delete;
 
-	static FItemData EmptyItem;
+	static FItemData InvalidItemData;
 
 	bool PreInitialize(FItemData* Source = nullptr);
 	bool PreInitialize(const FItemDataDefinition& Definition);

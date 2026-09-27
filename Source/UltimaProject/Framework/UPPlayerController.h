@@ -5,15 +5,17 @@
 // Game includes
 #include "UltimaProject/Navigation/UPPathFollowingComponent.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
-
-// Engine includes
-#include "GameFramework/PlayerController.h"
 #include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/ContainerTypes.h"
 
+// Engine includes
+#include "GameFramework/PlayerController.h"
+
 // Generated include
 #include "UPPlayerController.generated.h"
+
+class UGameplayHUDWidget;
 
 /**
  * 
@@ -24,9 +26,9 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	GENERATED_BODY()
 
 	AUPPlayerController();
-	
+
 	TWeakInterfacePtr<IInteractable> CurrentInteractionFocus;
-	
+
 	void UpdateCursor();
 
 	// AActor
@@ -38,6 +40,7 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
 
+#pragma region Containers
 	/**
 	 * List of opened containers
 	 * Client version of the array contains all opened containers while server version - only external containers. 
@@ -50,19 +53,19 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 	UPROPERTY()
 	TMap<const UContainerComponent*, class UProxyContainerComponent*> OpenedProxyContainers;
 
-#pragma region Containers
-
 public:
 	bool IsContainerOpened(const UContainerComponent* ContainerComponent) const;
 
 	void TryOpenContainer(UContainerComponent* ContainerComponent, EContainerRelationType Relation);
 	void TryCloseContainer(UContainerComponent* ContainerComponent);
+
+	UProxyContainerComponent* GetProxyContainerComponent(class UExternalContainerComponent* ContainerComponent);
+
 private:
-	
 	FTimerHandle ContainerAccessibilityTimerHandle;
-	
+
 	void UpdateContainerAccessibility();
-	
+
 	void OnOpenedContainerAccessibilityUpdated(IContainerOwnerInterface* ContainerInterface);
 
 	UFUNCTION(Server, Unreliable)
@@ -74,7 +77,7 @@ private:
 	// Called when the container was closed by server
 	UFUNCTION(Client, Unreliable)
 	void ClientForceCloseContainer(UContainerComponent* ContainerComponent);
-	
+
 #pragma endregion
 
 protected:
@@ -84,17 +87,18 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UGameplayHUDWidget> GameplayHUDWidgetInstance;
 
-public:
 #pragma region Input
+
+public:
 	UFUNCTION(BlueprintCallable)
 	void MoveToCursor();
-	
+
 	UFUNCTION(BlueprintCallable)
 	void HandleDropAction(UContainerComponent* SourceContainer, int32 ContainerItemHandle, int32 ItemAmount) const;
 
 	UFUNCTION(BlueprintCallable)
 	void HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const;
-	
+
 	UFUNCTION(BlueprintCallable)
 	void HandleActivateAction();
 
@@ -105,6 +109,10 @@ public:
 	void HandleRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer, int32 ItemAmount);
 #pragma endregion
 
+public:
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }
 	class UUPAbilitySystemComponent* GetAbilitySystemComponent() const;
+
+	UFUNCTION(Client, Unreliable)
+	void GameLogClient(const FText& Text, const FString& LogFormat);
 };

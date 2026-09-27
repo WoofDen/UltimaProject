@@ -6,16 +6,13 @@
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
+#include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
 
 AChestBase::AChestBase()
 {
 	bReplicates = true;
 
 	ContainerComponent = CreateDefaultSubobject<UExternalContainerComponent>(TEXT("ContainerComponent"));
-	if (ensureAlways(ContainerComponent))
-	{
-		ContainerComponent->SetIsReplicated(false);
-	}
 }
 
 UContainerComponent* AChestBase::GetMainContainerComponent_Implementation() const
@@ -35,7 +32,7 @@ void AChestBase::AttemptInteraction(AController* InstigatorController, EInteract
 {
 	AUPPlayerController* PC = Cast<AUPPlayerController>(InstigatorController);
 	NULLCHECK(PC);
-	
+
 	if (PC->IsContainerOpened(ContainerComponent))
 	{
 		PC->TryCloseContainer(ContainerComponent);

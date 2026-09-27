@@ -4,10 +4,21 @@
 
 // Engine includes
 #include "Blueprint/UserWidget.h"
+#include "Components/RichTextBlock.h"
+#include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 
 // Generated include
 #include "GameplayHUDWidget.generated.h"
+
+class UGameLogWidget;
+
+namespace UP::LogStyle
+{
+	const FString Default("Default");
+	const FString Warning("Warning");
+	const FString Error("Error");
+}
 
 /**
  * 
@@ -23,9 +34,14 @@ class ULTIMAPROJECT_API UGameplayHUDWidget : public UUserWidget
 
 	FVector2D GetNewContainerPosition(const UUserWidget* ContainerWidget, const class UCanvasPanelSlot* CanvasSlot) const;
 
+	void GameLogInternal(const FText& Text, const FString& Style);
+
 protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> InteractionsPanel;
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UGameLogWidget> GameLogWidget;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> ContainersStackWidget;
@@ -48,4 +64,9 @@ public:
 	bool AddContainerWidget(UContainerComponent* ContainerComponent);
 
 	void CloseContainerWidget(UContainerComponent* ContainerComponent);
+
+	static void GameLog(APlayerController* PlayerController, const wchar_t* Text, bool bReplicate, const FString& LogFormat);
+
+	UFUNCTION(BlueprintCallable)
+	static void GameLog(APlayerController* PlayerController, FText Text, bool bReplicate, const FString& LogFormat);
 };

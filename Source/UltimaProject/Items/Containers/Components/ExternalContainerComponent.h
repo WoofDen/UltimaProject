@@ -15,16 +15,25 @@ UCLASS(ClassGroup=(Containers), meta=(BlueprintSpawnableComponent))
 class ULTIMAPROJECT_API UExternalContainerComponent : public UContainerComponent
 {
 	GENERATED_BODY()
-	
+
 protected:
 	UPROPERTY(EditAnywhere)
 	TArray<FItemDataDefinition> DefaultItems;
+
+	UPROPERTY(VisibleAnywhere, Replicated)
+	bool bIsExplicitlyEmpty = false;
 
 public:
 	UExternalContainerComponent();
 
 	virtual void BeginPlay() override;
+
+	// UActorComponent
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	// ~UActorComponent
+
 	// UContainerComponent
-	// virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;7
+	virtual void NotifyContainerItemsChanged_Implementation() override;
+	virtual bool IsEmpty() const override;
 	// ~UContainerComponent
 };

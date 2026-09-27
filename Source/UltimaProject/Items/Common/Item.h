@@ -36,7 +36,7 @@ protected:
 	// Data object represents current item.
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Replicated, Category="Runtime data",
 		ReplicatedUsing=OnRep_ItemData)
-	FItemData ItemData = FItemData::EmptyItem;
+	FItemData ItemData = FItemData::InvalidItemData;
 
 	// Static data for item initialization
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

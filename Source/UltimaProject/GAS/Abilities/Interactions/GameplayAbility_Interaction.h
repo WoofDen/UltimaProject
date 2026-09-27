@@ -15,7 +15,7 @@ UCLASS(Blueprintable)
 class ULTIMAPROJECT_API UGameplayAbility_Interaction : public UGameplayAbility
 {
 	GENERATED_BODY()
-	
+
 	bool bInteractionFinished = false;
 
 	float Time;
@@ -33,7 +33,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	FText InteractionName;
-	
+
 	UPROPERTY(EditDefaultsOnly)
 	float InteractionRadius = 600.f;
 
@@ -41,6 +41,7 @@ protected:
 	TSubclassOf<UInteractionProgressWidget> ProgressWidgetClass;
 
 	bool IsInteractionFinished() const;
+	virtual float GetInteractionRadius() const;
 
 	// If after the interaction ends some logic should be conducted, this one has to be overriden
 	// Server only
@@ -51,11 +52,14 @@ public:
 	UGameplayAbility_Interaction();
 
 	// UGameplayAbility
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	                             const FGameplayAbilityActorInfo* ActorInfo,
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-	                        const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility,
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
+	                        const FGameplayAbilityActorInfo* ActorInfo,
+	                        const FGameplayAbilityActivationInfo ActivationInfo,
+	                        bool bReplicateEndAbility,
 	                        bool bWasCancelled) override;
 	// ~UGameplayAbility
 };
