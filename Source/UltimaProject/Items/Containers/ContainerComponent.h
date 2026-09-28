@@ -2,6 +2,7 @@
 
 // Engine includes
 #include "ContainerCategoriesDataAsset.h"
+#include "ContainerTypes.h"
 #include "Interfaces/ContainerOwnerInterface.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "UltimaProject/Items/Common/ItemData.h"
@@ -61,12 +62,27 @@ protected:
 };
 
 USTRUCT()
+struct FContainerLiquidState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Replicated)
+	TMap<FLiquidDescriptor, uint8> Liquids;
+};
+
+USTRUCT()
 struct FContainerItems : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
 	TArray<FContainerItemData> Items;
+
+	UPROPERTY(EditAnywhere)
+	FContainerLiquidState LiquidState;
+
+	UPROPERTY(EditAnywhere, meta=(Units="ml"))
+	uint32 LiquidCapacity;
 
 	UPROPERTY()
 	TWeakObjectPtr<UContainerComponent> ContainerComponent;
@@ -165,8 +181,11 @@ protected:
 	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Category)
 	EContainerCategory Category = EContainerCategory::None;
 
-	UPROPERTY(VisibleAnywhere, Transient, Replicated)
+	UPROPERTY(VisibleAnywhere, Replicated)
 	FContainerItems ContainerItems;
+
+	UPROPERTY(VisibleAnywhere, Replicated)
+
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 ItemSlotsCapacity = 10;

@@ -24,26 +24,21 @@ void UGameLogWidget::CleanOldLogEntries()
 {
 	const float CurrentTime = GetTimeSeconds();
 	const uint32 TotalEntries = EntriesTimeAdded.Num();
-	uint32 EntriesToRemove = 0;
+	int32 EntriesToRemove = 0;
 
 	for (uint32 i = 0; i < TotalEntries; i++)
 	{
 		if (CurrentTime - EntriesTimeAdded[i] > EntryLifetime)
 		{
 			EntriesToRemove++;
-			
-			break; // TODO multiply child removing is not working
 		}
 	}
 
-	for (int32 i = EntriesToRemove - 1; i >= 0; i--)
-	{	
-		LogPanel->RemoveChildAt(i);
+	for (int32 i = 0; i < EntriesToRemove; i++)
+	{
+		LogPanel->RemoveChildAt(0);
 	}
 	
-	LogPanel->SetVisibility(ESlateVisibility::Hidden);
-	LogPanel->SetVisibility(ESlateVisibility::Visible);
-
 	// Copy the rest values into removed ones and shrink the array
 	for (uint32 i = EntriesToRemove; i < TotalEntries; i++)
 	{
@@ -59,7 +54,6 @@ void UGameLogWidget::NativeConstruct()
 
 	if (LogPanelItem)
 	{
-		LogPanelItem->SetVisibility(ESlateVisibility::Collapsed);
 		LogPanel->ClearChildren();
 	}
 
@@ -88,7 +82,7 @@ void UGameLogWidget::AddLogEntry(const FText& Log, const FString& Style)
 	NULLCHECK(LogPanel);
 	NULLCHECK(LogPanelItem);
 
-	URichTextBlock* LogEntry = WidgetTree->ConstructWidget<URichTextBlock>(URichTextBlock::StaticClass(), TEXT("LogEntry"));
+	URichTextBlock* LogEntry = WidgetTree->ConstructWidget<URichTextBlock>(URichTextBlock::StaticClass());
 	NULLCHECK(LogEntry);
 
 	static const FTextFormat TextFormat = FTextFormat::FromString(TEXT("<{0}>{1}</>"));
@@ -98,6 +92,6 @@ void UGameLogWidget::AddLogEntry(const FText& Log, const FString& Style)
 	LogEntry->SetText(LogText);
 	LogEntry->SetVisibility(ESlateVisibility::Visible);
 
-	LogPanel->AddChild(LogEntry);
+	LogPanel->AddChildToVerticalBox(LogEntry);
 	EntriesTimeAdded.Add(GetTimeSeconds());
 }

@@ -26,7 +26,7 @@ class ULTIMAPROJECT_API UContainerCategoriesDataAsset : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere)
-	EContainerCategory Category;
+	bool bSupportLiquids; 
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UContainerWidget> ContainerWidgetClass;

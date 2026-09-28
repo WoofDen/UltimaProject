@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
+#include "Components/VerticalBox.h"
 #include "GameLogWidget.generated.h"
 
 class URichTextBlock;
@@ -21,7 +22,7 @@ class ULTIMAPROJECT_API UGameLogWidget : public UUserWidget
 
 protected:
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<UPanelWidget> LogPanel;
+	TObjectPtr<UVerticalBox> LogPanel;
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<URichTextBlock> LogPanelItem;
