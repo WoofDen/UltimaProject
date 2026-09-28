@@ -62,34 +62,30 @@ protected:
 };
 
 USTRUCT()
-struct FContainerLiquidState
+struct FContainerLiquidData : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Replicated)
-	TMap<FLiquidDescriptor, uint8> Liquids;
+	FLiquidDescriptor Descriptor;
+
+	// Normalized towards the owner's capacity
+	uint8 Amount;
 };
 
 USTRUCT()
-struct FContainerItems : public FFastArraySerializer
+struct FContainerItemArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
 	TArray<FContainerItemData> Items;
 
-	UPROPERTY(EditAnywhere)
-	FContainerLiquidState LiquidState;
-
-	UPROPERTY(EditAnywhere, meta=(Units="ml"))
-	uint32 LiquidCapacity;
-
 	UPROPERTY()
 	TWeakObjectPtr<UContainerComponent> ContainerComponent;
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
-		return FFastArraySerializer::FastArrayDeltaSerialize<FContainerItemData, FContainerItems>(
+		return FFastArraySerializer::FastArrayDeltaSerialize<FContainerItemData, FContainerItemArray>(
 			Items, DeltaParms, *this);
 	}
 
@@ -98,8 +94,32 @@ struct FContainerItems : public FFastArraySerializer
 	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 };
 
+USTRUCT()
+struct FContainerLiquidArray : public FFastArraySerializer
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere)
+	TArray<FContainerLiquidData> Liquids;
+	
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FContainerLiquidData, FContainerLiquidArray>(
+			Liquids, DeltaParms, *this);
+	}
+};
+
 template <>
-struct TStructOpsTypeTraits<FContainerItems> : public TStructOpsTypeTraitsBase2<FContainerItems>
+struct TStructOpsTypeTraits<FContainerItemArray> : public TStructOpsTypeTraitsBase2<FContainerItemArray>
+{
+	enum
+	{
+		WithNetDeltaSerializer = true,
+	};
+};
+
+template <>
+struct TStructOpsTypeTraits<FContainerLiquidArray> : public TStructOpsTypeTraitsBase2<FContainerLiquidArray>
 {
 	enum
 	{
@@ -182,10 +202,10 @@ protected:
 	EContainerCategory Category = EContainerCategory::None;
 
 	UPROPERTY(VisibleAnywhere, Replicated)
-	FContainerItems ContainerItems;
-
+	FContainerItemArray ContainerItems;
+	
 	UPROPERTY(VisibleAnywhere, Replicated)
-
+	FContainerLiquidArray LiquidsData;
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 ItemSlotsCapacity = 10;

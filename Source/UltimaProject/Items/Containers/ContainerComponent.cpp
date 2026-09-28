@@ -33,7 +33,7 @@ FContainerItemData::FContainerItemData()
 	ItemData = FItemData::InvalidItemData;
 }
 
-void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
+void FContainerItemArray::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
 	NULLCHECK_SP(ContainerComponent);
 
@@ -54,7 +54,7 @@ void FContainerItems::PostReplicatedAdd(const TArrayView<int32> AddedIndices, in
 	}
 }
 
-void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+void FContainerItemArray::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
 {
 	NULLCHECK_SP(ContainerComponent);
 
@@ -75,7 +75,7 @@ void FContainerItems::PostReplicatedChange(const TArrayView<int32> ChangedIndice
 	}
 }
 
-void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
+void FContainerItemArray::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
 	NULLCHECK_SP(ContainerComponent);
 	if (RemovedIndices.IsEmpty())
@@ -97,7 +97,6 @@ void FContainerItems::PreReplicatedRemove(const TArrayView<int32> RemovedIndices
 			});
 	}
 }
-
 
 const TCHAR* UContainerComponent::EnumToString(EContainerCategory Category)
 {

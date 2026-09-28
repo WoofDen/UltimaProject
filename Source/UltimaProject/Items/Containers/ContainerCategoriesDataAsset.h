@@ -14,6 +14,7 @@ enum class EContainerCategory : uint8
 
 	Inventory = 1,
 	ChestBase,
+	Vat,
 
 	Foraging = 10
 };

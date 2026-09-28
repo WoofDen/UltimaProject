@@ -32,7 +32,7 @@ class ULTIMAPROJECT_API UProxyContainerComponent : public UContainerComponent
 	void OnOriginContainerItemChanged(int32 Handle);
 
 	UPROPERTY(Transient, Replicated, ReplicatedUsing=OnRep_ProxyContainerItems)
-	FContainerItems ProxyContainerItems;
+	FContainerItemArray ProxyContainerItems;
 
 	bool bInitialized = false;
 
