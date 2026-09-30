@@ -28,7 +28,7 @@ AItem::AItem()
 
 	bReplicates = true;
 	bReplicateUsingRegisteredSubObjectList = true;
-	
+
 	DefaultInstanceData.Amount = 1;
 }
 
@@ -56,19 +56,30 @@ bool AItem::SetItemData(FItemData&& NewData)
 	ItemData = NewData;
 	ItemData.LoadStaticData();
 
-	auto ItemStaticData = ItemData.GetStaticData();
-	if (!ensure(ItemStaticData))
+	if (const UItemDataAsset* StaticData = ItemData.GetStaticData())
 	{
-		return false;
-	}
-
-	if (StaticMeshComponent)
-	{
-		UStaticMesh* Mesh = ItemData.GetStaticData()->WorldMesh.Get();
-		StaticMeshComponent->SetStaticMesh(Mesh);
+		SetStaticData(StaticData);
 	}
 
 	return true;
+}
+
+void AItem::SetStaticData(const UItemDataAsset* ItemDataAsset)
+{
+	NULLCHECK(ItemDataAsset);
+	NULLCHECK(StaticMeshComponent);
+
+	if (UStaticMesh* Mesh = ItemDataAsset->WorldMesh.LoadSynchronous())
+	{
+		StaticMeshComponent->SetStaticMesh(Mesh);
+		StaticMeshComponent->SetRelativeTransform(ItemDataAsset->WorldMeshTransform);
+
+		const auto Materials = Mesh->GetStaticMaterials();
+		for (int32 i = 0; i < Materials.Num(); i++)
+		{
+			StaticMeshComponent->SetMaterial(0, Materials[i].MaterialInterface);
+		}
+	}
 }
 
 void AItem::PostInitializeComponents()
@@ -116,6 +127,16 @@ void AItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void AItem::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (DefaultStaticData)
+	{
+		SetStaticData(DefaultStaticData);
+	}
+}
+
 void AItem::OnRep_ItemData()
 {
 	OnItemDataChanged();
@@ -137,12 +158,12 @@ bool AItem::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 {
 	check(HasAuthority());
 	IS_VALID_RETURN(ItemData.StaticData, false);
-	
+
 	auto ProcessorClass = ItemData.StaticData->HeartbeatProcessorClass;
 	NULLCHECK_RETURN(ProcessorClass, false);
-	
+
 	UHeartbeatItemProcessor* ProcessorInstance = UHeartbeatItemProcessor::GetInstance(ProcessorClass);
 	NULLCHECK_RETURN(ProcessorInstance, false);
-	
+
 	return ProcessorInstance->ProcessHeartbeat(this, CurrentTime, TimePassed);
 }

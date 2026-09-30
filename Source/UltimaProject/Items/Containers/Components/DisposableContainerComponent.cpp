@@ -135,11 +135,12 @@ UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableCo
 	NULLCHECK_RETURN(OwnerController, nullptr);
 
 	EObjectFlags ContainerFlags = RF_Transient;
-	UDisposableContainerComponent* ContainerComponent = NewObject<UDisposableContainerComponent>(OwnerPawn, UDisposableContainerComponent::StaticClass(), FName(Name), ContainerFlags);
+
+	const FName ContainerName = MakeUniqueObjectName(OwnerPawn, ThisClass::StaticClass(), FName(Name));
+	UDisposableContainerComponent* ContainerComponent = NewObject<UDisposableContainerComponent>(OwnerPawn, UDisposableContainerComponent::StaticClass(), ContainerName, ContainerFlags);
 	NULLCHECK_RETURN(ContainerComponent, nullptr);
 
 	ContainerComponent->SetCategory(ContainerCategory);
-	ContainerComponent->Rename(*Name);
 
 	// Populate Items
 	uint32 Capacity = 0;
@@ -147,7 +148,7 @@ UDisposableContainerComponent* UDisposableContainerComponent::CreateDisposableCo
 	{
 		// Increase capacity
 		Capacity += ItemDefinition.GetStaticData()->Slots;
-		ContainerComponent->ItemSlotsCapacity = Capacity;
+		ContainerComponent->SlotsCapacityMod = Capacity;
 
 		// Spawn the item
 		uint32 ResultHandle = ContainerComponent->SpawnItem(ItemDefinition);

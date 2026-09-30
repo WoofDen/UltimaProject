@@ -146,7 +146,7 @@ void UProxyContainerComponent::BeginDestroy()
 		OriginContainer->OnContainerItemsChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemsChanged);
 		OriginContainer->OnContainerItemChanged.RemoveDynamic(this, &ThisClass::OnOriginContainerItemChanged);
 	}
-	
+
 	Super::BeginDestroy();
 }
 
@@ -155,7 +155,7 @@ TArray<FContainerItemData> UProxyContainerComponent::GetItemsForDisplay(AControl
 	return ProxyContainerItems.Items;
 }
 
-UContainerComponent* UProxyContainerComponent::GetOriginContainer() 
+UContainerComponent* UProxyContainerComponent::GetOriginContainer()
 {
 	return OriginContainer.Get();
 }
@@ -170,6 +170,12 @@ FVector UProxyContainerComponent::GetContainerOrigin() const
 {
 	NULLCHECK_SP_RETURN(OriginContainer, UPGlobals::InvalidLocation);
 	return OriginContainer->GetContainerOrigin();
+}
+
+int32 UProxyContainerComponent::GetSlotsTotal() const
+{
+	NULLCHECK_SP_RETURN(OriginContainer, 0);
+	return OriginContainer->GetSlotsTotal();
 }
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)

@@ -108,6 +108,8 @@ const TCHAR* UContainerComponent::EnumToString(EContainerCategory Category)
 		return TEXT("Foraging");
 	case EContainerCategory::ChestBase:
 		return TEXT("ChestBase");
+	case EContainerCategory::Vat:
+		return TEXT("Vat");
 	default:
 		break;
 	}
@@ -130,7 +132,11 @@ uint32 UContainerComponent::GetSlotsInUse() const
 
 uint32 UContainerComponent::GetSlotsAvailable() const
 {
-	return ItemSlotsCapacity - GetSlotsInUse();
+	return GetSlotsTotal() - GetSlotsInUse();
+}
+
+UContainerComponent::UContainerComponent()
+{
 }
 
 FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDataDefinition)
@@ -316,49 +322,15 @@ void UContainerComponent::OnClientContainerClosed(AUPPlayerController* Instigato
 {
 }
 
-int32 UContainerComponent::GetItemsCapacity() const
+int32 UContainerComponent::GetSlotsTotal() const
 {
-	return ItemSlotsCapacity;
-}
-
-void UContainerComponent::SetItemsCapacity(const int32 NewValue)
-{
-	ensureAlways(ItemSlotsCapacity <= NewValue); // shrinking not implemented yet
-	ItemSlotsCapacity = NewValue;
-}
-
-int32 UContainerComponent::GetItemCapacity() const
-{
-	return ItemSlotsCapacity;
-}
-
-/*
-void UContainerComponent::DisplayContainerWidget()
-{
-	// TODO global hud and displayed containers var
-	if (!IsValid(ContainerWidget))
+	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())
 	{
-		InitializeContainerWidget();
-
-		if (!IsValid(ContainerWidget))
-		{
-			UE_LOG(LogUPContainers, Error, TEXT("Failed to create ContainerWidget for %s/%s"), *GetNameSafe(this),
-			       *GetNameSafe(GetOwner()));
-			return;
-		}
+		return SlotsCapacityMod + DataAsset->DefaultSlotCapacity;
 	}
 
-	if (ContainerWidget->IsInViewport())
-	{
-		ContainerWidget->RemoveFromParent();
-		ContainerWidget = nullptr;
-	}
-	else
-	{
-		ContainerWidget->AddToViewport();
-	}
+	return SlotsCapacityMod;
 }
-*/
 
 bool UContainerComponent::HasItem(const uint32 ItemHandle) const
 {
@@ -394,7 +366,7 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
 	const int32 SlotIndex = GetSlotsInUse();
-	ensureAlways(SlotIndex < ItemSlotsCapacity);
+	ensureAlways(SlotIndex < GetSlotsTotal());
 	// todo ensure get item at slot == null
 
 	FContainerItemData ContainerItemData(MoveTemp(ItemData), this, SlotIndex);
@@ -488,7 +460,7 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 	}
 
 	// Splitting the item OR trying to put what left after stacking requires a free slot
-	if (ContainerItems.Items.Num() >= ItemSlotsCapacity)
+	if (ContainerItems.Items.Num() >= GetSlotsTotal())
 	{
 		Result += EItemTransactionResultCode::NotEnoughCapacity;
 		if (Result.MovedAmount > 0)

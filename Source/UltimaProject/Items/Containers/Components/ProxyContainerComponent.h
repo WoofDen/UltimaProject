@@ -73,6 +73,7 @@ protected:
 	virtual UContainerComponent* GetOriginContainer() override;
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const override;
 	virtual FVector GetContainerOrigin() const override;
+	virtual int32 GetSlotsTotal() const override;
 
 public:
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController) override;

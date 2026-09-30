@@ -29,8 +29,6 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	TWeakInterfacePtr<IInteractable> CurrentInteractionFocus;
 
-	void UpdateCursor();
-
 	// AActor
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -39,6 +37,20 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	UPROPERTY()
 	TObjectPtr<UUPPathFollowingComponent> PathFollowingComponent;
+
+#pragma region Cursor
+
+private:
+	void UpdateCursor();
+
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UCursorWidget> CursorWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCursorWidget> CursorWidget;
+
+#pragma endregion
 
 #pragma region Containers
 	/**
@@ -98,6 +110,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const;
+
+	UFUNCTION(BlueprintCallable)
+	void HandleUseItemAction();
 
 	UFUNCTION(BlueprintCallable)
 	void HandleActivateAction();

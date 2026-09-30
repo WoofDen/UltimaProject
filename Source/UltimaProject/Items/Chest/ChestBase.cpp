@@ -42,3 +42,4 @@ void AChestBase::AttemptInteraction(AController* InstigatorController, EInteract
 		PC->TryOpenContainer(ContainerComponent, EContainerRelationType::InWorldContainer);
 	}
 }
+

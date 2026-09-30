@@ -35,5 +35,8 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	float InteractionRadius = 100.f;
 	
+	UPROPERTY(EditDefaultsOnly)
+	uint32 DefaultSlotCapacity = 9;
+	
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 };

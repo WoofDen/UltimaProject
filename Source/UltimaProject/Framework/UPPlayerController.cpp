@@ -16,6 +16,7 @@
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
 #include "UltimaProject/Items/Containers/Components/ProxyContainerComponent.h"
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
+#include "UltimaProject/UI/HUD/CursorWidget.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
 
 AUPPlayerController::AUPPlayerController()
@@ -41,6 +42,11 @@ void AUPPlayerController::UpdateCursor()
 	{
 		IInteractable::Execute_SetFocus(Cast<UObject>(CurrentInteractionFocus.Get()), false, false);
 		CurrentInteractionFocus.Reset();
+
+		if (CursorWidget)
+		{
+			CursorWidget->SetInteractHover(false);
+		}
 	}
 
 	if (bFocusLost)
@@ -56,6 +62,11 @@ void AUPPlayerController::UpdateCursor()
 
 		IInteractable::Execute_SetFocus(HitActor, true, bAccessible);
 		CurrentInteractionFocus = Interactable;
+
+		if (CursorWidget)
+		{
+			CursorWidget->SetInteractHover(true);
+		}
 	}
 }
 
@@ -63,14 +74,21 @@ void AUPPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (CursorWidgetClass)
+	{
+		UUserWidget* CursorWidget = CreateWidget<UCursorWidget>(GetGameInstance(), CursorWidgetClass);
+		SetMouseCursorWidget(EMouseCursor::Type::Default, CursorWidget);
+	}
+
 	// Initialize Gameplay HUD
 	if (ensureAlways(IsValid(GameplayHUDWidgetClass))
 		&& IsLocalController())
 	{
 		GameplayHUDWidgetInstance = CreateWidget<UGameplayHUDWidget>(this, GameplayHUDWidgetClass);
-		check(GameplayHUDWidgetInstance);
-
-		GameplayHUDWidgetInstance->AddToViewport();
+		if (ensureAlways(GameplayHUDWidgetInstance))
+		{
+			GameplayHUDWidgetInstance->AddToViewport();
+		}
 	}
 
 	// Setup containers sanitizer
@@ -367,6 +385,10 @@ void AUPPlayerController::HandlePickupAction(AItem* SourceItem,
 	EventData.TargetData = FGameplayAbilityTargetDataHandle(PickupDataPtr);
 
 	ASC->HandleGameplayEvent(TAG_Ability_Container_Pickup.GetTag(), &EventData);
+}
+
+void AUPPlayerController::HandleUseItemAction()
+{
 }
 
 void AUPPlayerController::HandleActivateAction()

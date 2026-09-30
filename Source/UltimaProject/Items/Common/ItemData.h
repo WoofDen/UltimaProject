@@ -92,6 +92,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FTransform WorldMeshTransform;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UObject> Icon;

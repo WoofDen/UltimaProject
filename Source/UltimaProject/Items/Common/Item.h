@@ -53,15 +53,20 @@ protected:
 
 public:
 	AItem();
-	
+
 	// AActor
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	virtual void OnConstruction(const FTransform& Transform) override;
 	// AActor
 
 	void RemoveFromWorld();
 
 	bool SetItemData(FItemData&& NewData);
+
+	UFUNCTION(BlueprintCallable)
+	virtual void SetStaticData(const UItemDataAsset* ItemDataAsset);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -75,7 +80,7 @@ public:
 	}
 
 	const FItemData GetItemDataConst() const { return ItemData; }
-	
+
 	// IHeartbeatInterface
 	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
 	// ~IHeartbeatInterface

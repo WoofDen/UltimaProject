@@ -98,10 +98,10 @@ USTRUCT()
 struct FContainerLiquidArray : public FFastArraySerializer
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere)
 	TArray<FContainerLiquidData> Liquids;
-	
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FContainerLiquidData, FContainerLiquidArray>(
@@ -203,12 +203,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FContainerItemArray ContainerItems;
-	
+
 	UPROPERTY(VisibleAnywhere, Replicated)
 	FContainerLiquidArray LiquidsData;
 
-	UPROPERTY(EditDefaultsOnly)
-	int32 ItemSlotsCapacity = 10;
+	UPROPERTY(VisibleAnywhere)
+	int32 SlotsCapacityMod = 0;
 
 	FContainerItemData& GetItemMutable(uint32 Handle) const;
 
@@ -227,10 +227,15 @@ protected:
 
 	UContainerCategoriesDataAsset* GetCategoryData() const;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual int32 GetSlotsTotal() const;
+
 	uint32 GetSlotsInUse() const;
 	uint32 GetSlotsAvailable() const;
 
 public:
+	UContainerComponent();
+
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnContainerItemChanged, int32, Handle);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerItemsChanged);
@@ -254,14 +259,8 @@ public:
 
 	inline static int32 MaxItemsCapacity = MAX_int32;
 
-	FORCEINLINE int32 GetItemsCapacity() const;
 	virtual bool HasItem(uint32 Handle) const;
 	const FContainerItemData& GetItem(uint32 Handle) const;
-
-	virtual void SetItemsCapacity(const int32 NewValue);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	virtual int32 GetItemCapacity() const;
 
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
 	float GetInteractionRadius() const;
