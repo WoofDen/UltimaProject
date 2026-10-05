@@ -24,7 +24,7 @@ private:
 	void OnRep_ItemData();
 
 protected:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<USphereComponent> SphereComponent;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
@@ -34,17 +34,12 @@ protected:
 	TObjectPtr<UWidgetComponent> HoverWidget;
 
 	// Data object represents current item.
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Replicated, Category="Runtime data",
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Replicated, Category="Runtime data",
 		ReplicatedUsing=OnRep_ItemData)
 	FItemData ItemData = FItemData::InvalidItemData;
 
-	// Static data for item initialization
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<const UItemDataAsset> DefaultStaticData;
-
-	// Dynamic data for item initialization
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FItemInstanceData DefaultInstanceData;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item settings")
+	FItemDataDefinition ItemDefault;
 
 	virtual void PostInitializeComponents() override;
 
@@ -79,7 +74,7 @@ public:
 		return ItemData;
 	}
 
-	const FItemData GetItemDataConst() const { return ItemData; }
+	const FItemData& GetItemDataConst() const { return ItemData; }
 
 	// IHeartbeatInterface
 	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;

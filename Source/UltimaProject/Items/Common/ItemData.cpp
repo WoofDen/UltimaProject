@@ -22,6 +22,14 @@ bool FItemInstanceData::IsValid() const
 	return Amount >= 0;
 }
 
+FTargetDescriptor::FTargetDescriptor()
+{
+}
+
+FTargetDescriptor::~FTargetDescriptor()
+{
+}
+
 void FItemData::SetProp(EItemIntProperty Prop, uint8 Value)
 {
 	Value = FMath::Min(Value, UINT8_MAX);

@@ -29,7 +29,7 @@ AItem::AItem()
 	bReplicates = true;
 	bReplicateUsingRegisteredSubObjectList = true;
 
-	DefaultInstanceData.Amount = 1;
+	ItemDefault.InstanceData.Amount = 1;
 }
 
 void AItem::RemoveFromWorld()
@@ -89,10 +89,10 @@ void AItem::PostInitializeComponents()
 	if (HasAuthority() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		// Item can be created with ItemData set already or from default
-		if (!ItemData.IsValid() && ensureAlways(IsValid(DefaultStaticData)))
+		if (!ItemData.IsValid() && ItemDefault.IsValid())
 		{
 			// TODO as any AItem has a UItemData, it may be better to create one within constructor rather than a dynamic one
-			FItemDataDefinition DefaultItemDefinition(DefaultStaticData, DefaultInstanceData);
+			FItemDataDefinition DefaultItemDefinition(ItemDefault.GetStaticData(), ItemDefault.InstanceData);
 			FItemData DefaultItemData(MoveTemp(DefaultItemDefinition));
 
 			if (!SetItemData(MoveTemp(DefaultItemData)))
@@ -115,6 +115,25 @@ void AItem::BeginPlay()
 	{
 		IHeartbeatInterface::Register();
 	}
+
+	// Validate DA
+	if (const UItemDataAsset* DataAsset = ItemData.GetStaticData())
+	{
+		// Destroy actor if DA class was changed
+		if (DataAsset->ActorClass != GetClass())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Actor item mismatch - item %s is a child of %s, expected %s"), *GetActorNameOrLabel(), GetClass() ? *GetClass()->GetName() : TEXT_EMPTY,
+			       *DataAsset->ActorClass->GetName());
+
+			Destroy();
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Actor item %s missing item data asset"), *GetActorNameOrLabel());
+
+		Destroy();
+	}
 }
 
 void AItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -131,10 +150,13 @@ void AItem::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	if (DefaultStaticData)
+	ItemDefault.ResetCache();
+
+	if (const UItemDataAsset* StaticData = ItemDefault.GetStaticData())
 	{
-		SetStaticData(DefaultStaticData);
+		SetStaticData(StaticData);
 	}
+	// TODO add an invalid item visuals to highlight the invalid actor
 }
 
 void AItem::OnRep_ItemData()

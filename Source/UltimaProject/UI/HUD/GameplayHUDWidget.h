@@ -39,7 +39,7 @@ class ULTIMAPROJECT_API UGameplayHUDWidget : public UUserWidget
 protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UPanelWidget> InteractionsPanel;
-	
+
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UGameLogWidget> GameLogWidget;
 

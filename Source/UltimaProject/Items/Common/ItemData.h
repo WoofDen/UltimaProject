@@ -17,10 +17,10 @@ enum class EItemIntProperty : uint8
 {
 	Humidity = 0,
 	Temperature = 1,
-	
+
 	// Meaning varies from item to item
 	Progress = 2,
-	
+
 	Durability = 3,
 
 	MAX
@@ -68,8 +68,62 @@ struct FItemInstanceData
 	}
 
 	bool IsValid() const;
-	
+
 	// Don't add methods here but FItemData
+};
+
+USTRUCT()
+struct FTargetDescriptor
+{
+	GENERATED_BODY()
+	
+	FTargetDescriptor();
+	virtual ~FTargetDescriptor();
+
+	UPROPERTY(EditAnywhere)
+	FText StartedMessage;
+
+	UPROPERTY(EditAnywhere)
+	FText CompletedMessage;
+
+	UPROPERTY(EditAnywhere)
+	FText CancelledMessage;
+	
+	UPROPERTY(EditAnywhere)
+	FGameplayTag AbilityTriggerTag;
+	
+	virtual bool IsValid()
+	{
+		return AbilityTriggerTag.IsValid();
+	}
+};
+
+USTRUCT()
+struct FTargetDescriptor_Actor : public FTargetDescriptor
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TArray<TSubclassOf<AActor>> TargetClasses;
+	
+	// FTargetDescriptor
+	virtual bool IsValid() override
+	{
+		return !TargetClasses.IsEmpty() && Super::IsValid();
+	}
+	// ~FTargetDescriptor
+};
+
+USTRUCT(BlueprintType)
+struct FItemContextAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	FText Label;
+
+	UPROPERTY(EditDefaultsOnly, meta = (ExcludeBaseStruct))
+	TArray<TInstancedStruct<FTargetDescriptor>> TargetScheme;
 };
 
 /**
@@ -92,7 +146,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FTransform WorldMeshTransform;
 
@@ -104,6 +158,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	TArray<TInstancedStruct<FItemContextAction>> ContextActions;
 };
 
 // Item data definition without an existing item
@@ -135,6 +192,11 @@ public:
 	{
 		return StaticDataSoftPtr.IsValid() && InstanceData.IsValid();
 	};
+
+	void ResetCache() const
+	{
+		StaticData = nullptr;
+	}
 
 	const UItemDataAsset* GetStaticData() const
 	{
@@ -212,7 +274,7 @@ public:
 	virtual uint32 ModifyAmount(const int32 Value);
 
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
-	
+
 	// Props
 	void SetProp(EItemIntProperty Prop, uint8 Value);
 	int8 GetIntProp(EItemIntProperty Prop) const;

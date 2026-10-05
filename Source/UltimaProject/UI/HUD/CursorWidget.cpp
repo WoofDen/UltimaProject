@@ -6,19 +6,31 @@
 void UCursorWidget::UpdateCursor()
 {
 	NULLCHECK(CursorImage);
+	
+	// Targeting has prio over other cursors
+	if (bIsTargetMode)
+	{
+		CursorImage->SetBrushResourceObject(TargetTextureObject);
+	}
 
 	if (bIsOverInteractable)
 	{
-		CursorImage->SetBrushResourceObject(DefaultTextureObject);
+		CursorImage->SetBrushResourceObject(InteractTextureObject);
 	}
 	else
 	{
-		CursorImage->SetBrushResourceObject(InteractTextureObject);
+		CursorImage->SetBrushResourceObject(DefaultTextureObject);
 	}
 }
 
 void UCursorWidget::SetInteractHover(bool Value)
 {
 	bIsOverInteractable = Value;
+	UpdateCursor();
+}
+
+void UCursorWidget::SetTargetMode(bool Value)
+{
+	bIsTargetMode = Value;
 	UpdateCursor();
 }

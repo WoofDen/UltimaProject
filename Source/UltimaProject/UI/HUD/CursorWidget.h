@@ -15,6 +15,7 @@ class ULTIMAPROJECT_API UCursorWidget : public UUserWidget
 	GENERATED_BODY()
 	
 	bool bIsOverInteractable = false;
+	bool bIsTargetMode = false;
 	
 	void UpdateCursor();
 	
@@ -34,4 +35,5 @@ protected:
 	
 public:
 	void SetInteractHover(bool Value);
+	void SetTargetMode(bool Value);
 };

@@ -50,6 +50,11 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UCursorWidget> CursorWidget;
 
+public:
+	UCursorWidget* GetCursorWidget() const
+	{
+		return CursorWidget;
+	}
 #pragma endregion
 
 #pragma region Containers
@@ -115,7 +120,10 @@ public:
 	void HandleUseItemAction();
 
 	UFUNCTION(BlueprintCallable)
-	void HandleActivateAction();
+	void HandleUseItem();
+	
+	UFUNCTION(BlueprintCallable)
+	void HandleUseItemFromContainer(UContainerComponent* Container, int32 Handle);
 
 	UFUNCTION(BlueprintCallable)
 	void HandleInventoryToggle();

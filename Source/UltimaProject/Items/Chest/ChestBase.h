@@ -31,6 +31,6 @@ public:
 	
 	// IInteractable
 	virtual bool IsInteractionAccessible(const AController* InstigatorController) const override;
-	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::Main) override;
+	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::UseItem) override;
 	// ~IInteractable
 };

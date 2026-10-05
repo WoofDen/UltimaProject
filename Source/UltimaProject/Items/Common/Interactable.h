@@ -8,7 +8,7 @@
 UENUM(BlueprintType)
 enum class EInteractionType : uint8
 {
-	Main
+	UseItem
 };
 
 constexpr ECollisionChannel ECC_InteractableChannel = ECC_GameTraceChannel2;
@@ -36,5 +36,5 @@ public:
 	// Can we access this object? ( visibility, distance or other obstacles )
 	virtual bool IsInteractionAccessible(const AController* InstigatorController) const;
 
-	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::Main);
+	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::UseItem);
 };

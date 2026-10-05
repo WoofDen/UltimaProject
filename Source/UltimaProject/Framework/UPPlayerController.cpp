@@ -7,6 +7,7 @@
 #include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/GAS/Abilities/Common/GameplayAbility_UseItem.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Drop.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Pickup.h"
 #include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Relocate.h"
@@ -18,6 +19,8 @@
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 #include "UltimaProject/UI/HUD/CursorWidget.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
+
+struct FGameplayAbilityTargetData_UseItem;
 
 AUPPlayerController::AUPPlayerController()
 {
@@ -76,7 +79,7 @@ void AUPPlayerController::BeginPlay()
 
 	if (CursorWidgetClass)
 	{
-		UUserWidget* CursorWidget = CreateWidget<UCursorWidget>(GetGameInstance(), CursorWidgetClass);
+		CursorWidget = CreateWidget<UCursorWidget>(GetGameInstance(), CursorWidgetClass);
 		SetMouseCursorWidget(EMouseCursor::Type::Default, CursorWidget);
 	}
 
@@ -391,21 +394,49 @@ void AUPPlayerController::HandleUseItemAction()
 {
 }
 
-void AUPPlayerController::HandleActivateAction()
+void AUPPlayerController::HandleUseItem()
 {
 	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
 	NULLCHECK(CursorItem);
 
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 
-	IInteractable* Interactable = Cast<IInteractable>(CursorItem);
-	NULLCHECK(Interactable);
-
-	const bool bAccessible = Interactable->IsInteractionAccessible(this);
-	if (bAccessible)
+	if (IInteractable* Interactable = Cast<IInteractable>(CursorItem))
 	{
-		Interactable->AttemptInteraction(this);
+		const bool bAccessible = Interactable->IsInteractionAccessible(this);
+		if (bAccessible)
+		{
+			Interactable->AttemptInteraction(this);
+		}
 	}
+	else if (AItem* Item = Cast<AItem>(CursorItem))
+	{
+		if (UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+		{
+			FGameplayAbilityTargetData_UseItem* TargetDataPtr = new FGameplayAbilityTargetData_UseItem();
+			TargetDataPtr->TargetItem = Item;
+
+			FGameplayEventData EventData;
+			EventData.Target = Item;
+			EventData.TargetData = FGameplayAbilityTargetDataHandle(TargetDataPtr);
+			EventData.Instigator = this;
+
+			ASC->HandleGameplayEvent(TAG_Ability_UseItem.GetTag(), &EventData);
+		}
+	}
+}
+
+void AUPPlayerController::HandleUseItemFromContainer(UContainerComponent* Container, int32 Handle)
+{
+	NULLCHECK(Container);
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	UContainerComponent* ContainerComponent = Container->GetOriginContainer();
+	NULLCHECK(ContainerComponent);
+	NULLCHECK(ASC);
+
+	// TODO
+	// ASC->HandleGameplayEvent(TAG_Ability_UseItem.GetTag(), &EventData);
 }
 
 void AUPPlayerController::HandleInventoryToggle()
