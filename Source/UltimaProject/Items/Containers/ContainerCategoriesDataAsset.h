@@ -31,9 +31,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UContainerWidget> ContainerWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly)
-	float InteractionRadius = 100.f;
 	
 	UPROPERTY(EditDefaultsOnly)
 	uint32 DefaultSlotCapacity = 9;

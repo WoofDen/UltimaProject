@@ -97,13 +97,6 @@ private:
 
 #pragma endregion
 
-protected:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<UGameplayHUDWidget> GameplayHUDWidgetClass;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UGameplayHUDWidget> GameplayHUDWidgetInstance;
-
 #pragma region Input
 
 public:
@@ -117,11 +110,11 @@ public:
 	void HandlePickupAction(AItem* SourceItem, int32 ItemAmount, UContainerComponent* TargetContainer) const;
 
 	UFUNCTION(BlueprintCallable)
-	void HandleUseItemAction();
+	void HandleUseItem();
 
 	UFUNCTION(BlueprintCallable)
-	void HandleUseItem();
-	
+	void HandleLeftClick();
+
 	UFUNCTION(BlueprintCallable)
 	void HandleUseItemFromContainer(UContainerComponent* Container, int32 Handle);
 
@@ -131,6 +124,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HandleRelocateItem(UContainerComponent* SourceContainer, int32 ContainerItemHandle, UContainerComponent* TargetContainer, int32 ItemAmount);
 #pragma endregion
+
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UGameplayHUDWidget> GameplayHUDWidgetClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGameplayHUDWidget> GameplayHUDWidgetInstance;
 
 public:
 	UGameplayHUDWidget* GetGameplayHUD() const { return GameplayHUDWidgetInstance; }

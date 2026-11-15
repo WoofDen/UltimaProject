@@ -2,15 +2,14 @@
 
 #pragma once
 
-// Game incldues
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Interaction.h"
-
 // Engine includes
 #include "UObject/Object.h"
 #include "Engine/DataAsset.h"
 
 // Generated include
 #include "ItemData.generated.h"
+
+class UContextActionHandler;
 
 UENUM()
 enum class EItemIntProperty : uint8
@@ -72,58 +71,19 @@ struct FItemInstanceData
 	// Don't add methods here but FItemData
 };
 
-USTRUCT()
-struct FTargetDescriptor
-{
-	GENERATED_BODY()
-	
-	FTargetDescriptor();
-	virtual ~FTargetDescriptor();
-
-	UPROPERTY(EditAnywhere)
-	FText StartedMessage;
-
-	UPROPERTY(EditAnywhere)
-	FText CompletedMessage;
-
-	UPROPERTY(EditAnywhere)
-	FText CancelledMessage;
-	
-	UPROPERTY(EditAnywhere)
-	FGameplayTag AbilityTriggerTag;
-	
-	virtual bool IsValid()
-	{
-		return AbilityTriggerTag.IsValid();
-	}
-};
-
-USTRUCT()
-struct FTargetDescriptor_Actor : public FTargetDescriptor
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AActor>> TargetClasses;
-	
-	// FTargetDescriptor
-	virtual bool IsValid() override
-	{
-		return !TargetClasses.IsEmpty() && Super::IsValid();
-	}
-	// ~FTargetDescriptor
-};
-
+// Used to describe actions within an item's context menu (Use, Fill, Destroy, etc)
 USTRUCT(BlueprintType)
 struct FItemContextAction
 {
 	GENERATED_BODY()
 
+	virtual ~FItemContextAction() = default;
+
 	UPROPERTY(EditAnywhere)
 	FText Label;
 
-	UPROPERTY(EditDefaultsOnly, meta = (ExcludeBaseStruct))
-	TArray<TInstancedStruct<FTargetDescriptor>> TargetScheme;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UContextActionHandler> ContextActionHandlerClass;
 };
 
 /**
@@ -156,11 +116,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 Slots = 1;
 
+	// Using item, call context menus, activate or open containers radius
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float InteractionRadius = 500.f;	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
-
+	
 	UPROPERTY(EditDefaultsOnly)
-	TArray<TInstancedStruct<FItemContextAction>> ContextActions;
+	TArray<FItemContextAction> ContextActions;
 };
 
 // Item data definition without an existing item
@@ -178,8 +142,7 @@ public:
 	FItemDataDefinition();
 	FItemDataDefinition(const FItemData& Item);
 	FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn);
-
-
+	
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ue-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--min-release-age=0",
+        "ue-mcp@latest",
+		"--use-system-ca",
+        "D:/projects/UltimaProject/UltimaProject.uproject"
+      ]
+    }
+  }
+}

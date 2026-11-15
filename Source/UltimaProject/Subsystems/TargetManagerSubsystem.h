@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "InputMappingContext.h"
 #include "Subsystems/LocalPlayerSubsystem.h"
 #include "UltimaProject/Items/Common/ItemData.h"
+#include "UltimaProject/Items/ContextActions/TargetDescriptors.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
+#include "StructUtils/InstancedStruct.h"
 #include "TargetManagerSubsystem.generated.h"
 
 UCLASS()
@@ -56,12 +57,7 @@ class ULTIMAPROJECT_API UTargetManagerSubsystem : public ULocalPlayerSubsystem
 
 	bool SetupBindings(TFunction<void()> TargetConfirmCallback);
 	void ResetBindings();
-
-	DECLARE_DELEGATE_OneParam(FOnTargetDataReady, UTargetManagerSubsystem*);
-	FOnTargetDataReady OnTargetDataReady;
-
-	DECLARE_DELEGATE(FOnTargetCancel)
-	FOnTargetCancel OnTargetCancel;
+	UTargetingSettingsDataAsset* GetTargetingSettings() const;
 
 	// Start targeting
 	void RunTargetingScheme();
@@ -73,11 +69,18 @@ class ULTIMAPROJECT_API UTargetManagerSubsystem : public ULocalPlayerSubsystem
 	void OnTargetCancelled();
 
 public:
+	DECLARE_DELEGATE(FOnTargetDataReady);
+	FOnTargetDataReady OnTargetDataReady;
+
+	DECLARE_DELEGATE(FOnTargetCancel)
+	FOnTargetCancel OnTargetCancel;
+
 	// USubsystem
 	virtual auto Initialize(FSubsystemCollectionBase& Collection) -> void override;
 	virtual void Deinitialize() override;
 	virtual void PlayerControllerChanged(APlayerController* NewPlayerController) override;
 	// ~USubsystem
 
-	void StartTargetingFromContextAction(const FItemContextAction& Action);
+	void StartTargetingScheme(const TArray<TInstancedStruct<FTargetDescriptor>>& Scheme);
+	void StopTargeting();
 };

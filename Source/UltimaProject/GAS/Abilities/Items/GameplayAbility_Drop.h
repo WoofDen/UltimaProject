@@ -26,7 +26,7 @@ struct FGameplayAbilityTargetData_DropOperation : public FGameplayAbilityTargetD
 	{
 		return FGameplayAbilityTargetData_DropOperation::StaticStruct();
 	}
-	
+
 	bool IsValid() const
 	{
 		return ContainerItemHandle != FContainerItemData::InvalidHandle
@@ -54,25 +54,27 @@ UCLASS()
 class ULTIMAPROJECT_API UGameplayAbility_Drop : public UGameplayAbility_Interaction
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY()
 	FGameplayAbilityTargetData_DropOperation Data;
-	
+
 	bool CanPerformDrop() const;
 
 public:
 	UGameplayAbility_Drop();
 
 	// UGameplayAbility
-	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle,
+	                         const FGameplayAbilityActorInfo* ActorInfo,
 	                         const FGameplayAbilityActivationInfo ActivationInfo,
 	                         FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
 	                         const FGameplayEventData* TriggerEventData = nullptr) override;
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	                             const FGameplayAbilityActorInfo* ActorInfo,
 	                             const FGameplayAbilityActivationInfo ActivationInfo,
 	                             const FGameplayEventData* TriggerEventData) override;
 	// ~UGameplayAbility
-	
+
 	// UGameplayAbility_Interaction
 	virtual void OnInteractionFinished() override;
 	// ~UGameplayAbility_Interaction

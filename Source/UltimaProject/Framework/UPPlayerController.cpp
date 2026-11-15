@@ -7,10 +7,9 @@
 #include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
-#include "UltimaProject/GAS/Abilities/Common/GameplayAbility_UseItem.h"
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Drop.h"
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Pickup.h"
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Relocate.h"
+#include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Drop.h"
+#include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Pickup.h"
+#include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Relocate.h"
 #include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
@@ -20,7 +19,9 @@
 #include "UltimaProject/UI/HUD/CursorWidget.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
 
-struct FGameplayAbilityTargetData_UseItem;
+struct FGameplayAbilityTargetData_PickupOperation;
+struct FGameplayAbilityTargetData_DropOperation;
+struct FGameplayAbilityTargetData_Interact;
 
 AUPPlayerController::AUPPlayerController()
 {
@@ -390,17 +391,17 @@ void AUPPlayerController::HandlePickupAction(AItem* SourceItem,
 	ASC->HandleGameplayEvent(TAG_Ability_Container_Pickup.GetTag(), &EventData);
 }
 
-void AUPPlayerController::HandleUseItemAction()
-{
-}
-
 void AUPPlayerController::HandleUseItem()
 {
 	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
 	NULLCHECK(CursorItem);
 
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
+	GameplayHUDWidgetInstance->CallContextActionsMenu(this);
 
+#if 0
+	// TODO
+	// Interactable is a custom item use implementation and should has a prio
 	if (IInteractable* Interactable = Cast<IInteractable>(CursorItem))
 	{
 		const bool bAccessible = Interactable->IsInteractionAccessible(this);
@@ -409,11 +410,12 @@ void AUPPlayerController::HandleUseItem()
 			Interactable->AttemptInteraction(this);
 		}
 	}
+	// Otherwise, send use item ability
 	else if (AItem* Item = Cast<AItem>(CursorItem))
 	{
 		if (UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 		{
-			FGameplayAbilityTargetData_UseItem* TargetDataPtr = new FGameplayAbilityTargetData_UseItem();
+			FGameplayAbilityTargetData_Interact* TargetDataPtr = new FGameplayAbilityTargetData_Interact();
 			TargetDataPtr->TargetItem = Item;
 
 			FGameplayEventData EventData;
@@ -423,6 +425,15 @@ void AUPPlayerController::HandleUseItem()
 
 			ASC->HandleGameplayEvent(TAG_Ability_UseItem.GetTag(), &EventData);
 		}
+	}
+#endif
+}
+
+void AUPPlayerController::HandleLeftClick()
+{
+	if (GameplayHUDWidgetInstance)
+	{
+		GameplayHUDWidgetInstance->ResetContextMenu();
 	}
 }
 

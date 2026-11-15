@@ -11,6 +11,7 @@ void UCursorWidget::UpdateCursor()
 	if (bIsTargetMode)
 	{
 		CursorImage->SetBrushResourceObject(TargetTextureObject);
+		return;
 	}
 
 	if (bIsOverInteractable)

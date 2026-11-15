@@ -104,7 +104,7 @@ void ACropBase::AttemptInteraction(AController* InstigatorController, EInteracti
 	EventData.Target = this;
 
 	// All validation will be provided by ability itself
-	ASC->HandleGameplayEvent(TAG_Ability_Container_HarvestCrops, &EventData);
+	ASC->HandleGameplayEvent(TAG_Ability_Interaction_HarvestCrops, &EventData);
 }
 
 void ACropBase::OnRep_GrowProgress(float PrevValue)

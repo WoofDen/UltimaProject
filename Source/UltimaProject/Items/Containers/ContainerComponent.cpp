@@ -274,10 +274,16 @@ TSubclassOf<UContainerWidget> UContainerComponent::GetContainerWidgetClass() con
 
 float UContainerComponent::GetInteractionRadius() const
 {
-	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())
+	// Retrieve interaction data from Item
+	// TODO doesn't handle character and non-item cases
+	if (AItem* ItemOwner = GetOwner<AItem>())
 	{
-		return DataAsset->InteractionRadius;
+		if (const UItemDataAsset* ItemData = ItemOwner->GetItemDataConst().GetStaticData())
+		{
+			return ItemData->InteractionRadius;
+		};
 	}
+
 
 	return 0;
 }

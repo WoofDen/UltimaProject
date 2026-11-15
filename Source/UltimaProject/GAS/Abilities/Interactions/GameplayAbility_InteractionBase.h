@@ -6,12 +6,14 @@
 #include "Abilities/GameplayAbility.h"
 #include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
-#include "GameplayAbility_UseItem.generated.h"
+#include "UltimaProject/Subsystems/TargetManagerSubsystem.h"
+#include "GameplayAbility_InteractionBase.generated.h"
 
+struct FTargetDescriptor;
 class UInputMappingContext;
 
 USTRUCT(BlueprintType)
-struct FGameplayAbilityTargetData_UseItem : public FGameplayAbilityTargetData
+struct FGameplayAbilityTargetData_Interact : public FGameplayAbilityTargetData
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -23,7 +25,7 @@ struct FGameplayAbilityTargetData_UseItem : public FGameplayAbilityTargetData
 
 	virtual UScriptStruct* GetScriptStruct() const override
 	{
-		return FGameplayAbilityTargetData_UseItem::StaticStruct();
+		return FGameplayAbilityTargetData_Interact::StaticStruct();
 	}
 
 	bool IsValid() const
@@ -36,8 +38,8 @@ struct FGameplayAbilityTargetData_UseItem : public FGameplayAbilityTargetData
 
 template <>
 struct TStructOpsTypeTraits<
-		FGameplayAbilityTargetData_UseItem> : public TStructOpsTypeTraitsBase2<
-		FGameplayAbilityTargetData_UseItem>
+		FGameplayAbilityTargetData_Interact> : public TStructOpsTypeTraitsBase2<
+		FGameplayAbilityTargetData_Interact>
 {
 	enum
 	{
@@ -51,58 +53,45 @@ struct TStructOpsTypeTraits<
  * Item-specific data and logic are placed within a corresponding ItemLogicProcessor 
  */
 UCLASS()
-class ULTIMAPROJECT_API UGameplayAbility_UseItem : public UGameplayAbility
+class ULTIMAPROJECT_API UGameplayAbility_InteractionBase : public UGameplayAbility
 {
 	GENERATED_BODY()
 
 	friend class UItemLogicProcessor;
 
-	FGameplayAbilityTargetData_UseItem Data;
+	FGameplayAbilityTargetData_Interact Data;
 	FVector ItemOrigin = UPGlobals::InvalidLocation;
 
 	UPROPERTY(Transient)
 	const UItemDataAsset* ItemDataAsset;
 
-	TWeakObjectPtr<AUPPlayerController> PlayerController;
+	TWeakObjectPtr<AUPPlayerController> PlayerControllerCached;
+	TWeakObjectPtr<UTargetManagerSubsystem> TargetManagerCached;
 
 	void Initialize();
 
 	uint32 TargetSelectedBindingHandle;
 	uint32 TargetCancelledBindingHandle;
-	
-	UFUNCTION()
-	void OnTargetReady(AActor* Actor);
 
-	UFUNCTION()
-	void OnTargetCancelled();
+	virtual void OnTargetReady();
+	virtual void OnTargetCancelled();
+
 protected:
 	bool CanUseItem() const;
 
-	const FGameplayAbilityTargetData_UseItem& GetTargetData() const
+	const FGameplayAbilityTargetData_Interact& GetTargetData() const
 	{
 		return Data;
 	}
 
-	UPROPERTY(EditDefaultsOnly)
-	float MaxTargetDistance = 100.f;
+	// Set of target sequences ( Select target, Where to go, etc )
+	// Passed to TargetManagerSubsystem
+	UPROPERTY(EditDefaultsOnly, meta=(ExcludeBaseStruct))
+	TArray<TInstancedStruct<FTargetDescriptor>> TargetingScheme;
 
-	UPROPERTY(EditDefaultsOnly)
-	UInputMappingContext* TargetingIMC;
-
-	UPROPERTY(EditDefaultsOnly)
-	UInputAction* TargetSelectIA;
-
-	UPROPERTY(EditDefaultsOnly)
-	UInputAction* TargetCancelIA;
-
-	bool RequestTarget(UClass* TargetClass, TFunction<void(AActor* SelectedTarget)> OnSelectedCallback);
-	void CancelTarget();
-
-	// Called when the logic processor get all the targets & data
-	void OnDataCollected();
-
+	UTargetManagerSubsystem* GetTargetManager();
 public:
-	UGameplayAbility_UseItem();
+	UGameplayAbility_InteractionBase();
 
 	// UGameplayAbility
 	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle,

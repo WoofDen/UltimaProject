@@ -23,14 +23,13 @@ bool UGameplayAbility_Drop::CanPerformDrop() const
 	{
 		return false;
 	}
-	
 
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.SourceContainer->GetOwnerInterface();
 	NULLCHECK_RETURN(ContainerOwnerInterface, false);
 
 	const AUPPlayerController* PC = Cast<AUPPlayerController>(GetActorInfo().PlayerController);
-	
-	if(!Data.SourceContainer->IsAccessible(PC))
+
+	if (!Data.SourceContainer->IsAccessible(PC))
 	{
 		return false;
 	}

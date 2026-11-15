@@ -3,9 +3,11 @@
 #include "NativeGameplayTags.h"
 
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_UseItem)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Fill)
 
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Container_Drop)
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Container_Pickup)
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Container_Relocate)
 
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Container_HarvestCrops)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interaction_HarvestCrops)
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interaction_FillLiquid)

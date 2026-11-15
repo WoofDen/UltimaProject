@@ -18,7 +18,7 @@ enum class EContainerRelationType : uint8
 
 
 UENUM(BlueprintType)
-enum class ELiquid : uint8
+enum class ESubstance : uint8
 {
 	Water = 0,
 
@@ -31,7 +31,7 @@ struct FLiquidDescriptor
 	GENERATED_BODY()
 
 	UPROPERTY()
-	ELiquid Type;
+	ESubstance Type;
 
 	// 256 bit
 	UPROPERTY()
@@ -39,10 +39,10 @@ struct FLiquidDescriptor
 
 	FLiquidDescriptor()
 	{
-		Type = ELiquid::Water;
+		Type = ESubstance::Water;
 	};
 
-	FLiquidDescriptor(ELiquid InType)
+	FLiquidDescriptor(ESubstance InType)
 		: Type(InType)
 	{
 	}
@@ -78,5 +78,5 @@ struct FLiquidDescriptor
 
 namespace UP::Liquids
 {
-	const FLiquidDescriptor Water = FLiquidDescriptor{ELiquid::Water};
+	const FLiquidDescriptor Water = FLiquidDescriptor{ESubstance::Water};
 }

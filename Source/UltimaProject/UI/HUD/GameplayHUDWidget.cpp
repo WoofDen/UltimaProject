@@ -11,8 +11,11 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
+#include "UltimaProject/Items/ActionProcessors/ContextActionHandler.h"
 #include "UltimaProject/UI/GameLogWidget.h"
+#include "UltimaProject/UI/ContextActions/ContextActionsWidget.h"
 
 FVector2D UGameplayHUDWidget::GetNewContainerPosition(const UUserWidget* ContainerWidget,
                                                       const UCanvasPanelSlot* CanvasSlot) const
@@ -44,6 +47,35 @@ void UGameplayHUDWidget::GameLogInternal(const FText& Text, const FString& Style
 	GameLogWidget->AddLogEntry(Text, Style);
 }
 
+void UGameplayHUDWidget::UpdateContextMenu()
+{
+	NULLCHECK(ContextMenuWidget);
+
+	APlayerController* PC = GetOwningPlayer();
+	NULLCHECK(PC);
+
+	// MIGHT be null if menu is called from a container item
+	if (const AItem* ContextMenuWorldItem = ContextMenuWidget->GetSourceItem())
+	{
+		APawn* Pawn = PC->GetPawn();
+
+		// Close context menu if too far
+		bool bDistanceValid = Pawn && FVector::Distance(ContextMenuWorldItem->GetActorLocation(), Pawn->GetActorLocation()) <= ContextMenuMaxDistanceAlive;
+
+		if (!bDistanceValid)
+		{
+			ResetContextMenu();
+			return;
+		}
+
+		// Update context menu viewport position if called fron a world item
+		FVector2D ScreenLocation;
+		PC->ProjectWorldLocationToScreen(ContextMenuWorldItem->GetActorLocation(), ScreenLocation);
+
+		ContextMenuWidget->SetPositionInViewport(ScreenLocation);
+	}
+}
+
 void UGameplayHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -52,6 +84,13 @@ void UGameplayHUDWidget::NativeConstruct()
 	{
 		InteractionsPanel->ClearChildren();
 	}
+}
+
+void UGameplayHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	UpdateContextMenu();
 }
 
 void UGameplayHUDWidget::AddInteractionWidget(UUserWidget* InteractionWidget)
@@ -63,6 +102,70 @@ void UGameplayHUDWidget::AddInteractionWidget(UUserWidget* InteractionWidget)
 	{
 		InteractionsPanel->AddChild(InteractionWidget);
 	}
+}
+
+void UGameplayHUDWidget::ResetContextMenu()
+{
+	if (ContextMenuWidget)
+	{
+		ContextMenuWidget->RemoveFromParent();
+		ContextMenuWidget->MarkAsGarbage();
+		ContextMenuWidget = nullptr;
+	}
+}
+
+void UGameplayHUDWidget::CallContextActionsMenu(const AUPPlayerController* PC)
+{
+	NULLCHECK(PC);
+
+	ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
+	NULLCHECK(LocalPlayer);
+	NULLCHECK(LocalPlayer->ViewportClient);
+
+	AItem* Item = Cast<AItem>(UInputHelpersFunctionLibrary::GetActorUnderCursor(PC, ECC_InteractableChannel));
+	NULLCHECK(Item);
+
+	NULLCHECK(WidgetTree);
+	NULLCHECK(ContextActionWidgetClass);
+	
+	ContextMenuMaxDistanceAlive = Item->GetItemDataConst().GetStaticData()->InteractionRadius;
+
+	// Get mouse position
+	FVector2D MousePosition;
+	if (!LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+	{
+		return;
+	}
+
+	// Validation ok
+	// Destroy the existing widget
+	ResetContextMenu();
+
+	ContextMenuWidget = WidgetTree->ConstructWidget<UContextActionsWidget>(ContextActionWidgetClass);
+	ensureAlways(ContextActionWidgetClass);
+	NULLCHECK(ContextMenuWidget)
+
+	ContextMenuWidget->ConstructFromItem(Item);
+	ContextMenuWidget->AddToViewport();
+	ContextMenuWidget->SetPositionInViewport(MousePosition);
+}
+
+void UGameplayHUDWidget::OnContextActionActivated(TSubclassOf<UContextActionHandler> HandlerClass)
+{
+	NULLCHECK(ContextMenuWidget);
+	
+	AItem* SourceItem = ContextMenuWidget->GetSourceItem();
+
+	ResetContextMenu();
+	NULLCHECK(SourceItem);
+
+	UContextActionHandler* HandlerCDO = HandlerClass->GetDefaultObject<UContextActionHandler>();
+	ensure(HandlerCDO);
+	NULLCHECK(HandlerCDO);
+
+	AUPPlayerController* PC = CastChecked<AUPPlayerController>(GetOwningPlayer(), ECastCheckedType::NullAllowed);
+
+	HandlerCDO->HandleAction(PC, SourceItem);
 }
 
 bool UGameplayHUDWidget::IsContainerOpened(UContainerComponent* ContainerComponent)
@@ -119,7 +222,7 @@ void UGameplayHUDWidget::CloseContainerWidget(UContainerComponent* ContainerComp
 	TObjectPtr<UUserWidget> ContainerWidget = nullptr;
 	OpenedContainers.RemoveAndCopyValue(ContainerComponent, ContainerWidget);
 
-	if (IsValid(ContainerWidget))
+	if (IsValid(ContainerWidget) && ContainerWidget->IsValidLowLevel())
 	{
 		ContainerWidget->RemoveFromParent();
 	}
@@ -143,6 +246,11 @@ void UGameplayHUDWidget::GameLog(APlayerController* PlayerController, FText Text
 	{
 		PC->GameLogClient(Text, LogFormat);
 	}
+}
+
+FReply UGameplayHUDWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UGameplayHUDWidget::GameLog(APlayerController* PlayerController, const wchar_t* Text, bool bReplicate, const FString& LogFormat)

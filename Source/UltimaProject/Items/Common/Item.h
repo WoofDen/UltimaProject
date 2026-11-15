@@ -69,7 +69,7 @@ public:
 
 	FItemData& GetItemDataMutable()
 	{
-		// self-defence against modifying ItemData somewhere else than server
+		// self-defense against modifying ItemData somewhere else than server
 		check(HasAuthority());
 		return ItemData;
 	}

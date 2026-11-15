@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_Interaction.h"
+#include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Interaction.h"
 #include "UltimaProject/Items/Crops/CropBase.h"
 #include "GameplayAbility_HarvestCrops.generated.h"
 

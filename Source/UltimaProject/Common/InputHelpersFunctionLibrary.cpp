@@ -20,8 +20,8 @@ AActor* UInputHelpersFunctionLibrary::GetActorUnderCursor(const APlayerControlle
 		FVector2D MousePosition;
 		if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
 		{
-			TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
-			ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
+			// TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+			// ObjectTypes.Add(UEngineTypes::ConvertToObjectType(CollisionChannel));
 
 			PC->GetHitResultAtScreenPosition(
 				MousePosition,

@@ -33,11 +33,11 @@ TArray<FItemDataDefinition> UGameplayAbility_HarvestCrops::GenerateHarvest(const
 
 UGameplayAbility_HarvestCrops::UGameplayAbility_HarvestCrops()
 {
-	SetAssetTags(FGameplayTagContainer(TAG_Ability_Container_HarvestCrops));
+	SetAssetTags(FGameplayTagContainer(TAG_Ability_Interaction_HarvestCrops));
 
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::Type::GameplayEvent;
-	TriggerData.TriggerTag = TAG_Ability_Container_HarvestCrops;
+	TriggerData.TriggerTag = TAG_Ability_Interaction_HarvestCrops;
 
 	AbilityTriggers.Add(TriggerData);
 

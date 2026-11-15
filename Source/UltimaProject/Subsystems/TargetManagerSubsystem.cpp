@@ -1,20 +1,20 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "TargetManagerSubsystem.h"
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/AssetManager.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
+#include "UltimaProject/Items/ActionProcessors/ContextActionHandler.h"
+#include "UltimaProject/Items/ContextActions/TargetDescriptors.h"
 #include "UltimaProject/UI/HUD/CursorWidget.h"
 
 class UEnhancedInputLocalPlayerSubsystem;
 
 FPrimaryAssetId UTargetingSettingsDataAsset::GetId()
 {
-	return FPrimaryAssetId("TargetingSettings", FName("Settings"));
+	return FPrimaryAssetId("TargetingSettings", "TargetingSettings");
 }
 
 FPrimaryAssetId UTargetingSettingsDataAsset::GetPrimaryAssetId() const
@@ -35,13 +35,12 @@ bool UTargetManagerSubsystem::SetupBindings(TFunction<void()> TargetConfirmCallb
 	UEnhancedInputLocalPlayerSubsystem* EnhancedInputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
 	NULLCHECK_RETURN(EnhancedInputSubsystem, false);
 
-	UObject* SettingsObject = UAssetManager::Get().GetPrimaryAssetObject(UTargetingSettingsDataAsset::GetId());
-	UTargetingSettingsDataAsset* Settings = Cast<UTargetingSettingsDataAsset>(SettingsObject);
+	UTargetingSettingsDataAsset* Settings = GetTargetingSettings();
 	NULLCHECK_RETURN(Settings, false);
 
 	// Setup inputs
 	// Main input mapping context
-	EnhancedInputSubsystem->AddMappingContext(Settings->TargetingIMC, 0);
+	EnhancedInputSubsystem->AddMappingContext(Settings->TargetingIMC, 10);
 
 	// On target selected callback
 	TargetSelectedBindingHandle = InputComponent->BindActionValueLambda(Settings->TargetConfirmIA, ETriggerEvent::Completed, [this, TargetConfirmCallback](const FInputActionValue& InputActionValue)
@@ -59,7 +58,7 @@ bool UTargetManagerSubsystem::SetupBindings(TFunction<void()> TargetConfirmCallb
 
 		OnTargetCancelled();
 	}).GetHandle();
-	
+
 	return true;
 }
 
@@ -72,7 +71,30 @@ void UTargetManagerSubsystem::ResetBindings()
 			InputComponent->RemoveBindingByHandle(TargetSelectedBindingHandle);
 			InputComponent->RemoveBindingByHandle(TargetCancelledBindingHandle);
 		}
+
+		// Remove targeting IMC
+		UEnhancedInputLocalPlayerSubsystem* EnhancedInputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		UTargetingSettingsDataAsset* Settings = GetTargetingSettings();
+
+		if (EnhancedInputSubsystem && Settings)
+		{
+			EnhancedInputSubsystem->RemoveMappingContext(Settings->TargetingIMC);
+		}
 	}
+}
+
+UTargetingSettingsDataAsset* UTargetManagerSubsystem::GetTargetingSettings() const
+{
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	// Load if not in memory
+	const FPrimaryAssetId PrimaryAssetId = UTargetingSettingsDataAsset::GetId();
+	if (TSharedPtr<FStreamableHandle> StreamHandle = AssetManager.LoadPrimaryAsset(PrimaryAssetId))
+	{
+		StreamHandle->WaitUntilComplete();
+	}
+
+	return UAssetManager::Get().GetPrimaryAssetObject<UTargetingSettingsDataAsset>(PrimaryAssetId);
 }
 
 void UTargetManagerSubsystem::RunTargetingScheme()
@@ -86,7 +108,7 @@ void UTargetManagerSubsystem::RunTargetingScheme()
 	const auto TargetSchemeRow = CurrentScheme[CurrentSchemeIndex];
 	if (TargetSchemeRow.GetScriptStruct() == FTargetDescriptor_Actor::StaticStruct())
 	{
-		const FTargetDescriptor_Actor& TargetActorDescriptor = TargetSchemeRow.Get<FTargetDescriptor_Actor>();
+		UGameplayHUDWidget::GameLog(PlayerController.Get(), TargetSchemeRow->StartedMessage, false, UP::LogStyle::Default);
 
 		TargetActor();
 	}
@@ -98,8 +120,7 @@ void UTargetManagerSubsystem::RunTargetingScheme()
 
 bool UTargetManagerSubsystem::TargetActor()
 {
-	UObject* SettingsObject = UAssetManager::Get().GetPrimaryAssetObject(UTargetingSettingsDataAsset::GetId());
-	UTargetingSettingsDataAsset* Settings = Cast<UTargetingSettingsDataAsset>(SettingsObject);
+	UTargetingSettingsDataAsset* Settings = GetTargetingSettings();
 	NULLCHECK_RETURN(Settings, false);
 
 	// Validation ok.
@@ -143,16 +164,24 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 		// Validate actor
 		const FTargetDescriptor_Actor& TargetActorDescriptor = TargetSchemeRow.Get<FTargetDescriptor_Actor>();
 
-		for (const UClass* FilterClass : TargetActorDescriptor.TargetClasses)
+		if (TargetActorDescriptor.TargetClasses.IsEmpty())
 		{
-			if (!Actor->IsA(FilterClass))
-			{
-				continue;
-			}
-
 			bTargetIsValid = true;
 			SelectedActors.Add(Actor);
-			break;
+		}
+		else
+		{
+			for (const UClass* FilterClass : TargetActorDescriptor.TargetClasses)
+			{
+				if (!Actor->IsA(FilterClass))
+				{
+					continue;
+				}
+
+				bTargetIsValid = true;
+				SelectedActors.Add(Actor);
+				break;
+			}
 		}
 	}
 	else
@@ -173,13 +202,13 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 
 void UTargetManagerSubsystem::OnTargetInvalid()
 {
-	ResetBindings();
+	StopTargeting();
 	OnTargetCancel.ExecuteIfBound();
 }
 
 void UTargetManagerSubsystem::OnTargetCancelled()
 {
-	ResetBindings();
+	StopTargeting();
 	OnTargetCancel.ExecuteIfBound();
 }
 
@@ -210,18 +239,33 @@ void UTargetManagerSubsystem::PlayerControllerChanged(APlayerController* NewPlay
 	}
 }
 
-void UTargetManagerSubsystem::StartTargetingFromContextAction(const FItemContextAction& Action)
+void UTargetManagerSubsystem::StartTargetingScheme(const TArray<TInstancedStruct<FTargetDescriptor>>& Scheme)
 {
-	if (Action.TargetScheme.IsEmpty())
+	if (Scheme.IsEmpty())
 	{
-		OnTargetDataReady.ExecuteIfBound(this);
+		OnTargetDataReady.ExecuteIfBound();
 		return;
 	}
 
-	// DA holding context action might get unloaded during the targeting so do a local copy
-	CurrentScheme = Action.TargetScheme;
+	// Copy
+	CurrentScheme = Scheme;
 	CurrentSchemeIndex = 0;
 
 	ResetBindings();
 	RunTargetingScheme();
+}
+
+void UTargetManagerSubsystem::StopTargeting()
+{
+	// Reset keybindings
+	ResetBindings();
+
+	// Reset cursor
+	if (PlayerController.IsValid())
+	{
+		if (UCursorWidget* CursorWidget = PlayerController->GetCursorWidget())
+		{
+			CursorWidget->SetTargetMode(false);
+		}
+	}
 }
