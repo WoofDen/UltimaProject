@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "InputAction.h"
 #include "Abilities/GameplayAbility.h"
 #include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"

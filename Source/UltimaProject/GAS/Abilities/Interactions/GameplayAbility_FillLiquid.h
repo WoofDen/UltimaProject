@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameplayAbility_InteractionBase.h"
+#include "UltimaProject/GAS/Abilities/GameplayAbility_InteractionBase.h"
 #include "GameplayAbility_FillLiquid.generated.h"
 
 USTRUCT(BlueprintType)

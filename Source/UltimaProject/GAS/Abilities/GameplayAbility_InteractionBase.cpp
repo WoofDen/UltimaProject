@@ -1,19 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GameplayAbility_InteractionBase.h"
-
-#include <functional>
-
 #include "AbilitySystemComponent.h"
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
-#include "LandscapeRender.h"
 #include "Abilities/Tasks/AbilityTask.h"
 #include "UltimaProject/Common/GameplayTags.h"
-#include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Subsystems/TargetManagerSubsystem.h"
-#include "UltimaProject/UI/HUD/CursorWidget.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
 
 bool FGameplayAbilityTargetData_Interact::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)

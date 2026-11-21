@@ -98,36 +98,40 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<AItem> ActorClass;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
 	FText Name;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 MaxAmountPerStack;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<UStaticMesh> WorldMesh;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	bool bOverrideWorldTransform = false;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(EditCondition = bOverrideWorldTransform, EditConditionHides))
-	FTransform WorldMeshTransform;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSoftObjectPtr<UObject> Icon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	int32 Slots = 1;
-
 	// Using item, call context menus, activate or open containers radius
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
 	float InteractionRadius = 500.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
 	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="General")
 	TArray<FItemContextAction> ContextActions;
+
+	// Could be stored in inventory
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Containers")
+	bool bPickable = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Containers", meta=(EditCondition = bPickable, EditConditionHides))
+	int32 MaxAmountPerStack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Containers", meta=(EditCondition = bPickable, EditConditionHides))
+	TSoftObjectPtr<UObject> Icon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Containers", meta=(EditCondition = bPickable, EditConditionHides))
+	int32 Slots = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Overrides")
+	TSoftObjectPtr<UStaticMesh> WorldMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Overrides")
+	bool bOverrideWorldTransform = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Overrides", meta=(EditCondition = bOverrideWorldTransform, EditConditionHides))
+	FTransform WorldMeshTransform;
 };
 
 // Item data definition without an existing item
@@ -215,7 +219,7 @@ public:
 	FItemDataDefinition GetDataDefinition() const;
 
 	const UItemDataAsset* GetStaticData() const;
-	
+
 	bool Is(const TSoftObjectPtr<UItemDataAsset>& DataAssetSoftPtr) const;
 
 	void SetStaticData(const UItemDataAsset* InStaticData);

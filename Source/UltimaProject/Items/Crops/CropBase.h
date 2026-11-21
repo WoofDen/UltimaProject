@@ -4,13 +4,12 @@
 
 #include "PlantCultureDataAsset.h"
 #include "GameFramework/Actor.h"
-#include "UltimaProject/Items/Common/Interactable.h"
-#include "UltimaProject/Items/Common/ItemData.h"
+#include "UltimaProject/Items/Common/Item.h"
 #include "UltimaProject/World/HeartbeatSystem/HeartbeatInterface.h"
 #include "CropBase.generated.h"
 
 UCLASS(Abstract, Blueprintable, BlueprintType)
-class ULTIMAPROJECT_API ACropBase : public AActor, public IHeartbeatInterface, public IInteractable
+class ULTIMAPROJECT_API ACropBase : public AItem
 {
 	GENERATED_BODY()
 
@@ -47,14 +46,9 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	// ~AActor
 
-	// IHeartbeatInterface
+	// AItem
 	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
-	// ~IHeartbeatInterface
-
-	// IInteractable
-	virtual bool IsInteractionAccessible(const AController* InstigatorController) const override;
-	virtual void AttemptInteraction(AController* InstigatorController, EInteractionType Type = EInteractionType::UseItem) override;
-	// ~IInteractable
+	// ~AItem
 
 	float GetProgress() const { return GrowProgress; }
 	const UPlantCultureDataAsset* GetCultureDataAsset() const;

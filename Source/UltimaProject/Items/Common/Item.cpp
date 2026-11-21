@@ -44,7 +44,7 @@ void AItem::RemoveFromWorld()
 
 bool AItem::SetItemData(FItemData&& NewData)
 {
-	// It should be could once after actor creation ( so far )
+	// It should be could once after actor creation (so far)
 	const bool bWasInitialized = HasActorBegunPlay() || ItemData.IsValid();
 	ensureAlways(!bWasInitialized);
 
@@ -102,11 +102,8 @@ void AItem::PostInitializeComponents()
 			if (!SetItemData(MoveTemp(DefaultItemData)))
 			{
 				UE_LOG(LogActor, Error, TEXT("Item %s initialization failed"), *GetActorNameOrLabel());
-				//Data->MarkAsGarbage();
 				Destroy();
 			}
-
-			//AddReplicatedSubObject(Data);
 		}
 	}
 }
@@ -131,9 +128,15 @@ void AItem::BeginPlay()
 
 			Destroy();
 		}
+		else
+		{
+			SetStaticData(DataAsset);
+		}
 	}
-	else
+	else if (HasAuthority())
 	{
+		// Sometimes ItemData isn't ready on BeginPlay
+		// Initialization will happen on OnRep_ItemData
 		UE_LOG(LogTemp, Warning, TEXT("Actor item %s missing item data asset"), *GetActorNameOrLabel());
 
 		Destroy();
@@ -163,8 +166,14 @@ void AItem::OnConstruction(const FTransform& Transform)
 	// TODO add an invalid item visuals to highlight the invalid actor
 }
 
-void AItem::OnRep_ItemData()
+void AItem::OnRep_ItemData(FItemData PrevValue)
 {
+	if (PrevValue.GetStaticData() == nullptr)
+	{
+		// Late client initialization
+		SetStaticData(GetItemStaticData());
+	}
+
 	OnItemDataChanged();
 }
 

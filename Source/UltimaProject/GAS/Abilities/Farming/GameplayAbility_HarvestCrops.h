@@ -7,7 +7,11 @@
 #include "GameplayAbility_HarvestCrops.generated.h"
 
 /**
- * 
+ * @class UGameplayAbility_HarvestCrops
+ * @brief A gameplay ability for harvesting crops in the game.
+ *
+ * This class inherits from UGameplayAbility_Interaction and provides the functionality
+ * to interact with crops and harvest resources once they are ready.
  */
 UCLASS()
 class ULTIMAPROJECT_API UGameplayAbility_HarvestCrops : public UGameplayAbility_Interaction

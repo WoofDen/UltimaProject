@@ -5,12 +5,13 @@
 #include "UPPlayerState.h"
 #include "UltimaProject/Characters/UPCharacter.h"
 #include "UltimaProject/Common/GameplayTags.h"
+#include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Drop.h"
 #include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Pickup.h"
 #include "UltimaProject/GAS/Abilities/Items/GameplayAbility_Relocate.h"
-#include "UltimaProject/Items/Common/Interactable.h"
+#include "UltimaProject/Items/ActionProcessors/ContextActionHandler.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/ExternalContainerComponent.h"
 #include "UltimaProject/Items/Containers/Components/InventoryComponent.h"
@@ -44,7 +45,6 @@ void AUPPlayerController::UpdateCursor()
 
 	if (CurrentInteractionFocus.IsValid())
 	{
-		IInteractable::Execute_SetFocus(Cast<UObject>(CurrentInteractionFocus.Get()), false, false);
 		CurrentInteractionFocus.Reset();
 
 		if (CursorWidget)
@@ -59,13 +59,9 @@ void AUPPlayerController::UpdateCursor()
 	}
 
 	NULLCHECK(HitActor);
-	if (HitActor->Implements<UInteractable>())
+	if (HitActor->IsA<AItem>())
 	{
-		IInteractable* Interactable = Cast<IInteractable>(HitActor);
-		const bool bAccessible = Interactable->IsInteractionAccessible(this);
-
-		IInteractable::Execute_SetFocus(HitActor, true, bAccessible);
-		CurrentInteractionFocus = Interactable;
+		CurrentInteractionFocus = HitActor;
 
 		if (CursorWidget)
 		{
@@ -393,40 +389,35 @@ void AUPPlayerController::HandlePickupAction(AItem* SourceItem,
 
 void AUPPlayerController::HandleUseItem()
 {
-	AActor* CursorItem = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
+	AItem* CursorItem = Cast<AItem>(UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel));
+	NULLCHECK(CursorItem);
+
+	if (const UItemDataAsset* ItemStaticData = CursorItem->GetItemStaticData(); ensureAlways(ItemStaticData))
+	{
+		// Activate the first context action if present
+		if (ItemStaticData->ContextActions.Num() > 0)
+		{
+			UContextActionHandler::HandleActionFromCDO(
+				this,
+				ItemStaticData->ContextActions[0].ContextActionHandlerClass,
+				CursorItem
+			);
+		}
+		else
+		{
+			NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
+			GameplayHUDWidgetInstance->CallContextActionsMenu(this);
+		}
+	}
+}
+
+void AUPPlayerController::HandleCallContextMenu()
+{
+	AItem* CursorItem = Cast<AItem>(UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel));
 	NULLCHECK(CursorItem);
 
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
 	GameplayHUDWidgetInstance->CallContextActionsMenu(this);
-
-#if 0
-	// TODO
-	// Interactable is a custom item use implementation and should has a prio
-	if (IInteractable* Interactable = Cast<IInteractable>(CursorItem))
-	{
-		const bool bAccessible = Interactable->IsInteractionAccessible(this);
-		if (bAccessible)
-		{
-			Interactable->AttemptInteraction(this);
-		}
-	}
-	// Otherwise, send use item ability
-	else if (AItem* Item = Cast<AItem>(CursorItem))
-	{
-		if (UUPAbilitySystemComponent* ASC = GetAbilitySystemComponent())
-		{
-			FGameplayAbilityTargetData_Interact* TargetDataPtr = new FGameplayAbilityTargetData_Interact();
-			TargetDataPtr->TargetItem = Item;
-
-			FGameplayEventData EventData;
-			EventData.Target = Item;
-			EventData.TargetData = FGameplayAbilityTargetDataHandle(TargetDataPtr);
-			EventData.Instigator = this;
-
-			ASC->HandleGameplayEvent(TAG_Ability_UseItem.GetTag(), &EventData);
-		}
-	}
-#endif
 }
 
 void AUPPlayerController::HandleLeftClick()

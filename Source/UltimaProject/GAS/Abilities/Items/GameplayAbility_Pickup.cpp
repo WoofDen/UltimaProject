@@ -25,6 +25,14 @@ bool UGameplayAbility_Pickup::CanPerformPickup()
 	{
 		return false;
 	}
+	
+	if (const UItemDataAsset* StaticData = Data.SourceItem->GetItemStaticData())
+	{
+		if (!StaticData->bPickable)
+		{
+			return false;
+		}
+	}
 
 	// Check the container is accessible
 	IContainerOwnerInterface* ContainerOwnerInterface = Data.TargetContainer->GetOwnerInterface();

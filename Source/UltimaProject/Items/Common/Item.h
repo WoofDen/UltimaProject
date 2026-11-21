@@ -21,7 +21,7 @@ class ULTIMAPROJECT_API AItem :
 
 private:
 	UFUNCTION()
-	void OnRep_ItemData();
+	void OnRep_ItemData(FItemData PrevValue);
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
@@ -74,6 +74,7 @@ public:
 		return ItemData;
 	}
 
+	const UItemDataAsset* GetItemStaticData() const { return ItemData.GetStaticData(); }
 	const FItemData& GetItemDataConst() const { return ItemData; }
 
 	// IHeartbeatInterface

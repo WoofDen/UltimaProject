@@ -1,14 +1,10 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CropBase.h"
-#include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Common/Utils.h"
-#include "UltimaProject/Framework/UPPlayerState.h"
 
 const UPlantCultureDataAsset* ACropBase::GetCultureDataAsset() const
 {
@@ -39,11 +35,7 @@ void ACropBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		IHeartbeatInterface::Register();
-	}
-	else
+	if (!HasAuthority())
 	{
 		// Setup visuals
 		OnProgressUpdated(0.f);
@@ -71,7 +63,7 @@ void ACropBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 
 bool ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 {
-	IHeartbeatInterface::Heartbeat_Implementation(CurrentTime, TimePassed);
+	Super::Heartbeat_Implementation(CurrentTime, TimePassed);
 
 	if (const UPlantCultureDataAsset* Data = GetCultureDataAsset())
 	{
@@ -82,29 +74,6 @@ bool ACropBase::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
 	}
 	
 	return false;
-}
-
-bool ACropBase::IsInteractionAccessible(const AController* InstigatorController) const
-{
-	return GrowProgress >= 1.f;
-}
-
-void ACropBase::AttemptInteraction(AController* InstigatorController, EInteractionType Type)
-{
-	NULLCHECK(InstigatorController);
-
-	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(InstigatorController->GetPlayerState<AUPPlayerState>());
-	NULLCHECK(ASI);
-
-	UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
-	NULLCHECK(ASC);
-
-	FGameplayEventData EventData;
-	EventData.Instigator = InstigatorController;
-	EventData.Target = this;
-
-	// All validation will be provided by ability itself
-	ASC->HandleGameplayEvent(TAG_Ability_Interaction_HarvestCrops, &EventData);
 }
 
 void ACropBase::OnRep_GrowProgress(float PrevValue)

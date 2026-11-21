@@ -4,26 +4,27 @@
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/GAS/UPAbilitySystemComponent.h"
-#include "UltimaProject/GAS/Abilities/Interactions/GameplayAbility_InteractionBase.h"
+
+bool UContextActionHandler::HandleActionFromCDO(AUPPlayerController* PC, TSubclassOf<UContextActionHandler> HandlerClass, AItem* Item)
+{
+	UContextActionHandler* HandlerCDO = HandlerClass->GetDefaultObject<UContextActionHandler>();
+	ensure(HandlerCDO);
+	NULLCHECK_RETURN(HandlerCDO, false);
+
+	return HandlerCDO->HandleAction(PC, Item);
+}
 
 bool UContextActionHandler::HandleAction(AUPPlayerController* PC, AItem* Item)
 {
-	NULLCHECK_RETURN(Item, false);
-
-	FGameplayAbilityTargetData_Interact* InteractDataPtr = new FGameplayAbilityTargetData_Interact();
-	InteractDataPtr->TargetItem = Item;
-
-	UUPAbilitySystemComponent* ASC = PC->GetAbilitySystemComponent();
-	NULLCHECK_RETURN(ASC, false);
-
-	FGameplayEventData EventData;
-	EventData.TargetData = FGameplayAbilityTargetDataHandle(InteractDataPtr);
-
-	return ASC->HandleGameplayEvent(AbilityTag, &EventData) > 0;
+	return true;
 }
 
 bool UContextActionHandler::HandleAction(AUPPlayerController* PC, FContainerItemData& ItemData)
 {
-	ensureAlways(false);
-	return false;
+	return true;
+}
+
+bool UContextActionHandler::IsAvailable(AUPPlayerController* PC, AItem* Item)
+{
+	return true;
 }

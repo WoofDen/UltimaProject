@@ -691,8 +691,13 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	NULLCHECK_RETURN(WorldItem, InvalidItemTransactionResult);
 
 	FItemData& SourceItemData = WorldItem->GetItemDataMutable();
-
 	if (!ensureAlways(SourceItemData.IsValid()))
+	{
+		return InvalidItemTransactionResult;
+	}
+	
+	const UItemDataAsset* ItemData = SourceItemData.GetStaticData();
+	if (!ItemData || !SourceItemData.GetStaticData()->bPickable)
 	{
 		return InvalidItemTransactionResult;
 	}

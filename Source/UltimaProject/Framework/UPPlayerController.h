@@ -5,7 +5,6 @@
 // Game includes
 #include "UltimaProject/Navigation/UPPathFollowingComponent.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
-#include "UltimaProject/Items/Common/Interactable.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UltimaProject/Items/Containers/ContainerTypes.h"
 
@@ -27,7 +26,7 @@ class ULTIMAPROJECT_API AUPPlayerController : public APlayerController
 
 	AUPPlayerController();
 
-	TWeakInterfacePtr<IInteractable> CurrentInteractionFocus;
+	TWeakInterfacePtr<AActor> CurrentInteractionFocus;
 
 	// AActor
 	virtual void BeginPlay() override;
@@ -111,6 +110,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void HandleUseItem();
+	
+	UFUNCTION(Blueprintable)
+	void HandleCallContextMenu();
 
 	UFUNCTION(BlueprintCallable)
 	void HandleLeftClick();

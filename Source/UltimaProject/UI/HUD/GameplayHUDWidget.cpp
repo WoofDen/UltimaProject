@@ -11,6 +11,7 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/PanelWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "UltimaProject/Common/Globals.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
 #include "UltimaProject/Framework/UPPlayerController.h"
 #include "UltimaProject/Items/ActionProcessors/ContextActionHandler.h"
@@ -127,7 +128,7 @@ void UGameplayHUDWidget::CallContextActionsMenu(const AUPPlayerController* PC)
 
 	NULLCHECK(WidgetTree);
 	NULLCHECK(ContextActionWidgetClass);
-	
+
 	ContextMenuMaxDistanceAlive = Item->GetItemDataConst().GetStaticData()->InteractionRadius;
 
 	// Get mouse position
@@ -153,19 +154,15 @@ void UGameplayHUDWidget::CallContextActionsMenu(const AUPPlayerController* PC)
 void UGameplayHUDWidget::OnContextActionActivated(TSubclassOf<UContextActionHandler> HandlerClass)
 {
 	NULLCHECK(ContextMenuWidget);
-	
+
 	AItem* SourceItem = ContextMenuWidget->GetSourceItem();
 
 	ResetContextMenu();
 	NULLCHECK(SourceItem);
 
-	UContextActionHandler* HandlerCDO = HandlerClass->GetDefaultObject<UContextActionHandler>();
-	ensure(HandlerCDO);
-	NULLCHECK(HandlerCDO);
-
 	AUPPlayerController* PC = CastChecked<AUPPlayerController>(GetOwningPlayer(), ECastCheckedType::NullAllowed);
 
-	HandlerCDO->HandleAction(PC, SourceItem);
+	UContextActionHandler::HandleActionFromCDO(PC, HandlerClass, SourceItem);
 }
 
 bool UGameplayHUDWidget::IsContainerOpened(UContainerComponent* ContainerComponent)
