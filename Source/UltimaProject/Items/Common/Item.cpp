@@ -72,7 +72,11 @@ void AItem::SetStaticData(const UItemDataAsset* ItemDataAsset)
 	if (UStaticMesh* Mesh = ItemDataAsset->WorldMesh.LoadSynchronous())
 	{
 		StaticMeshComponent->SetStaticMesh(Mesh);
-		StaticMeshComponent->SetRelativeTransform(ItemDataAsset->WorldMeshTransform);
+
+		if (ItemDataAsset->bOverrideWorldTransform)
+		{
+			StaticMeshComponent->SetRelativeTransform(ItemDataAsset->WorldMeshTransform);
+		}
 
 		const auto Materials = Mesh->GetStaticMaterials();
 		for (int32 i = 0; i < Materials.Num(); i++)

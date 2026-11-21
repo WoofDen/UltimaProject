@@ -61,15 +61,34 @@ protected:
 	int32 SlotIndex = INDEX_NONE;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FContainerLiquidData : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
+private:
+	// Normalized towards the owner's capacity
+	UPROPERTY()
+	uint8 AmountInt8 = 0;
+
+public:
+	UPROPERTY()
 	FLiquidDescriptor Descriptor;
 
-	// Normalized towards the owner's capacity
-	uint8 Amount;
+	float GetAmount() const
+	{
+		return FMath::RoundToFloat((static_cast<float>(AmountInt8) / UINT8_MAX) * 100.f) / 100.f;
+	}
+
+	void AddAmount(const float AmountNormalized)
+	{
+		AmountInt8 = FMath::Clamp<uint8>(static_cast<uint8>(AmountInt8 + (FMath::Clamp(AmountNormalized, 0.f, 1.f) * UINT8_MAX)), 0, UINT8_MAX);
+	}
+
+	void SetAmount(const float AmountNormalized)
+	{
+		AmountInt8 = FMath::Clamp<uint8>(static_cast<uint8>(AmountNormalized * UINT8_MAX), 0, UINT8_MAX);
+	}
 };
 
 USTRUCT()
@@ -210,6 +229,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	int32 SlotsCapacityMod = 0;
 
+	UPROPERTY(EditAnywhere)
+	int32 LiquidCapacityMod = 0;
+
 	FContainerItemData& GetItemMutable(uint32 Handle) const;
 
 	UFUNCTION()
@@ -267,17 +289,30 @@ public:
 
 	// Get container location
 	virtual FVector GetContainerOrigin() const;
+	IContainerOwnerInterface* GetOwnerInterface() const;
+	uint32 GenerateItemHandle() const;
 
+#pragma region Accessors
+
+public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItems();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	virtual TArray<FContainerItemData> GetItemsForDisplay(AController* InstigatorController);
 
-	IContainerOwnerInterface* GetOwnerInterface() const;
-	uint32 GenerateItemHandle() const;
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual const TArray<FContainerLiquidData>& GetLiquids() const;
 
-#pragma region Server low-level item transactions
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	virtual float GetLiquidCapacity();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetLiquidCapacityUsed(bool bNormalized = true);
+
+#pragma endregion
+
+#pragma region Server low-level ITEM transactions
 
 protected:
 	// Container->Container move. Calls UContainer::AddItem
@@ -288,6 +323,14 @@ protected:
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX);
+#pragma endregion
+
+#pragma region Server low-level LIQUID transactions
+	virtual FItemTransactionResult MoveLiquid(UContainerComponent* SourceContainer, uint32 Amount);
+
+	void MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized);
+
+	void RemoveLiquid(const float AmountNormalized);
 #pragma endregion
 
 #pragma region Helpers & validators
@@ -312,7 +355,7 @@ public:
 	virtual bool IsEmpty() const;
 #pragma endregion
 
-#pragma region Server top-level item operations
+#pragma region Server top-level ITEM operations
 
 public:
 	// Add item from an in-world actor
@@ -326,5 +369,13 @@ public:
 	AItem* DropItem(uint32 Handle, uint32 Amount);
 
 	uint32 SpawnItem(const FItemDataDefinition& ItemDataDefinition);
+#pragma endregion
+
+#pragma region Server top-level LIQUID operations
+	// Move liquid from another container
+	void StoreLiquid(UContainerComponent* ContainerComponent, float Amount);
+
+	// Create liquid in container
+	void SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor, float Amount, bool bForceOverflow);
 #pragma endregion
 };

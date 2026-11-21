@@ -11,7 +11,7 @@
  * It's attached to the pawn itself and replicated only to the owner
  * Used for one-time rewards ( gathering/foraging skills etc )
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS()
 class ULTIMAPROJECT_API UDisposableContainerComponent : public UContainerComponent
 {
 	GENERATED_BODY()

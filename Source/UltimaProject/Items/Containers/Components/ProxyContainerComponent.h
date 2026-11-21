@@ -11,7 +11,7 @@
  * When a player opens an external container (a chest) a temporary proxy container is created and provides its replicated content as long as it is open
  * The items array will be always empty there to avoid dupe risks
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS()
 class ULTIMAPROJECT_API UProxyContainerComponent : public UContainerComponent
 {
 	GENERATED_BODY()

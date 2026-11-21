@@ -13,7 +13,10 @@ public class UltimaProjectEditorTarget : TargetRules
 		
 		ExtraModuleNames.AddRange(new string[]
 		{
-			"UltimaProject", "UMG", "NetCore"
+			"UltimaProject", 
+			"UltimaProjectEditor",
+			"UMG", 
+			"NetCore",
 		});
 	}
 }

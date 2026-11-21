@@ -22,6 +22,12 @@ void UExternalContainerComponent::BeginPlay()
 		{
 			UItemFactoryHelper::SpawnItemInContainer(Data, this);
 		}
+
+		const float LiquidCapacity = GetLiquidCapacity();
+		for (const auto& DefaultLiquidPair : DefaultLiquids)
+		{
+			SpawnLiquid(DefaultLiquidPair.Key, DefaultLiquidPair.Value, false);
+		}
 	}
 }
 

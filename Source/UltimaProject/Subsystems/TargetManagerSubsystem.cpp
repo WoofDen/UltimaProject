@@ -101,7 +101,7 @@ void UTargetManagerSubsystem::RunTargetingScheme()
 {
 	if (!CurrentScheme.IsValidIndex(CurrentSchemeIndex))
 	{
-		OnTargetDataReady.ExecuteIfBound(this);
+		OnTargetDataReady.ExecuteIfBound();
 		return;
 	}
 
@@ -153,7 +153,7 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 {
 	if (!CurrentScheme.IsValidIndex(CurrentSchemeIndex))
 	{
-		OnTargetDataReady.ExecuteIfBound(this);
+		OnTargetDataReady.ExecuteIfBound();
 		return;
 	}
 
@@ -164,16 +164,26 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 		// Validate actor
 		const FTargetDescriptor_Actor& TargetActorDescriptor = TargetSchemeRow.Get<FTargetDescriptor_Actor>();
 
-		if (TargetActorDescriptor.TargetClasses.IsEmpty())
+		if (TargetActorDescriptor.Filters.IsEmpty())
 		{
 			bTargetIsValid = true;
 			SelectedActors.Add(Actor);
 		}
-		else
+		else if (AItem* ItemActor = Cast<AItem>(Actor))
 		{
-			for (const UClass* FilterClass : TargetActorDescriptor.TargetClasses)
+			for (const TSubclassOf<UObject> FilterClass : TargetActorDescriptor.Filters)
 			{
-				if (!Actor->IsA(FilterClass))
+				bool bMatch = false;
+				if (FilterClass->IsInA(AActor::StaticClass()))
+				{
+					bMatch = ItemActor->IsA(FilterClass);
+				}
+				else if (FilterClass->IsChildOf(UActorComponent::StaticClass()))
+				{
+					bMatch = ItemActor->GetComponentByClass(FilterClass.Get()) != nullptr;
+				}
+				
+				if (!bMatch)
 				{
 					continue;
 				}
@@ -202,6 +212,8 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 
 void UTargetManagerSubsystem::OnTargetInvalid()
 {
+	UGameplayHUDWidget::GameLog(PlayerController.Get(), TEXT("Invalid target."), false, UP::LogStyle::Default);
+
 	StopTargeting();
 	OnTargetCancel.ExecuteIfBound();
 }

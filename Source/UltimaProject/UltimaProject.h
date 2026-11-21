@@ -4,3 +4,7 @@
 
 #include "CoreMinimal.h"
 
+class FUltimaProjectModule : public FDefaultGameModuleImpl
+{
+};
+

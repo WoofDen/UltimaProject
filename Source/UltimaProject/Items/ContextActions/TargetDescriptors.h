@@ -33,5 +33,5 @@ struct FTargetDescriptor_Actor : public FTargetDescriptor
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<AActor>> TargetClasses;
+	TArray<TSubclassOf<UObject>> Filters;
 };

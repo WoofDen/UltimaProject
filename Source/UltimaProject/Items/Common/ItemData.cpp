@@ -88,6 +88,11 @@ const UItemDataAsset* FItemData::GetStaticData() const
 	return StaticData;
 }
 
+bool FItemData::Is(const TSoftObjectPtr<UItemDataAsset>& DataAssetSoftPtr) const
+{
+	return DataAssetSoftPtr == StaticDataSoftPtr;
+}
+
 void FItemData::SetStaticData(const UItemDataAsset* InStaticData)
 {
 	ensureAlways(::IsValid(InStaticData));

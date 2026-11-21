@@ -20,7 +20,16 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TArray<FItemDataDefinition> DefaultItems;
 
-	UPROPERTY(VisibleAnywhere, Replicated)
+	// Default liquids. Value is percentage of the capacity
+
+	UPROPERTY(EditAnywhere)
+	TArray<FLiquidDescriptor> Test;
+	
+	UPROPERTY(EditAnywhere, meta=(ClampMin=0, ClampMax=1))
+	TMap<FLiquidDescriptor, float> DefaultLiquids;
+
+	// An empty container flag
+	UPROPERTY(VisibleInstanceOnly, Replicated)
 	bool bIsExplicitlyEmpty = false;
 
 public:

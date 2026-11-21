@@ -24,7 +24,8 @@ namespace UnrealBuildTool.Rules
 				"GameplayTags", 
 				"GameplayTasks",
 				"NetCore",
-				"SlateCore"
+				"SlateCore",
+				"Slate"
 			});
 
 			PrivateDependencyModuleNames.AddRange(new string[]

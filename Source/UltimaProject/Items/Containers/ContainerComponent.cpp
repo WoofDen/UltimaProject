@@ -338,6 +338,33 @@ int32 UContainerComponent::GetSlotsTotal() const
 	return SlotsCapacityMod;
 }
 
+float UContainerComponent::GetLiquidCapacity()
+{
+	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())
+	{
+		return DataAsset->DefaultLiquidCapacity + LiquidCapacityMod;
+	}
+
+	return LiquidCapacityMod;
+}
+
+float UContainerComponent::GetLiquidCapacityUsed(bool bNormalized)
+{
+	float Result = 0;
+	for (const auto& LiquidData : LiquidsData.Liquids)
+	{
+		Result += LiquidData.GetAmount();
+	}
+
+	Result = FMath::Clamp(Result, 0.f, 1.f);
+	if (!bNormalized)
+	{
+		Result *= GetLiquidCapacity();
+	}
+
+	return Result;
+}
+
 bool UContainerComponent::HasItem(const uint32 ItemHandle) const
 {
 	return ContainerItems.Items.ContainsByPredicate([&ItemHandle](const FContainerItemData& ContainerItemData)
@@ -700,6 +727,113 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	return Result;
 }
 
+FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* SourceContainer, uint32 Amount)
+{
+	// Container -> Container move
+	check(GetOwner()->HasAuthority());
+	NULLCHECK_RETURN(SourceContainer, GItemTransactionResult_Error);
+
+	const float TargetCapacityTotal = GetLiquidCapacity();
+	const float TargetCapacityAvailable = TargetCapacityTotal - GetLiquidCapacityUsed(false);
+	const float SafeAmount = FMath::Min(TargetCapacityAvailable, Amount);
+
+	const float SourceCapacityTotal = SourceContainer->GetLiquidCapacity();
+	if (SourceCapacityTotal <= 0)
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	const float SourceAmountNormalized = SafeAmount / SourceCapacityTotal;
+
+	if (SourceAmountNormalized <= 0)
+	{
+		return GItemTransactionResult_Error;
+	}
+
+	// Removed liquids. Key is a not normalized amount of liquid towards this container
+	TArray<TPair<float, FLiquidDescriptor>> ExtractedLiquids;
+
+	// Remove liquid from source
+	for (auto It = SourceContainer->LiquidsData.Liquids.CreateIterator(); It; ++It)
+	{
+		/**
+		 * Math example
+		 * - Source container is a bottle of 100(ml) capacity, which is filled on 25 with water
+		 * - Target container is a bottle of 500(ml) capacity
+		 * - Move half of source(0.5) to target
+		 */
+
+		// 0.25 * 0.5 = 0.125 -> % of source container we remove
+		const float RemovedAmount = It->GetAmount() * SourceAmountNormalized;
+		It->AddAmount(-RemovedAmount);
+
+		// (0.25 * 100) / 500 = 0.05 -> % of this container we need to add
+		const float AmountToAddNormalized = (It->GetAmount() * SourceCapacityTotal) / TargetCapacityTotal;
+		ExtractedLiquids.Add({AmountToAddNormalized, It->Descriptor});
+
+		if (It->GetAmount() < 0.01f)
+		{
+			It.RemoveCurrent();
+			SourceContainer->LiquidsData.MarkArrayDirty();
+		}
+	}
+
+	for (const auto ExtractedLiquid : ExtractedLiquids)
+	{
+		// All cuts and checks were made till this point and we assume this addition will always succeed
+		MoveLiquid(ExtractedLiquid.Value, ExtractedLiquid.Key);
+	}
+
+	return Amount == SafeAmount
+		       ? EItemTransactionResultCode::FullyMoved
+		       : EItemTransactionResultCode::PartiallyMoved;
+}
+
+void UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized)
+{
+	SafeAmountNormalized = FMath::Clamp(SafeAmountNormalized, 0.0f, 1.0f);
+
+	// Try merge existing liquid
+	for (FContainerLiquidData& ExistingLiquid : LiquidsData.Liquids)
+	{
+		if (ExistingLiquid.Descriptor == LiquidDescriptor)
+		{
+			ExistingLiquid.AddAmount(SafeAmountNormalized);
+			LiquidsData.MarkItemDirty(ExistingLiquid);
+
+			return;
+		}
+	}
+
+	// If no existing liquid with the same props, add a new one
+	// Hardcore liquids limit
+	constexpr int32 LiquidsLimit = 100;
+	if (LiquidsData.Liquids.Num() >= LiquidsLimit)
+	{
+		// Destroy the smallest one
+		int32 SmallestIdx = 0;
+		float SmallestAmount = 0.f;
+		for (int32 i = 0; i < LiquidsData.Liquids.Num(); i++)
+		{
+			if (LiquidsData.Liquids[i].GetAmount() < SmallestAmount)
+			{
+				SmallestIdx = i;
+				SmallestAmount = LiquidsData.Liquids[i].GetAmount();
+			}
+		}
+
+		LiquidsData.Liquids.RemoveAt(SmallestIdx);
+		LiquidsData.MarkArrayDirty();
+	}
+
+	FContainerLiquidData Data;
+	Data.SetAmount(SafeAmountNormalized);
+	Data.Descriptor = LiquidDescriptor;
+
+	FContainerLiquidData& AddedItem = LiquidsData.Liquids.Add_GetRef(Data);
+	LiquidsData.MarkItemDirty(AddedItem);
+}
+
 bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
@@ -738,6 +872,19 @@ uint32 UContainerComponent::GenerateItemHandle() const
 	return ++Handle;
 }
 
+void UContainerComponent::RemoveLiquid(const float AmountNormalized)
+{
+	if (AmountNormalized <= 0)
+	{
+		return;
+	}
+
+	for (auto& Liquid : LiquidsData.Liquids)
+	{
+		Liquid.AddAmount(-AmountNormalized);
+	}
+}
+
 UContainerComponent* UContainerComponent::GetOriginContainer()
 {
 	return this;
@@ -768,6 +915,11 @@ TArray<FContainerItemData> UContainerComponent::GetItemsForDisplay(AController* 
 
 	// There we may differ results, based on the instigator.
 	return GetItems();
+}
+
+const TArray<FContainerLiquidData>& UContainerComponent::GetLiquids() const
+{
+	return LiquidsData.Liquids;
 }
 
 IContainerOwnerInterface* UContainerComponent::GetOwnerInterface() const
@@ -870,4 +1022,42 @@ uint32 UContainerComponent::SpawnItem(const FItemDataDefinition& ItemDataDefinit
 	AddItem(ItemDataDefinition, ResultHandle);
 
 	return ResultHandle;
+}
+
+void UContainerComponent::StoreLiquid(UContainerComponent* ContainerComponent, float Amount)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	MoveLiquid(ContainerComponent, Amount);
+}
+
+void UContainerComponent::SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor, float Amount, bool bForceOverflow)
+{
+	if (Amount <= 0)
+	{
+		return;
+	}
+
+	const float TargetCapacityTotal = GetLiquidCapacity();
+	const float TargetCapacityAvailable = TargetCapacityTotal - GetLiquidCapacityUsed(false);
+
+	float SafeAmount;
+	// Resolve container liquids overflow
+	if (bForceOverflow)
+	{
+		// Store all the amount. If not enough space, free it by removing the origin liquid
+		SafeAmount = Amount;
+
+		if (SafeAmount > TargetCapacityAvailable)
+		{
+			const float FreeAmountNormalized = (Amount - TargetCapacityAvailable) / TargetCapacityTotal;
+			RemoveLiquid(FreeAmountNormalized);
+		}
+	}
+	else
+	{
+		// Store as much as possible without overflowing the container
+		SafeAmount = FMath::Min(TargetCapacityAvailable, Amount);
+	}
+
+	MoveLiquid(LiquidDescriptor, SafeAmount);
 }

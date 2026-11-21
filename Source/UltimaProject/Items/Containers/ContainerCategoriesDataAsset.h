@@ -27,13 +27,16 @@ class ULTIMAPROJECT_API UContainerCategoriesDataAsset : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere)
-	bool bSupportLiquids; 
+	bool bSupportLiquids = false;
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UContainerWidget> ContainerWidgetClass;
-	
+
 	UPROPERTY(EditDefaultsOnly)
 	uint32 DefaultSlotCapacity = 9;
-	
+
+	UPROPERTY(EditDefaultsOnly, meta=(ClampMin = 0))
+	float DefaultLiquidCapacity = 100.f;
+
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 };

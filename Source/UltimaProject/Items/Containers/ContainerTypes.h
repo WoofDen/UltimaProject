@@ -30,12 +30,26 @@ struct FLiquidDescriptor
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	virtual ~FLiquidDescriptor() = default;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ESubstance Type;
 
 	// 256 bit
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	uint64 MetaFlags = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UEnum> MetaFlagsEnum;
+
+	virtual uint32 GetTypeHash() const
+	{
+		const uint32 EnumHash = MetaFlagsEnum.GetPtrTypeHash();
+		const uint32 TypeHash = static_cast<uint8>(Type);
+		const uint32 FlagsHash = static_cast<uint32>(MetaFlags);
+
+		return HashCombine(EnumHash, TypeHash, FlagsHash);
+	}
 
 	FLiquidDescriptor()
 	{
@@ -47,34 +61,43 @@ struct FLiquidDescriptor
 	{
 	}
 
+	bool operator==(const FLiquidDescriptor& Other) const
+	{
+		return Type == Other.Type && MetaFlags == Other.MetaFlags;
+	}
+
 	template <typename EnumType>
 	void SetMeta(EnumType MetaFlag, bool Value)
 	{
-		static_assert(std::is_enum_v<EnumType> == true);
-		static_assert(sizeof(EnumType) == 255);
+		static_assert(std::is_enum_v<EnumType>);
 
-		uint8 IntValue = static_cast<uint8>(MetaFlag);
+		const uint64 Bit = uint64(1) << static_cast<uint8>(MetaFlag);
+		checkSlow(static_cast<uint64>(MetaFlag) < 64);
 
 		if (Value)
 		{
-			MetaFlags = MetaFlags | 1 << IntValue;
+			MetaFlags |= Bit;
 		}
 		else
 		{
-			MetaFlags = MetaFlags & ~(1 << IntValue);
+			MetaFlags &= ~Bit;
 		}
 	}
 
 	template <typename EnumType>
-	bool GetMeta(EnumType MetaFlag)
+	bool GetMeta(EnumType MetaFlag) const
 	{
-		static_assert(std::is_enum_v<EnumType> == true);
-		static_assert(sizeof(EnumType) == 255);
+		static_assert(std::is_enum_v<EnumType>);
+		checkSlow(static_cast<uint64>(MetaFlag) < 64);
 
-		uint8 IntValue = static_cast<uint8>(MetaFlag);
-		return MetaFlags & (1 << IntValue);
+		return (MetaFlags & (uint64(1) << static_cast<uint8>(MetaFlag))) != 0;
 	}
 };
+
+inline uint32 GetTypeHash(const FLiquidDescriptor& Item)
+{
+	return Item.GetTypeHash();
+}
 
 namespace UP::Liquids
 {

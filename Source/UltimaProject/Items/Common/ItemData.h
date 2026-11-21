@@ -108,6 +108,9 @@ public:
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bOverrideWorldTransform = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(EditCondition = bOverrideWorldTransform, EditConditionHides))
 	FTransform WorldMeshTransform;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -118,11 +121,11 @@ public:
 
 	// Using item, call context menus, activate or open containers radius
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float InteractionRadius = 500.f;	
+	float InteractionRadius = 500.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
-	
+
 	UPROPERTY(EditDefaultsOnly)
 	TArray<FItemContextAction> ContextActions;
 };
@@ -142,7 +145,7 @@ public:
 	FItemDataDefinition();
 	FItemDataDefinition(const FItemData& Item);
 	FItemDataDefinition(TSoftObjectPtr<const UItemDataAsset> StaticDataIn, FItemInstanceData InstanceDataIn);
-	
+
 	// Data asset with static props
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
@@ -212,6 +215,9 @@ public:
 	FItemDataDefinition GetDataDefinition() const;
 
 	const UItemDataAsset* GetStaticData() const;
+	
+	bool Is(const TSoftObjectPtr<UItemDataAsset>& DataAssetSoftPtr) const;
+
 	void SetStaticData(const UItemDataAsset* InStaticData);
 	void LoadStaticData();
 
