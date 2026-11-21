@@ -83,4 +83,13 @@ public:
 
 	void StartTargetingScheme(const TArray<TInstancedStruct<FTargetDescriptor>>& Scheme);
 	void StopTargeting();
+	
+	
+	AActor* GetSelectedActor(const int32 Index);
+	
+	template<typename T>
+	T* GetSelectedActor(const int32 Index)
+	{
+		return Cast<T>(GetSelectedActor(Index));
+	}
 };

@@ -181,19 +181,19 @@ int32 UProxyContainerComponent::GetSlotsTotal() const
 FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint32 AmountToMove)
 {
 	// World->Container move
-	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
+	NULLCHECK_SP_RETURN(OriginContainer, InvalidItemTransactionResult);
 	return OriginContainer->MoveItem(WorldItem);
 }
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove)
 {
-	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
+	NULLCHECK_SP_RETURN(OriginContainer, InvalidItemTransactionResult);
 	return OriginContainer->MoveItem(SourceContainer, Handle, AmountToMove);
 }
 
 FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove)
 {
-	NULLCHECK_SP_RETURN(OriginContainer, GItemTransactionResult_Error);
+	NULLCHECK_SP_RETURN(OriginContainer, InvalidItemTransactionResult);
 	return OriginContainer->MoveItem(Handle, OutItem);
 }
 

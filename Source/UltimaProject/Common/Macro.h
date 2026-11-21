@@ -63,7 +63,7 @@
 }
 
 #define ABILITYCHECK(variable, replicate) if (!(variable)) { \
-	CancelAbility(Handle, ActorInfo, ActivationInfo, replicate); \
+	CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), replicate); \
 	return; \
 }
 

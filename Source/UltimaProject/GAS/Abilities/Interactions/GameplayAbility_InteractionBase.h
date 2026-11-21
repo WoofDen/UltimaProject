@@ -17,7 +17,10 @@ struct FGameplayAbilityTargetData_Interact : public FGameplayAbilityTargetData
 {
 	GENERATED_USTRUCT_BODY()
 
+	// World item source of interaction request
 	TWeakObjectPtr<AItem> TargetItem;
+	
+	// Container item source of interaction request
 	TWeakObjectPtr<UContainerComponent> TargetContainer;
 	uint32 ContainerItemHandle = FContainerItemData::InvalidHandle;
 
@@ -59,7 +62,7 @@ class ULTIMAPROJECT_API UGameplayAbility_InteractionBase : public UGameplayAbili
 
 	friend class UItemLogicProcessor;
 
-	FGameplayAbilityTargetData_Interact Data;
+	FGameplayAbilityTargetData_Interact InteractTargetData;
 	FVector ItemOrigin = UPGlobals::InvalidLocation;
 
 	UPROPERTY(Transient)
@@ -73,15 +76,15 @@ class ULTIMAPROJECT_API UGameplayAbility_InteractionBase : public UGameplayAbili
 	uint32 TargetSelectedBindingHandle;
 	uint32 TargetCancelledBindingHandle;
 
-	virtual void OnTargetReady();
-	virtual void OnTargetCancelled();
-
 protected:
+	virtual void OnClientDataReady();
+	virtual void OnClientDataCancelled();	
+
 	bool CanUseItem() const;
 
 	const FGameplayAbilityTargetData_Interact& GetTargetData() const
 	{
-		return Data;
+		return InteractTargetData;
 	}
 
 	// Set of target sequences ( Select target, Where to go, etc )
@@ -90,6 +93,8 @@ protected:
 	TArray<TInstancedStruct<FTargetDescriptor>> TargetingScheme;
 
 	UTargetManagerSubsystem* GetTargetManager();
+	
+	virtual void OnTargetDataReceived(const FGameplayAbilityTargetDataHandle& GameplayAbilityTargetDataHandle, FGameplayTag GameplayTag);
 public:
 	UGameplayAbility_InteractionBase();
 
@@ -99,7 +104,6 @@ public:
 	                         const FGameplayAbilityActivationInfo ActivationInfo,
 	                         FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
 	                         const FGameplayEventData* TriggerEventData = nullptr) override;
-
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	                             const FGameplayAbilityActorInfo* ActorInfo,
 	                             const FGameplayAbilityActivationInfo ActivationInfo,

@@ -17,7 +17,7 @@ bool UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definit
 	FItemData ItemData = FItemData(Definition);
 	ItemData.LoadStaticData();
 
-	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
+	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess(true))
 	{
 		return false;
 	}
@@ -36,7 +36,7 @@ bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* Ite
 	ItemData.PreInitialize();
 	ItemData.SetAmount(1);
 
-	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess())
+	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess(true))
 	{
 		return false;
 	}

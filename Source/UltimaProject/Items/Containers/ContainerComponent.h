@@ -121,11 +121,18 @@ struct FContainerLiquidArray : public FFastArraySerializer
 	UPROPERTY(EditAnywhere)
 	TArray<FContainerLiquidData> Liquids;
 
+	UPROPERTY()
+	TWeakObjectPtr<UContainerComponent> ContainerComponent;
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{
 		return FFastArraySerializer::FastArrayDeltaSerialize<FContainerLiquidData, FContainerLiquidArray>(
 			Liquids, DeltaParms, *this);
 	}
+
+	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	void PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize);
+	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
 };
 
 template <>
@@ -164,30 +171,26 @@ struct FItemTransactionResult
 {
 	GENERATED_BODY()
 
-	int8 ResultCode = 0;
+	FItemTransactionResult() = default;
+	FItemTransactionResult(uint32 InRequestedAmount, uint32 InMovedAmount = 0);
+
+	uint32 RequestedAmount = 0;
 	uint32 MovedAmount = 0;
 
-	FItemTransactionResult()
-	{
-		ResultCode = 0;
-	}
+	// uint32 RemovedAsSideEffects = 0;
 
-	FItemTransactionResult(EItemTransactionResultCode Code)
-	{
-		ResultCode |= static_cast<uint8>(Code);
-	}
+	uint32 SourceRecordsRemoved = 0;
+	uint32 TargetRecordsRemoved = 0;
 
-	void operator+=(const EItemTransactionResultCode Code)
+	inline bool IsSuccess(bool bAllowPartial) const
 	{
-		ResultCode |= static_cast<uint8>(Code);
-	}
-
-	inline bool IsSuccess() const { return ResultCode & static_cast<int8>(EItemTransactionResultCode::FullyMoved); }
+		return bAllowPartial
+			       ? MovedAmount > 0
+			       : MovedAmount >= RequestedAmount;
+	};
 };
 
-static FItemTransactionResult GItemTransactionResult_Success{EItemTransactionResultCode::FullyMoved};
-static FItemTransactionResult GItemTransactionResult_Error{EItemTransactionResultCode::Error};
-static FItemTransactionResult GItemTransactionResult_Capacity{EItemTransactionResultCode::NotEnoughCapacity};
+inline FItemTransactionResult InvalidItemTransactionResult = FItemTransactionResult(1, 0);
 
 /**
  * Basic container impl. It does not relate on owner/actor and don't perform checks on any external conditions ( owner, player that moves item, etc )
@@ -262,11 +265,16 @@ public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnContainerItemsChanged);
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLiquidsChanged);
+
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemChanged OnContainerItemChanged;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnContainerItemsChanged OnContainerItemsChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnLiquidsChanged OnLiquidsChanged;
 
 	virtual void OnClientOpened(class AUPPlayerController* Instigator);
 	virtual void OnClientContainerClosed(class AUPPlayerController* Instigator);
@@ -276,6 +284,9 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemsChanged();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void NotifyLiquidsChanged();
 
 	void SetCategory(EContainerCategory InCategory);
 
@@ -326,11 +337,13 @@ protected:
 #pragma endregion
 
 #pragma region Server low-level LIQUID transactions
-	virtual FItemTransactionResult MoveLiquid(UContainerComponent* SourceContainer, uint32 Amount);
+	// Container->Container liquid move
+	// SourceAmount is REAL value, not a normalized one
+	virtual FItemTransactionResult MoveLiquid(UContainerComponent* SourceContainer, float SourceAmountReal);
 
-	void MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized);
+	FItemTransactionResult MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized);
 
-	void RemoveLiquid(const float AmountNormalized);
+	FItemTransactionResult RemoveLiquid(const float AmountNormalized);
 #pragma endregion
 
 #pragma region Helpers & validators

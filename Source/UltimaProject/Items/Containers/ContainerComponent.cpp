@@ -98,6 +98,59 @@ void FContainerItemArray::PreReplicatedRemove(const TArrayView<int32> RemovedInd
 	}
 }
 
+void FContainerLiquidArray::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
+{
+	NULLCHECK_SP(ContainerComponent);
+
+	if (!AddedIndices.IsEmpty())
+	{
+		// Propagate changes to client
+		if (UContainerComponent* ListenContainer = ContainerComponent->GetListenContainer())
+		{
+			ListenContainer->NotifyLiquidsChanged();
+		}
+	}
+}
+
+void FContainerLiquidArray::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
+{
+	NULLCHECK_SP(ContainerComponent);
+
+	if (ChangedIndices.IsEmpty())
+	{
+		return;
+	}
+
+	// Propagate changes to client
+	if (UContainerComponent* ListenContainer = ContainerComponent->GetListenContainer())
+	{
+		ListenContainer->NotifyLiquidsChanged();
+	}
+}
+
+void FContainerLiquidArray::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
+{
+	NULLCHECK_SP(ContainerComponent);
+	if (RemovedIndices.IsEmpty())
+	{
+		return;
+	}
+
+	// Propagate changes to the client
+	// The replicated prop. ( LiquidsData ) still contains the removed idx., so postpone the update
+	if (UWorld* World = ContainerComponent->GetWorld())
+	{
+		World->GetTimerManager().SetTimerForNextTick(
+			[WeakContainerPtr = TWeakObjectPtr(ContainerComponent->GetOriginContainer())]
+			{
+				if (WeakContainerPtr.IsValid())
+				{
+					WeakContainerPtr->NotifyLiquidsChanged();
+				}
+			});
+	}
+}
+
 const TCHAR* UContainerComponent::EnumToString(EContainerCategory Category)
 {
 	switch (Category)
@@ -136,6 +189,12 @@ uint32 UContainerComponent::GetSlotsAvailable() const
 }
 
 UContainerComponent::UContainerComponent()
+{
+}
+
+FItemTransactionResult::FItemTransactionResult(uint32 InRequestedAmount, uint32 InMovedAmount)
+	: RequestedAmount(InRequestedAmount)
+	  , MovedAmount(InMovedAmount)
 {
 }
 
@@ -198,7 +257,9 @@ UContainerCategoriesDataAsset* UContainerComponent::GetCategoryData() const
 void UContainerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
 	ContainerItems.ContainerComponent = this;
+	LiquidsData.ContainerComponent = this;
 
 	if (AActor* Owner = GetOwner())
 	{
@@ -410,7 +471,8 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32
 
 	ResultHandle = AddedItem.GetHandle();
 
-	return GItemTransactionResult_Success;
+	FItemTransactionResult Result(1, 1);
+	return Result;
 }
 
 FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer,
@@ -419,14 +481,14 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 {
 	// Container->Container move
 	check(GetOwner() && GetOwner()->HasAuthority());
-	NULLCHECK_RETURN(SourceContainer, EItemTransactionResultCode::Error);
+	NULLCHECK_RETURN(SourceContainer, InvalidItemTransactionResult);
 
 	FContainerItemData& SourceItem = SourceContainer->GetItemMutable(Handle);
 
 	// FContainerItemData should always have a valid container
 	if (!ensureAlways(SourceItem.IsValid()) || AmountToMove <= 0)
 	{
-		return GItemTransactionResult_Error;
+		return InvalidItemTransactionResult;
 	}
 
 	// Clamp to items real amount
@@ -436,11 +498,11 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 
 	const bool bMoveWholeStack = AmountToMove >= SourceItem.GetAmount();
 	const bool bSameContainer = SourceItem.Container == this;
-	FItemTransactionResult Result;
+	FItemTransactionResult Result(AmountToMove);
 
 	if (bSameContainer && bMoveWholeStack)
 	{
-		return GItemTransactionResult_Success;
+		return FItemTransactionResult(AmountToMove, AmountToMove);
 	}
 
 	FItemData& SourceItemData = SourceItem.ItemData;
@@ -475,19 +537,21 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 			}
 		}
 
-		// If the item amount is 0, remove the item 
+		// The source item amount is 0, remove the item
 		if (SourceItem.GetAmount() == 0)
 		{
 			SourceContainer->RemoveItem(SourceItem);
 
-			Result += EItemTransactionResultCode::FullyMoved;
+			Result.MovedAmount = AmountToMove;
+			Result.SourceRecordsRemoved++;
+
 			return Result;
 		}
 
 		// Something is left but the amount target is reached
 		if (AmountToMove - Result.MovedAmount == 0)
 		{
-			Result += EItemTransactionResultCode::FullyMoved;
+			Result.MovedAmount = AmountToMove;
 			return Result;
 		}
 	}
@@ -495,12 +559,6 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 	// Splitting the item OR trying to put what left after stacking requires a free slot
 	if (ContainerItems.Items.Num() >= GetSlotsTotal())
 	{
-		Result += EItemTransactionResultCode::NotEnoughCapacity;
-		if (Result.MovedAmount > 0)
-		{
-			Result += EItemTransactionResultCode::PartiallyMoved;
-		}
-
 		return Result;
 	}
 
@@ -522,22 +580,19 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 		// Source amount depleted, remove
 		if (SourceContainerComponent->RemoveItem(SourceItem))
 		{
-			Result += EItemTransactionResultCode::FullyMoved;
 			bOriginItemWasRemoved = true;
 		}
 		else
 		{
 			// Couldn't remove the item
-			Result += EItemTransactionResultCode::Error;
 			return Result;
 		}
 	}
 
 	// Add a new item
 	FItemTransactionResult AddResult = AddItem(NewItemDefinition);
-	if (AddResult.IsSuccess())
+	if (ensureAlways(AddResult.IsSuccess(false)))
 	{
-		Result += EItemTransactionResultCode::FullyMoved;
 		Result.MovedAmount += NewItemAmount;
 	}
 	else
@@ -546,7 +601,7 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 		if (bOriginItemWasRemoved)
 		{
 			FItemTransactionResult bRevertAdditionResult = SourceContainerComponent->AddItem(NewItemDefinition);
-			ensureAlways(bRevertAdditionResult.IsSuccess());
+			ensureAlways(bRevertAdditionResult.IsSuccess(false));
 		}
 		else
 		{
@@ -568,16 +623,16 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	FContainerItemData& SourceItem = GetItemMutable(ContainerItemHandle);
 	if (!SourceItem.IsValid())
 	{
-		return GItemTransactionResult_Error;
+		return InvalidItemTransactionResult;
 	}
 
 	FTransform Transform;
 	if (!FindDropTransform(ContainerItemHandle, Transform))
 	{
-		return GItemTransactionResult_Error;
+		return InvalidItemTransactionResult;
 	}
 
-	FItemTransactionResult Result;
+	FItemTransactionResult Result(AmountToMove);
 	UContainerComponent* SourceContainerComponent = SourceItem.Container.Get();
 
 	AmountToMove = FMath::Min(AmountToMove, SourceItem.GetAmount());
@@ -591,7 +646,8 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 		// Remove item from the container. In case of succeed it will be destroyed
 		if (!RemoveItem(SourceItem))
 		{
-			return GItemTransactionResult_Error;
+			Result.SourceRecordsRemoved++;
+			return InvalidItemTransactionResult;
 		}
 	}
 	else
@@ -603,7 +659,6 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	{
 		OutItem = ResultItem;
 
-		Result += EItemTransactionResultCode::FullyMoved;
 		Result.MovedAmount = AmountToMove;
 
 		// The source item remains with amount reduced
@@ -614,13 +669,11 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	}
 	else
 	{
-		Result += EItemTransactionResultCode::Error;
-
 		// Revert
 		if (bMoveWholeStack)
 		{
 			FItemTransactionResult RevertAdditionResult = SourceContainerComponent->AddItem(DataDefinition);
-			ensureAlways(RevertAdditionResult.IsSuccess());
+			ensureAlways(RevertAdditionResult.IsSuccess(false));
 		}
 		else
 		{
@@ -635,18 +688,18 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 {
 	// World->Container move. 
 	check(GetOwner()->HasAuthority());
-	NULLCHECK_RETURN(WorldItem, GItemTransactionResult_Error);
+	NULLCHECK_RETURN(WorldItem, InvalidItemTransactionResult);
 
 	FItemData& SourceItemData = WorldItem->GetItemDataMutable();
 
 	if (!ensureAlways(SourceItemData.IsValid()))
 	{
-		return GItemTransactionResult_Error;
+		return InvalidItemTransactionResult;
 	}
 
 	AmountToMove = FMath::Min(AmountToMove, SourceItemData.GetAmount());
 
-	FItemTransactionResult Result;
+	FItemTransactionResult Result(AmountToMove);
 
 	// Iterate all items in the container and move as many items as possible
 	for (FContainerItemData& Item : ContainerItems.Items)
@@ -674,7 +727,6 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	{
 		// Item is completely stacked into a new container
 		WorldItem->RemoveFromWorld();
-		Result += EItemTransactionResultCode::FullyMoved;
 
 		return Result;
 	}
@@ -682,10 +734,8 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	// The target amount reached
 	if (Result.MovedAmount >= AmountToMove)
 	{
-		Result += EItemTransactionResultCode::FullyMoved;
 		return Result;
 	}
-
 
 	// Can't stack anything, remains will be added as new items
 	uint32 RemainingAmount = AmountToMove - Result.MovedAmount;
@@ -701,22 +751,13 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 
 		ItemDefinition.InstanceData.Amount = CurrentIterationAmount;
 
-		if (AddItem(ItemDefinition).IsSuccess())
+		if (AddItem(ItemDefinition).IsSuccess(false))
 		{
 			SourceItemData.ModifyAmount(-CurrentIterationAmount);
 			RemainingAmount -= CurrentIterationAmount;
 
 			Result.MovedAmount += CurrentIterationAmount;
 		}
-	}
-
-	if (RemainingAmount == 0)
-	{
-		Result += EItemTransactionResultCode::FullyMoved;
-	}
-	else
-	{
-		Result += EItemTransactionResultCode::PartiallyMoved;
 	}
 
 	if (SourceItemData.GetAmount() == 0)
@@ -727,28 +768,29 @@ FItemTransactionResult UContainerComponent::MoveItem(AItem* WorldItem, uint32 Am
 	return Result;
 }
 
-FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* SourceContainer, uint32 Amount)
+FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* SourceContainer, float SourceAmountReal)
 {
 	// Container -> Container move
 	check(GetOwner()->HasAuthority());
-	NULLCHECK_RETURN(SourceContainer, GItemTransactionResult_Error);
+	NULLCHECK_RETURN(SourceContainer, InvalidItemTransactionResult);
 
 	const float TargetCapacityTotal = GetLiquidCapacity();
-	const float TargetCapacityAvailable = TargetCapacityTotal - GetLiquidCapacityUsed(false);
-	const float SafeAmount = FMath::Min(TargetCapacityAvailable, Amount);
+
+	const float TargetCapacityAvailable = TargetCapacityTotal - GetLiquidCapacityUsed(false); // how much can fit
+	const float SourceCapacityUsed = SourceContainer->GetLiquidCapacityUsed(false); // how much the source has
+
+	const float SafeAmountReal = FMath::Min3(TargetCapacityAvailable, SourceAmountReal, SourceCapacityUsed);
 
 	const float SourceCapacityTotal = SourceContainer->GetLiquidCapacity();
-	if (SourceCapacityTotal <= 0)
+	if (SourceCapacityTotal <= 0 || SafeAmountReal <= 0.f)
 	{
-		return GItemTransactionResult_Error;
+		return InvalidItemTransactionResult;
 	}
 
-	const float SourceAmountNormalized = SafeAmount / SourceCapacityTotal;
+	// How much we remove from Source
+	const float SourceAmountNormalized = SafeAmountReal / SourceCapacityTotal;
 
-	if (SourceAmountNormalized <= 0)
-	{
-		return GItemTransactionResult_Error;
-	}
+	FItemTransactionResult Result(SafeAmountReal);
 
 	// Removed liquids. Key is a not normalized amount of liquid towards this container
 	TArray<TPair<float, FLiquidDescriptor>> ExtractedLiquids;
@@ -764,34 +806,50 @@ FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* Sour
 		 */
 
 		// 0.25 * 0.5 = 0.125 -> % of source container we remove
-		const float RemovedAmount = It->GetAmount() * SourceAmountNormalized;
-		It->AddAmount(-RemovedAmount);
+		float RealAmount = It->GetAmount();
+		float RemoveAmount = RealAmount * SourceAmountNormalized;
+
+		if ((It->GetAmount() - RemoveAmount) < UP::Liquids::MinNormalizedValue)
+		{
+			RemoveAmount = It->GetAmount();
+		}
+
+		It->AddAmount(-RemoveAmount);
 
 		// (0.25 * 100) / 500 = 0.05 -> % of this container we need to add
-		const float AmountToAddNormalized = (It->GetAmount() * SourceCapacityTotal) / TargetCapacityTotal;
+
+		// Convert source amount fraction to target amount fraction
+		const float AmountToAddNormalized = (RemoveAmount * SourceCapacityTotal) / TargetCapacityTotal;
 		ExtractedLiquids.Add({AmountToAddNormalized, It->Descriptor});
 
-		if (It->GetAmount() < 0.01f)
+		// Remove liquid from source if nothing left
+		if (It->GetAmount() < UP::Liquids::MinNormalizedValue)
 		{
 			It.RemoveCurrent();
 			SourceContainer->LiquidsData.MarkArrayDirty();
+		}
+		else
+		{
+			SourceContainer->LiquidsData.MarkItemDirty(*It);
 		}
 	}
 
 	for (const auto ExtractedLiquid : ExtractedLiquids)
 	{
-		// All cuts and checks were made till this point and we assume this addition will always succeed
+		// All cuts and checks have to be done at this point and we assume this addition will always succeed
 		MoveLiquid(ExtractedLiquid.Value, ExtractedLiquid.Key);
+		Result.MovedAmount += ExtractedLiquid.Key * TargetCapacityTotal;
 	}
 
-	return Amount == SafeAmount
-		       ? EItemTransactionResultCode::FullyMoved
-		       : EItemTransactionResultCode::PartiallyMoved;
+	NotifyLiquidsChanged();
+
+	return Result;
 }
 
-void UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized)
+FItemTransactionResult UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized)
 {
 	SafeAmountNormalized = FMath::Clamp(SafeAmountNormalized, 0.0f, 1.0f);
+	float RealAmount = GetLiquidCapacity() * SafeAmountNormalized;
 
 	// Try merge existing liquid
 	for (FContainerLiquidData& ExistingLiquid : LiquidsData.Liquids)
@@ -801,7 +859,7 @@ void UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, 
 			ExistingLiquid.AddAmount(SafeAmountNormalized);
 			LiquidsData.MarkItemDirty(ExistingLiquid);
 
-			return;
+			return FItemTransactionResult(RealAmount, RealAmount);
 		}
 	}
 
@@ -832,6 +890,9 @@ void UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, 
 
 	FContainerLiquidData& AddedItem = LiquidsData.Liquids.Add_GetRef(Data);
 	LiquidsData.MarkItemDirty(AddedItem);
+
+	FItemTransactionResult Result(RealAmount, RealAmount);
+	return Result;
 }
 
 bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
@@ -855,6 +916,14 @@ bool UContainerComponent::RemoveItem(FContainerItemData& ItemData)
 	return true;
 }
 
+void UContainerComponent::NotifyLiquidsChanged_Implementation()
+{
+	if (UContainerComponent* ListenContainer = GetListenContainer())
+	{
+		ListenContainer->OnLiquidsChanged.Broadcast();
+	}
+}
+
 void UContainerComponent::SetCategory(EContainerCategory InCategory)
 {
 	Category = InCategory;
@@ -872,17 +941,33 @@ uint32 UContainerComponent::GenerateItemHandle() const
 	return ++Handle;
 }
 
-void UContainerComponent::RemoveLiquid(const float AmountNormalized)
+FItemTransactionResult UContainerComponent::RemoveLiquid(const float AmountNormalized)
 {
-	if (AmountNormalized <= 0)
+	if (AmountNormalized <= 0 || LiquidsData.Liquids.Num() == 0)
 	{
-		return;
+		return InvalidItemTransactionResult;
 	}
 
-	for (auto& Liquid : LiquidsData.Liquids)
+	const float Capacity = GetLiquidCapacity();
+	const float RealAmount = AmountNormalized * Capacity;
+
+	FItemTransactionResult Result(RealAmount);
+
+	for (auto It = LiquidsData.Liquids.CreateIterator(); It; ++It)
 	{
-		Liquid.AddAmount(-AmountNormalized);
+		float RemoveAmountNormalized = FMath::Min(AmountNormalized, It->GetAmount());
+		It->AddAmount(-RemoveAmountNormalized);
+
+		if (It->GetAmount() < UP::Liquids::MinNormalizedValue)
+		{
+			It.RemoveCurrent();
+			Result.TargetRecordsRemoved++;
+		}
+
+		Result.MovedAmount += RemoveAmountNormalized;
 	}
+
+	return Result;
 }
 
 UContainerComponent* UContainerComponent::GetOriginContainer()
@@ -1027,7 +1112,14 @@ uint32 UContainerComponent::SpawnItem(const FItemDataDefinition& ItemDataDefinit
 void UContainerComponent::StoreLiquid(UContainerComponent* ContainerComponent, float Amount)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	MoveLiquid(ContainerComponent, Amount);
+
+	Amount = FMath::Clamp(Amount, 0, FLT_MAX);
+
+	FItemTransactionResult Result = MoveLiquid(ContainerComponent, Amount);
+	if (Result.MovedAmount != 0)
+	{
+		NotifyLiquidsChanged();
+	}
 }
 
 void UContainerComponent::SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor, float Amount, bool bForceOverflow)
@@ -1059,5 +1151,9 @@ void UContainerComponent::SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor,
 		SafeAmount = FMath::Min(TargetCapacityAvailable, Amount);
 	}
 
-	MoveLiquid(LiquidDescriptor, SafeAmount);
+	auto Result = MoveLiquid(LiquidDescriptor, SafeAmount);
+	if (Result.IsSuccess(true))
+	{
+		NotifyLiquidsChanged();
+	}
 }

@@ -25,6 +25,12 @@ enum class ESubstance : uint8
 	Wart = 10
 };
 
+// Required base class
+UENUM()
+enum class ELiquidMetaFlags : uint64
+{
+};
+
 USTRUCT(BlueprintType)
 struct FLiquidDescriptor
 {
@@ -63,7 +69,9 @@ struct FLiquidDescriptor
 
 	bool operator==(const FLiquidDescriptor& Other) const
 	{
-		return Type == Other.Type && MetaFlags == Other.MetaFlags;
+		return Type == Other.Type
+			&& MetaFlagsEnum == Other.MetaFlagsEnum
+			&& ((MetaFlagsEnum == nullptr && Other.MetaFlagsEnum == nullptr) || MetaFlags == Other.MetaFlags);
 	}
 
 	template <typename EnumType>
@@ -94,6 +102,7 @@ struct FLiquidDescriptor
 	}
 };
 
+
 inline uint32 GetTypeHash(const FLiquidDescriptor& Item)
 {
 	return Item.GetTypeHash();
@@ -101,5 +110,7 @@ inline uint32 GetTypeHash(const FLiquidDescriptor& Item)
 
 namespace UP::Liquids
 {
+	constexpr float MinNormalizedValue = 0.05f;
+
 	const FLiquidDescriptor Water = FLiquidDescriptor{ESubstance::Water};
 }

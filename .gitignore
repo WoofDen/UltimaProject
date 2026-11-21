@@ -1,5 +1,30 @@
+# Unused AI configs
+.cursor
+.gemini
+.mcp.json.*
+ue-mcp*
+GEMINI.md
+
+# Git cache
+.github
+
+# Other
+sync.ffs_db
+.vscode
+.vsconfig
+.tmp*
+
+# Sln
+UltimaProject.sln*
+UltimaProject.uproject*
+*.slnx
+
 # Rider
 .idea
+Plugins/Developer/RiderLink
+
+# ue-mcp
+Plugins/UE_MCP_Bridge 
 
 # Visual Studio 2015 user specific files
 .vs/

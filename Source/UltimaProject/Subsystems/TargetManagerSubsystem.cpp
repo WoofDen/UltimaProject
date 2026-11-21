@@ -169,18 +169,18 @@ void UTargetManagerSubsystem::OnTargetConfirmed(AActor* Actor)
 			bTargetIsValid = true;
 			SelectedActors.Add(Actor);
 		}
-		else if (AItem* ItemActor = Cast<AItem>(Actor))
+		else
 		{
 			for (const TSubclassOf<UObject> FilterClass : TargetActorDescriptor.Filters)
 			{
 				bool bMatch = false;
 				if (FilterClass->IsInA(AActor::StaticClass()))
 				{
-					bMatch = ItemActor->IsA(FilterClass);
+					bMatch = Actor->IsA(FilterClass);
 				}
 				else if (FilterClass->IsChildOf(UActorComponent::StaticClass()))
 				{
-					bMatch = ItemActor->GetComponentByClass(FilterClass.Get()) != nullptr;
+					bMatch = Actor->GetComponentByClass(FilterClass.Get()) != nullptr;
 				}
 				
 				if (!bMatch)
@@ -280,4 +280,15 @@ void UTargetManagerSubsystem::StopTargeting()
 			CursorWidget->SetTargetMode(false);
 		}
 	}
+}
+
+AActor* UTargetManagerSubsystem::GetSelectedActor(const int32 Index)
+{
+	if (SelectedActors.IsValidIndex(Index))
+	{
+		const TWeakObjectPtr<AActor> ActorWeakPtr = SelectedActors[Index];
+		return ActorWeakPtr.Get();
+	}
+	
+	return nullptr;
 }

@@ -2,8 +2,12 @@
 
 #include "GameplayAbility_InteractionBase.h"
 
+#include <functional>
+
+#include "AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "LandscapeRender.h"
 #include "Abilities/Tasks/AbilityTask.h"
 #include "UltimaProject/Common/GameplayTags.h"
 #include "UltimaProject/Common/InputHelpersFunctionLibrary.h"
@@ -28,7 +32,7 @@ void UGameplayAbility_InteractionBase::Initialize()
 	// Load item data...
 
 	// ... from world item
-	if (AItem* Item = Data.TargetItem.Get())
+	if (AItem* Item = InteractTargetData.TargetItem.Get())
 	{
 		const FItemData& ItemData = Item->GetItemDataConst();
 
@@ -38,7 +42,7 @@ void UGameplayAbility_InteractionBase::Initialize()
 	// ... from container item
 	else
 	{
-		const FContainerItemData& ContainerItemData = Data.TargetContainer->GetItem(Data.ContainerItemHandle);
+		const FContainerItemData& ContainerItemData = InteractTargetData.TargetContainer->GetItem(InteractTargetData.ContainerItemHandle);
 		if (ContainerItemData.IsValid())
 		{
 			const FItemData& ItemData = ContainerItemData.GetItemData();
@@ -46,7 +50,7 @@ void UGameplayAbility_InteractionBase::Initialize()
 			ItemDataAsset = ItemData.GetStaticData();
 		}
 
-		if (const IContainerOwnerInterface* ContainerOwner = Data.TargetContainer->GetOwnerInterface())
+		if (const IContainerOwnerInterface* ContainerOwner = InteractTargetData.TargetContainer->GetOwnerInterface())
 		{
 			if (const AActor* Owner = ContainerOwner->GetOwningActor())
 			{
@@ -56,12 +60,12 @@ void UGameplayAbility_InteractionBase::Initialize()
 	}
 }
 
-void UGameplayAbility_InteractionBase::OnTargetReady()
+void UGameplayAbility_InteractionBase::OnClientDataReady()
 {
-	EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+	check(!GetCurrentActorInfo()->IsNetAuthority());
 }
 
-void UGameplayAbility_InteractionBase::OnTargetCancelled()
+void UGameplayAbility_InteractionBase::OnClientDataCancelled()
 {
 	CancelAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true);
 }
@@ -101,6 +105,15 @@ UTargetManagerSubsystem* UGameplayAbility_InteractionBase::GetTargetManager()
 	return TargetManagerCached.Get();
 }
 
+void UGameplayAbility_InteractionBase::OnTargetDataReceived(const FGameplayAbilityTargetDataHandle& GameplayAbilityTargetDataHandle, FGameplayTag GameplayTag)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	ABILITYCHECK(ASC, true);
+	
+	// Free target data
+	ASC->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
+}
+
 UGameplayAbility_InteractionBase::UGameplayAbility_InteractionBase()
 {
 	SetAssetTags(FGameplayTagContainer(TAG_Ability_UseItem));
@@ -129,7 +142,7 @@ void UGameplayAbility_InteractionBase::PreActivate(const FGameplayAbilitySpecHan
 		return;
 	}
 
-	Data = *TargetData;
+	InteractTargetData = *TargetData;
 
 	Initialize();
 
@@ -148,13 +161,38 @@ void UGameplayAbility_InteractionBase::ActivateAbility(const FGameplayAbilitySpe
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
+	UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get();
+	ABILITYCHECK(ASC, true);
+
 	UTargetManagerSubsystem* TargetManager = GetTargetManager();
 	if (GetCurrentActivationInfo().ActivationMode == EGameplayAbilityActivationMode::Predicting)
 	{
-		TargetManager->OnTargetCancel.BindUObject(this, &UGameplayAbility_InteractionBase::OnTargetCancelled);
-		TargetManager->OnTargetDataReady.BindUObject(this, &UGameplayAbility_InteractionBase::OnTargetReady);
+		TargetManager->OnTargetCancel.BindUObject(this, &UGameplayAbility_InteractionBase::OnClientDataCancelled);
+		TargetManager->OnTargetDataReady.BindUObject(this, &UGameplayAbility_InteractionBase::OnClientDataReady);
 
 		TargetManager->StartTargetingScheme(TargetingScheme);
+	}
+
+	// SERVER - subscribe to target data sent by client
+	if (!TargetingScheme.IsEmpty() && ActorInfo->IsNetAuthority())
+	{
+		const FPredictionKey PredictionKey =
+			ActivationInfo.GetActivationPredictionKey();
+
+		ASC->AbilityTargetDataSetDelegate(
+			Handle,
+			PredictionKey
+		).AddUObject(
+			this,
+			&ThisClass::OnTargetDataReceived
+		);
+
+		// Handle the case where target data arrived before
+		// we registered the delegate.
+		ASC->CallReplicatedTargetDataDelegatesIfSet(
+			Handle,
+			PredictionKey
+		);
 	}
 }
 

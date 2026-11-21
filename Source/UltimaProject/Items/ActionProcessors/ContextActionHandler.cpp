@@ -10,14 +10,14 @@ bool UContextActionHandler::HandleAction(AUPPlayerController* PC, AItem* Item)
 {
 	NULLCHECK_RETURN(Item, false);
 
-	FGameplayAbilityTargetData_Interact* DropDataPtr = new FGameplayAbilityTargetData_Interact();
-	DropDataPtr->TargetItem = Item;
+	FGameplayAbilityTargetData_Interact* InteractDataPtr = new FGameplayAbilityTargetData_Interact();
+	InteractDataPtr->TargetItem = Item;
 
 	UUPAbilitySystemComponent* ASC = PC->GetAbilitySystemComponent();
 	NULLCHECK_RETURN(ASC, false);
 
 	FGameplayEventData EventData;
-	EventData.TargetData = FGameplayAbilityTargetDataHandle(DropDataPtr);
+	EventData.TargetData = FGameplayAbilityTargetDataHandle(InteractDataPtr);
 
 	return ASC->HandleGameplayEvent(AbilityTag, &EventData) > 0;
 }
