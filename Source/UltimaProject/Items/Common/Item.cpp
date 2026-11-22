@@ -1,9 +1,6 @@
 ﻿#include "Item.h"
-
-#include "Misc/TypeContainer.h"
 #include "Net/UnrealNetwork.h"
 #include "UltimaProject/Common/Macro.h"
-#include "UltimaProject/Framework/UPPlayerState.h"
 #include "UltimaProject/World/HeartbeatSystem/HeartbeatItemProcessor.h"
 
 AItem::AItem()
@@ -56,19 +53,22 @@ bool AItem::SetItemData(FItemData&& NewData)
 	ItemData = NewData;
 	ItemData.LoadStaticData();
 
-	if (const UItemDataAsset* StaticData = ItemData.GetStaticData())
-	{
-		SetStaticData(StaticData);
-	}
+	OnStaticDataSet();
 
 	return true;
 }
 
-void AItem::SetStaticData(const UItemDataAsset* ItemDataAsset)
+void AItem::OnStaticDataSet()
 {
-	NULLCHECK(ItemDataAsset);
 	NULLCHECK(StaticMeshComponent);
 
+	const UItemDataAsset* ItemDataAsset = ItemData.GetStaticData();
+	NULLCHECK_LOG(ItemDataAsset, Error, "Failed to initialize static data");
+
+	// Default properties
+	ItemData.InstanceData.Properties = ItemDataAsset->DefaultProperties;
+
+	// Visual overrides
 	if (UStaticMesh* Mesh = ItemDataAsset->WorldMesh.LoadSynchronous())
 	{
 		StaticMeshComponent->SetStaticMesh(Mesh);
@@ -130,7 +130,7 @@ void AItem::BeginPlay()
 		}
 		else
 		{
-			SetStaticData(DataAsset);
+			OnStaticDataSet();
 		}
 	}
 	else if (HasAuthority())
@@ -159,9 +159,9 @@ void AItem::OnConstruction(const FTransform& Transform)
 
 	ItemDefault.ResetCache();
 
-	if (const UItemDataAsset* StaticData = ItemDefault.GetStaticData())
+	if (ItemDefault.GetStaticData() != nullptr)
 	{
-		SetStaticData(StaticData);
+		OnStaticDataSet();
 	}
 	// TODO add an invalid item visuals to highlight the invalid actor
 }
@@ -171,7 +171,7 @@ void AItem::OnRep_ItemData(FItemData PrevValue)
 	if (PrevValue.GetStaticData() == nullptr)
 	{
 		// Late client initialization
-		SetStaticData(GetItemStaticData());
+		OnStaticDataSet();
 	}
 
 	OnItemDataChanged();

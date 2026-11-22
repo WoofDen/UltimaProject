@@ -16,14 +16,14 @@ void UExternalContainerComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// Server only
+	// Spawn defaults
 	if (AActor* Owner = GetOwner(); Owner && Owner->HasAuthority())
 	{
 		for (const auto& Data : DefaultItems)
 		{
-			UItemFactoryHelper::SpawnItemInContainer(Data, this);
+			SpawnItem(Data);
 		}
 
-		const float LiquidCapacity = GetLiquidCapacity();
 		for (const auto& DefaultLiquidPair : DefaultLiquids)
 		{
 			SpawnLiquid(DefaultLiquidPair.Key, DefaultLiquidPair.Value, false);

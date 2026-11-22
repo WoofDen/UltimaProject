@@ -110,7 +110,7 @@ protected:
 
 public:
 	void ResetContextMenu();
-	void CallContextActionsMenu(const AUPPlayerController* PC);
+	void ToggleContextMenu(const AUPPlayerController* PC);
 	void OnContextActionActivated(TSubclassOf<UContextActionHandler> HandlerClass);
 #pragma endregion
 };

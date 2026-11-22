@@ -10,12 +10,11 @@ UItemFactoryHelper::UItemFactoryHelper()
 }
 
 bool UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definition,
-                                                    UContainerComponent* Container)
+                                              UContainerComponent* Container)
 {
 	NULLCHECK_RETURN(Container, false);
 
 	FItemData ItemData = FItemData(Definition);
-	ItemData.LoadStaticData();
 
 	if (!Container->AddItem(MoveTemp(ItemData)).IsSuccess(true))
 	{
@@ -26,7 +25,7 @@ bool UItemFactoryHelper::SpawnItemInContainer(const FItemDataDefinition& Definit
 }
 
 bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* ItemDataAsset,
-                                                             UContainerComponent* Container)
+                                                       UContainerComponent* Container)
 {
 	NULLCHECK_RETURN(ItemDataAsset, false);
 
@@ -44,8 +43,10 @@ bool UItemFactoryHelper::SpawnItemInContainerFromAsset(const UItemDataAsset* Ite
 	return true;
 }
 
-AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FItemDataDefinition& ItemData,
-                                     const FTransform& Transform, bool DuplicateItemData/* = false*/)
+AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject,
+                                     const FItemDataDefinition& ItemData,
+                                     const FTransform& Transform,
+                                     bool DuplicateItemData/* = false*/)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 	if (!World)
@@ -77,6 +78,7 @@ AItem* UItemFactoryHelper::SpawnItem(const UObject* WorldContextObject, const FI
 		Item->Destroy();
 		return nullptr;
 	}
+
 	Item->FinishSpawning(Transform);
 
 	return Item;

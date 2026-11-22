@@ -115,7 +115,7 @@ void UGameplayHUDWidget::ResetContextMenu()
 	}
 }
 
-void UGameplayHUDWidget::CallContextActionsMenu(const AUPPlayerController* PC)
+void UGameplayHUDWidget::ToggleContextMenu(const AUPPlayerController* PC)
 {
 	NULLCHECK(PC);
 
@@ -125,6 +125,13 @@ void UGameplayHUDWidget::CallContextActionsMenu(const AUPPlayerController* PC)
 
 	AItem* Item = Cast<AItem>(UInputHelpersFunctionLibrary::GetActorUnderCursor(PC, ECC_InteractableChannel));
 	NULLCHECK(Item);
+	
+	// If a menu is already active for the same item - remove it
+	if (IsValid(ContextMenuWidget) && ContextMenuWidget->GetSourceItem() == Item)
+	{
+		ResetContextMenu();
+		return;
+	}
 
 	NULLCHECK(WidgetTree);
 	NULLCHECK(ContextActionWidgetClass);

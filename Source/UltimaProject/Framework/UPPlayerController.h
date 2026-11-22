@@ -111,7 +111,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void HandleUseItem();
 	
-	UFUNCTION(Blueprintable)
+	UFUNCTION(BlueprintCallable)
 	void HandleCallContextMenu();
 
 	UFUNCTION(BlueprintCallable)

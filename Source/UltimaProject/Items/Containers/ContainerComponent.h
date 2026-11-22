@@ -344,6 +344,8 @@ protected:
 	FItemTransactionResult MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized);
 
 	FItemTransactionResult RemoveLiquid(const float AmountNormalized);
+	FItemTransactionResult RemoveLiquid(const float AmountNormalized, TMap<FLiquidDescriptor, float>& RemovedLiquids);
+
 #pragma endregion
 
 #pragma region Helpers & validators
@@ -359,6 +361,8 @@ public:
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
+	
+	bool CanStoreLiquids() const;
 
 	// Can reach & access this container
 	virtual bool IsAccessible(const AController* Instigator) const;
@@ -390,5 +394,11 @@ public:
 
 	// Create liquid in container
 	void SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor, float Amount, bool bForceOverflow);
+	
+	// Remove fraction of liquids from container
+	void ConsumeLiquid(const float Amount);
+	
+	// Remove a fraction of liquids from the container and return
+	TMap<FLiquidDescriptor, float> ExtractLiquid(const float Amount);
 #pragma endregion
 };

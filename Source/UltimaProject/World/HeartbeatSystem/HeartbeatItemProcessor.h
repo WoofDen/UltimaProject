@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "UltimaProject/Items/Containers/ContainerComponent.h"
 #include "UObject/Interface.h"
 #include "HeartbeatItemProcessor.generated.h"
@@ -16,19 +15,37 @@ class ULTIMAPROJECT_API UHeartbeatItemProcessor : public UObject
 	GENERATED_BODY()
 
 	static TMap<const UClass*, UHeartbeatItemProcessor*> InstancePool;
-	
+
 protected:
-	uint8 HumidityChangePerMinute = 50;
-	uint8 TemperatureChangePerMinute = 70;
-	
+	// How many of ml is soaked per second by a single item
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(ClampMin = 0.f))
+	float HumidityConsumptionRate = 0.f;
+
+	// % how much humidity is grown per s
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(ClampMin = 0.f, ClampMax = 1.f))
+	float HumidityGrowRate = 0.f;
+
+	// How fast the whole item loses temperature per second
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float ThermalExchangeCoefficient = 0.01f;
+
 	uint8 CalculateProp(uint8 Current, uint8 Target, uint8 SpeedPerMinute, uint64 TimePassed);
-	virtual bool HeartbeatInternal(FItemData& ItemData, bool bWorldItem, int64 CurrentTime, int32 TimePassed);
-	
+
+	float CalculateTemperature(float EnvironmentTemperature, float ItemTemperature, float ThermalCoefficient, float DeltaTime) const;
+
+	void ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
+	void ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
+
+	UFUNCTION(BlueprintNativeEvent)
+	bool HeartbeatInternal(UPARAM(ref) FItemData& ItemData, UPARAM(ref) const FItemDataLocation& ItemLocation, int64 CurrentTime, int32 TimePassed);
+
+	// ~UObject
 	virtual void BeginDestroy() override;
+	// ~UObject end
 
 public:
 	virtual bool ProcessHeartbeat(AItem* WorldItem, int64 CurrentTime, int32 TimePassed);
 	virtual bool ProcessHeartbeat(FContainerItemData& ItemData, int64 CurrentTime, int32 TimePassed);
 
-	static UHeartbeatItemProcessor* GetInstance(const UClass* InstanceClass);
+	static UHeartbeatItemProcessor* GetInstance(const UClass* InstanceClass, bool bCreateIfMissing = true);
 };

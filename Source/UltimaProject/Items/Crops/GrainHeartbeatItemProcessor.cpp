@@ -1,10 +1,10 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "CropsHeartbeatItemProcessor.h"
+#include "GrainHeartbeatItemProcessor.h"
 
-bool UCropsHeartbeatItemProcessor::HeartbeatInternal(FItemData& ItemData, bool bWorldItem, int64 CurrentTime, int32 TimePassed)
+bool UGrainHeartbeatItemProcessor::HeartbeatInternal_Implementation(FItemData& ItemData, const FItemDataLocation& ItemLocation, int64 CurrentTime, int32 TimePassed)
 {
-	if (!Super::HeartbeatInternal(ItemData, bWorldItem, CurrentTime, TimePassed))
+	if (!Super::HeartbeatInternal_Implementation(ItemData, ItemLocation, CurrentTime, TimePassed))
 	{
 		return false;
 	}
@@ -14,11 +14,11 @@ bool UCropsHeartbeatItemProcessor::HeartbeatInternal(FItemData& ItemData, bool b
 	float TemperatureNormalized = ItemData.GetIntPropNormalized(EItemIntProperty::Temperature);
 	if (HumidityNormalized > .5f && TemperatureNormalized <= .7f)
 	{
-		uint8 GrowCurrent = ItemData.GetIntProp(EItemIntProperty::Progress);
+		uint8 GrowCurrent = ItemData.GetIntProp(EItemIntProperty::Grow);
 		uint8 GrowTarget = UINT8_MAX;
 
 		uint8 GrowResult = CalculateProp(GrowCurrent, GrowTarget, GerminationPerMinute, TimePassed);
-		ItemData.SetProp(EItemIntProperty::Progress, GrowResult);
+		ItemData.SetProp(EItemIntProperty::Grow, GrowResult);
 	}
 
 	return true;

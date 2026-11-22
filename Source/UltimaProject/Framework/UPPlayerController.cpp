@@ -19,6 +19,7 @@
 #include "UltimaProject/Items/Containers/Interfaces/ContainerOwnerInterface.h"
 #include "UltimaProject/UI/HUD/CursorWidget.h"
 #include "UltimaProject/UI/HUD/GameplayHUDWidget.h"
+#include "UltimaProject/UI/Interfaces/HoverListenerInterface.h"
 
 struct FGameplayAbilityTargetData_PickupOperation;
 struct FGameplayAbilityTargetData_DropOperation;
@@ -34,6 +35,18 @@ void AUPPlayerController::UpdateCursor()
 {
 	AActor* HitActor = UInputHelpersFunctionLibrary::GetActorUnderCursor(this, ECC_InteractableChannel);
 	const bool bHit = HitActor != nullptr;
+
+	if (CurrentInteractionFocus != HitActor)
+	{
+		if (CurrentInteractionFocus.IsValid() && CurrentInteractionFocus->Implements<UHoverListenerInterface>())
+		{
+			IHoverListenerInterface::Execute_OnUnhovered(CurrentInteractionFocus.Get());
+		}
+		if (HitActor && HitActor->Implements<UHoverListenerInterface>())
+		{
+			IHoverListenerInterface::Execute_OnHovered(HitActor);
+		}
+	}
 
 	const bool bFocusLost = !bHit && CurrentInteractionFocus.IsValid();
 	const bool bFocusChanged = bHit && HitActor && CurrentInteractionFocus != HitActor;
@@ -406,7 +419,7 @@ void AUPPlayerController::HandleUseItem()
 		else
 		{
 			NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
-			GameplayHUDWidgetInstance->CallContextActionsMenu(this);
+			GameplayHUDWidgetInstance->ToggleContextMenu(this);
 		}
 	}
 }
@@ -417,7 +430,7 @@ void AUPPlayerController::HandleCallContextMenu()
 	NULLCHECK(CursorItem);
 
 	NULLCHECK_LOG(GameplayHUDWidgetInstance, Error, "PC Invalid HUD value");
-	GameplayHUDWidgetInstance->CallContextActionsMenu(this);
+	GameplayHUDWidgetInstance->ToggleContextMenu(this);
 }
 
 void AUPPlayerController::HandleLeftClick()

@@ -15,6 +15,7 @@ public class UltimaProjectEditor : ModuleRules
                 "SlateCore",
 				"UnrealEd",
                 "PropertyEditor",
+                "InputCore",
                 "UltimaProject"
             }
         );

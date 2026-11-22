@@ -2,49 +2,92 @@
 
 #pragma once
 
-// Engine includes
+#include "UltimaProject/Items/Containers/ContainerTypes.h"
 #include "UObject/Object.h"
-#include "Engine/DataAsset.h"
-
-// Generated include
 #include "ItemData.generated.h"
 
 class UContextActionHandler;
 
-UENUM()
+UENUM(BlueprintType)
 enum class EItemIntProperty : uint8
 {
 	Humidity = 0,
 	Temperature = 1,
-
-	// Meaning varies from item to item
-	Progress = 2,
-
+	Grow = 2,
 	Durability = 3,
 
-	MAX
+	MAX UMETA(Hidden)
 };
 
 namespace UP::ItemProperty
 {
 	namespace Temperature
 	{
-		constexpr uint8 Frozen = UINT8_MAX * .1f;
-		constexpr uint8 Cold = UINT8_MAX * .25f;
-		constexpr uint8 Default = UINT8_MAX * .5f;
-		constexpr uint8 Hot = UINT8_MAX * .75f;
-		constexpr uint8 Burning = UINT8_MAX * 0.9;
+		// Temperature values represented in real values (Celsius)
+		const FVector2f Limits(-100.f, 100.f);
+
+		constexpr float Frozen = 0.f;
+		constexpr float Cold = 8.f;
+		constexpr float Default = 20.f;
+		constexpr float Hot = 40.f;
+		constexpr float Burning = 60.f;
 	}
 
 	namespace Humidity
 	{
-		constexpr uint8 Default = UINT8_MAX * 0.1f;
+		// Humidity level represented as percentage
+		constexpr uint8 Default = 0.f;
 		constexpr uint8 Wet = UINT8_MAX * 0.2f;
-		constexpr uint8 Soaked = UINT8_MAX * 0.5f;
+		constexpr uint8 Soaked = UINT8_MAX * 0.7;
 	}
 }
 
 class AItem;
+
+/**
+ * FItemLocation
+ * Describes ItemData location
+ * If the item is an in-world item, the Item property will be set
+ * Otherwise, ContainerComponent & ContainerItemHandle expected to be set
+ */
+USTRUCT(BlueprintType)
+struct FItemDataLocation
+{
+	GENERATED_BODY()
+
+	FItemDataLocation() = default;
+
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<AItem> Item;
+
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<class UContainerComponent> ContainerComponent;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 ContainerItemHandle = 0;
+};
+
+USTRUCT()
+struct FItemProperties
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<EItemIntProperty> PropertyKeys;
+
+	UPROPERTY()
+	TArray<uint8> PropertyValues;
+
+	UPROPERTY(EditAnywhere)
+	FLiquidDescriptor SolidSubstance;
+
+	bool operator==(const FItemProperties& Other) const
+	{
+		return PropertyKeys == Other.PropertyKeys
+			&& PropertyValues == Other.PropertyValues
+			&& SolidSubstance == Other.SolidSubstance;
+	}
+};
 
 USTRUCT(BlueprintType)
 struct FItemInstanceData
@@ -54,8 +97,8 @@ struct FItemInstanceData
 	FItemInstanceData();
 	FItemInstanceData(uint32 InAmount);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<uint8> IntProps;
+	UPROPERTY(EditAnywhere)
+	FItemProperties Properties;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Amount;
@@ -63,7 +106,7 @@ struct FItemInstanceData
 	bool operator==(const FItemInstanceData& Other) const
 	{
 		return Amount == Other.Amount
-			&& IntProps == Other.IntProps;
+			&& Properties == Other.Properties;
 	}
 
 	bool IsValid() const;
@@ -95,6 +138,8 @@ class UItemDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	UItemDataAsset();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<AItem> ActorClass;
 
@@ -105,7 +150,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
 	float InteractionRadius = 500.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
+	UPROPERTY(EditDefaultsOnly, Category="General")
+	TArray<EItemIntProperty> EnabledProperties;
+
+	UPROPERTY(EditDefaultsOnly, Category="General")
+	FItemProperties DefaultProperties;
+
+	UPROPERTY(EditDefaultsOnly, Category="General")
 	TSubclassOf<class UHeartbeatItemProcessor> HeartbeatProcessorClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="General")
@@ -193,7 +244,7 @@ struct ULTIMAPROJECT_API FItemData
 
 protected:
 	// Data asset with static props
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
 
 	UPROPERTY(Transient, BlueprintReadOnly)
@@ -250,6 +301,6 @@ public:
 
 	// Props
 	void SetProp(EItemIntProperty Prop, uint8 Value);
-	int8 GetIntProp(EItemIntProperty Prop) const;
+	uint8 GetIntProp(EItemIntProperty Prop, uint8 DefaultValue = 0) const;
 	float GetIntPropNormalized(EItemIntProperty Prop) const;
 };

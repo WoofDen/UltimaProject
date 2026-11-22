@@ -60,8 +60,7 @@ public:
 
 	bool SetItemData(FItemData&& NewData);
 
-	UFUNCTION(BlueprintCallable)
-	virtual void SetStaticData(const UItemDataAsset* ItemDataAsset);
+	virtual void OnStaticDataSet();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
