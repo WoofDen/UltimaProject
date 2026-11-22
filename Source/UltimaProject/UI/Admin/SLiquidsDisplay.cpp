@@ -141,11 +141,13 @@ void SLiquidsDisplay::Refresh(bool bForce)
 	TArray<FLiquidRow> NewRows;
 	float NewCapacity = 0.f;
 	float NewUsed = 0.f;
+	float NewUsedNormalized = 0.f;
 
 	if (UContainerComponent* C = Container.Get())
 	{
 		NewCapacity = C->GetLiquidCapacity();
-		NewUsed = C->GetLiquidCapacityUsed(true);
+		NewUsed = C->GetLiquidCapacityUsed(false);
+		NewUsedNormalized = C->GetLiquidCapacityUsed(true);
 
 		for (const FContainerLiquidData& Liquid : C->GetLiquids())
 		{
@@ -154,20 +156,23 @@ void SLiquidsDisplay::Refresh(bool bForce)
 			Row.Type = Liquid.Descriptor.Type;
 			Row.Flags = Liquid.Descriptor.MetaFlags;
 			Row.Enum = Liquid.Descriptor.MetaFlagsEnum;
-			Row.Fraction = FMath::Clamp(Liquid.GetAmount(), 0.f, 1.f);
+			
+			float Fraction = Liquid.GetAmount() / NewCapacity;
+			Row.Fraction = FMath::Clamp(Fraction, 0.f, 1.f);
 			NewRows.Add(Row);
 		}
 	}
 
 	if (!bForce && bHasData
-		&& NewCapacity == Capacity && NewUsed == UsedNormalized && NewRows == Rows)
+		&& NewCapacity == Capacity && NewUsed == Used && NewRows == Rows)
 	{
 		return;
 	}
 
 	Rows = MoveTemp(NewRows);
 	Capacity = NewCapacity;
-	UsedNormalized = NewUsed;
+	Used = NewUsed;
+	UsedNormalized = NewUsedNormalized;
 	bHasData = true;
 
 	RebuildRows();
@@ -191,11 +196,11 @@ void SLiquidsDisplay::RebuildRows()
 	// --- Total row (always first) ---
 	{
 		FNumberFormattingOptions CapacityFormat;
-		CapacityFormat.MaximumFractionalDigits = 1;
+		CapacityFormat.MaximumFractionalDigits = 2;
 
 		const FText TotalText = FText::Format(
-			INVTEXT("{0}% / {1}"),
-			FText::AsNumber(FMath::RoundToInt(UsedNormalized * 100.f)),
+			INVTEXT("{0} / {1}"),
+			FText::AsNumber(Used, &CapacityFormat),
 			FText::AsNumber(Capacity, &CapacityFormat));
 
 		RowsBox->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, RowSpacing)

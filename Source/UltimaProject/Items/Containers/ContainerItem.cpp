@@ -104,11 +104,19 @@ void UContainerItem::SetItem(const FContainerItemData& Item)
 	{
 		StatusList->ClearChildren();
 
-		const uint8 Temperature = Item.GetItemData().GetIntProp(EItemIntProperty::Temperature);
-		AddStatusIcon(GetTemperatureIcon(Temperature));
+		const FItemData& ItemData = Item.GetItemData();
 
-		const uint8 Humidity = Item.GetItemData().GetIntProp(EItemIntProperty::Humidity);
-		AddStatusIcon(GetHumidityIcon(Humidity));
+		if (ItemData.IsSupportProp(EItemIntProperty::Temperature))
+		{
+			const uint8 Temperature = Item.GetItemData().GetIntProp(EItemIntProperty::Temperature);
+			AddStatusIcon(GetTemperatureIcon(Temperature));
+		}
+
+		if (ItemData.IsSupportProp(EItemIntProperty::Humidity))
+		{
+			const uint8 Humidity = Item.GetItemData().GetIntProp(EItemIntProperty::Humidity);
+			AddStatusIcon(GetHumidityIcon(Humidity));
+		}
 	}
 }
 

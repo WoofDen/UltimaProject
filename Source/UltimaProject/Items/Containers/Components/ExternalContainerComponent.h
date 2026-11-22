@@ -12,7 +12,7 @@
  * External container component (chests, shelves, pockets)
  */
 UCLASS(ClassGroup=(Containers), meta=(BlueprintSpawnableComponent))
-class ULTIMAPROJECT_API UExternalContainerComponent : public UContainerComponent
+class ULTIMAPROJECT_API UExternalContainerComponent	: public UContainerComponent, public IHeartbeatInterface
 {
 	GENERATED_BODY()
 
@@ -24,7 +24,7 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	TArray<FLiquidDescriptor> Test;
-	
+
 	UPROPERTY(EditAnywhere, meta=(ClampMin=0, ClampMax=1))
 	TMap<FLiquidDescriptor, float> DefaultLiquids;
 
@@ -35,9 +35,10 @@ protected:
 public:
 	UExternalContainerComponent();
 
-	virtual void BeginPlay() override;
 
 	// UActorComponent
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	// ~UActorComponent
 
@@ -45,4 +46,8 @@ public:
 	virtual void NotifyContainerItemsChanged_Implementation() override;
 	virtual bool IsEmpty() const override;
 	// ~UContainerComponent
+	
+	// IHeartbeatInterface
+	virtual bool Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed) override;
+	// ~IHeartbeatInterface
 };

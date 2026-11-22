@@ -67,9 +67,8 @@ struct FContainerLiquidData : public FFastArraySerializerItem
 	GENERATED_BODY()
 
 private:
-	// Normalized towards the owner's capacity
 	UPROPERTY()
-	uint8 AmountInt8 = 0;
+	float Amount = 0;
 
 public:
 	UPROPERTY()
@@ -77,17 +76,17 @@ public:
 
 	float GetAmount() const
 	{
-		return FMath::RoundToFloat((static_cast<float>(AmountInt8) / UINT8_MAX) * 100.f) / 100.f;
+		return Amount;
 	}
 
-	void AddAmount(const float AmountNormalized)
+	void AddAmount(const float InAmount)
 	{
-		AmountInt8 = FMath::Clamp<uint8>(static_cast<uint8>(AmountInt8 + (FMath::Clamp(AmountNormalized, 0.f, 1.f) * UINT8_MAX)), 0, UINT8_MAX);
+		Amount = FMath::Max(0.0f, Amount + InAmount);
 	}
 
-	void SetAmount(const float AmountNormalized)
+	void SetAmount(const float InAmount)
 	{
-		AmountInt8 = FMath::Clamp<uint8>(static_cast<uint8>(AmountNormalized * UINT8_MAX), 0, UINT8_MAX);
+		Amount = FMath::Max(0.0f, InAmount);
 	}
 };
 
@@ -197,8 +196,7 @@ inline FItemTransactionResult InvalidItemTransactionResult = FItemTransactionRes
  */
 UCLASS(Abstract)
 class UContainerComponent :
-	public UActorComponent,
-	public IHeartbeatInterface
+	public UActorComponent
 {
 	GENERATED_BODY()
 
@@ -319,7 +317,7 @@ public:
 	virtual float GetLiquidCapacity();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	float GetLiquidCapacityUsed(bool bNormalized = true);
+	float GetLiquidCapacityUsed(bool bNormalized);
 
 #pragma endregion
 
@@ -338,13 +336,12 @@ protected:
 
 #pragma region Server low-level LIQUID transactions
 	// Container->Container liquid move
-	// SourceAmount is REAL value, not a normalized one
 	virtual FItemTransactionResult MoveLiquid(UContainerComponent* SourceContainer, float SourceAmountReal);
 
-	FItemTransactionResult MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized);
+	FItemTransactionResult MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmount);
 
-	FItemTransactionResult RemoveLiquid(const float AmountNormalized);
-	FItemTransactionResult RemoveLiquid(const float AmountNormalized, TMap<FLiquidDescriptor, float>& RemovedLiquids);
+	FItemTransactionResult RemoveLiquid(const float Amount);
+	FItemTransactionResult RemoveLiquid(const float Amount, TMap<FLiquidDescriptor, float>& RemovedLiquids);
 
 #pragma endregion
 
@@ -361,7 +358,7 @@ public:
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
 	virtual bool CanStoreItem(const AController* Instigator, const AItem* Item) const;
-	
+
 	bool CanStoreLiquids() const;
 
 	// Can reach & access this container
@@ -394,10 +391,10 @@ public:
 
 	// Create liquid in container
 	void SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor, float Amount, bool bForceOverflow);
-	
+
 	// Remove fraction of liquids from container
 	void ConsumeLiquid(const float Amount);
-	
+
 	// Remove a fraction of liquids from the container and return
 	TMap<FLiquidDescriptor, float> ExtractLiquid(const float Amount);
 #pragma endregion

@@ -5,6 +5,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "UltimaProject/Items/Common/ItemFactoryHelper.h"
+#include "UltimaProject/World/HeartbeatSystem/HeartbeatItemProcessor.h"
 
 UExternalContainerComponent::UExternalContainerComponent()
 {
@@ -26,9 +27,19 @@ void UExternalContainerComponent::BeginPlay()
 
 		for (const auto& DefaultLiquidPair : DefaultLiquids)
 		{
-			SpawnLiquid(DefaultLiquidPair.Key, DefaultLiquidPair.Value, false);
+			float Amount = DefaultLiquidPair.Value * GetLiquidCapacity();
+			SpawnLiquid(DefaultLiquidPair.Key, Amount, false);
 		}
+
+		IHeartbeatInterface::Register();
 	}
+}
+
+void UExternalContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	IHeartbeatInterface::Unregister();
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void UExternalContainerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -54,4 +65,42 @@ bool UExternalContainerComponent::IsEmpty() const
 {
 	// Items are not replicated to clients for external containers
 	return bIsExplicitlyEmpty;
+}
+
+bool UExternalContainerComponent::Heartbeat_Implementation(int64 CurrentTime, int32 TimePassed)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+
+	if (ContainerItems.Items.IsEmpty())
+	{
+		return true;
+	}
+
+	bool bResult = true;
+	for (auto& ItemData : ContainerItems.Items)
+	{
+		const UItemDataAsset* ItemStaticData = ItemData.GetItemData().GetStaticData();
+		if (!ItemStaticData)
+		{
+			bResult = false;
+			continue;
+		}
+
+		auto ProcessorClass = ItemStaticData->HeartbeatProcessorClass;
+		if (!ProcessorClass)
+		{
+			continue;
+		}
+
+		UHeartbeatItemProcessor* ProcessorInstance = UHeartbeatItemProcessor::GetInstance(ProcessorClass);
+		if (!ProcessorInstance)
+		{
+			bResult = false;
+			continue;
+		}
+
+		bResult &= ProcessorInstance->ProcessHeartbeat(ItemData, CurrentTime, TimePassed);
+	}
+
+	return bResult;
 }

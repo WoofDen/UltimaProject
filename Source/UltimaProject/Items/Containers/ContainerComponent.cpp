@@ -267,11 +267,6 @@ void UContainerComponent::BeginPlay()
 		{
 			OnClientReady();
 		}
-
-		if (Owner->HasAuthority())
-		{
-			IHeartbeatInterface::Register();
-		}
 	}
 }
 
@@ -282,14 +277,6 @@ void UContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (AUPPlayerController* UPPC = Cast<AUPPlayerController>(PC); UPPC && UPPC->GetNetMode() == NM_Client)
 		{
 			UPPC->TryCloseContainer(this);
-		}
-	}
-
-	if (AActor* Owner = GetOwner())
-	{
-		if (Owner->HasAuthority())
-		{
-			IHeartbeatInterface::Unregister();
 		}
 	}
 
@@ -417,10 +404,9 @@ float UContainerComponent::GetLiquidCapacityUsed(bool bNormalized)
 		Result += LiquidData.GetAmount();
 	}
 
-	Result = FMath::Clamp(Result, 0.f, 1.f);
-	if (!bNormalized)
+	if (bNormalized)
 	{
-		Result *= GetLiquidCapacity();
+		Result /= GetLiquidCapacity();
 	}
 
 	return Result;
@@ -795,58 +781,17 @@ FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* Sour
 		return InvalidItemTransactionResult;
 	}
 
-	// How much we remove from Source
-	const float SourceAmountNormalized = SafeAmountReal / SourceCapacityTotal;
-
 	FItemTransactionResult Result(SafeAmountReal);
 
-	// Removed liquids. Key is a not normalized amount of liquid towards this container
-	TArray<TPair<float, FLiquidDescriptor>> ExtractedLiquids;
-
 	// Remove liquid from source
-	for (auto It = SourceContainer->LiquidsData.Liquids.CreateIterator(); It; ++It)
-	{
-		/**
-		 * Math example
-		 * - Source container is a bottle of 100(ml) capacity, which is filled on 25 with water
-		 * - Target container is a bottle of 500(ml) capacity
-		 * - Move half of source(0.5) to target
-		 */
-
-		// 0.25 * 0.5 = 0.125 -> % of source container we remove
-		float RealAmount = It->GetAmount();
-		float RemoveAmount = RealAmount * SourceAmountNormalized;
-
-		if ((It->GetAmount() - RemoveAmount) < UP::Liquids::MinNormalizedValue)
-		{
-			RemoveAmount = It->GetAmount();
-		}
-
-		It->AddAmount(-RemoveAmount);
-
-		// (0.25 * 100) / 500 = 0.05 -> % of this container we need to add
-
-		// Convert source amount fraction to target amount fraction
-		const float AmountToAddNormalized = (RemoveAmount * SourceCapacityTotal) / TargetCapacityTotal;
-		ExtractedLiquids.Add({AmountToAddNormalized, It->Descriptor});
-
-		// Remove liquid from source if nothing left
-		if (It->GetAmount() < UP::Liquids::MinNormalizedValue)
-		{
-			It.RemoveCurrent();
-			SourceContainer->LiquidsData.MarkArrayDirty();
-		}
-		else
-		{
-			SourceContainer->LiquidsData.MarkItemDirty(*It);
-		}
-	}
+	TMap<FLiquidDescriptor, float> ExtractedLiquids;
+	SourceContainer->RemoveLiquid(SafeAmountReal, ExtractedLiquids);
 
 	for (const auto ExtractedLiquid : ExtractedLiquids)
 	{
 		// All cuts and checks have to be done at this point and we assume this addition will always succeed
-		MoveLiquid(ExtractedLiquid.Value, ExtractedLiquid.Key);
-		Result.MovedAmount += ExtractedLiquid.Key * TargetCapacityTotal;
+		MoveLiquid(ExtractedLiquid.Key, ExtractedLiquid.Value);
+		Result.MovedAmount += ExtractedLiquid.Value;
 	}
 
 	NotifyLiquidsChanged();
@@ -854,20 +799,17 @@ FItemTransactionResult UContainerComponent::MoveLiquid(UContainerComponent* Sour
 	return Result;
 }
 
-FItemTransactionResult UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmountNormalized)
+FItemTransactionResult UContainerComponent::MoveLiquid(const FLiquidDescriptor& LiquidDescriptor, float SafeAmount)
 {
-	SafeAmountNormalized = FMath::Clamp(SafeAmountNormalized, 0.0f, 1.0f);
-	float RealAmount = GetLiquidCapacity() * SafeAmountNormalized;
-
 	// Try merge existing liquid
 	for (FContainerLiquidData& ExistingLiquid : LiquidsData.Liquids)
 	{
 		if (ExistingLiquid.Descriptor == LiquidDescriptor)
 		{
-			ExistingLiquid.AddAmount(SafeAmountNormalized);
+			ExistingLiquid.AddAmount(SafeAmount);
 			LiquidsData.MarkItemDirty(ExistingLiquid);
 
-			return FItemTransactionResult(RealAmount, RealAmount);
+			return FItemTransactionResult(SafeAmount, SafeAmount);
 		}
 	}
 
@@ -893,13 +835,13 @@ FItemTransactionResult UContainerComponent::MoveLiquid(const FLiquidDescriptor& 
 	}
 
 	FContainerLiquidData Data;
-	Data.SetAmount(SafeAmountNormalized);
+	Data.SetAmount(SafeAmount);
 	Data.Descriptor = LiquidDescriptor;
 
 	FContainerLiquidData& AddedItem = LiquidsData.Liquids.Add_GetRef(Data);
 	LiquidsData.MarkItemDirty(AddedItem);
 
-	FItemTransactionResult Result(RealAmount, RealAmount);
+	FItemTransactionResult Result(SafeAmount, SafeAmount);
 	return Result;
 }
 
@@ -949,41 +891,52 @@ uint32 UContainerComponent::GenerateItemHandle() const
 	return ++Handle;
 }
 
-FItemTransactionResult UContainerComponent::RemoveLiquid(const float AmountNormalized)
+FItemTransactionResult UContainerComponent::RemoveLiquid(const float Amount)
 {
 	TMap<FLiquidDescriptor, float> Result;
-	return RemoveLiquid(AmountNormalized, Result);
+	return RemoveLiquid(Amount, Result);
 }
 
-FItemTransactionResult UContainerComponent::RemoveLiquid(const float AmountNormalized, TMap<FLiquidDescriptor, float>& RemovedLiquids)
+FItemTransactionResult UContainerComponent::RemoveLiquid(const float Amount, TMap<FLiquidDescriptor, float>& RemovedLiquids)
 {
-	if (AmountNormalized <= 0 || LiquidsData.Liquids.Num() == 0)
+	if (Amount <= 0 || LiquidsData.Liquids.Num() == 0)
 	{
 		return InvalidItemTransactionResult;
 	}
 
-	const float Capacity = GetLiquidCapacity();
-	const float RealAmount = AmountNormalized * Capacity;
+	FItemTransactionResult Result(Amount);
 
-	FItemTransactionResult Result(RealAmount);
+	double AmountNormalizedUnsafe = static_cast<double>(Amount) / static_cast<double>(GetLiquidCapacityUsed(false));
+
+	// At least 1/1000
+	float AmountNormalized = FMath::Clamp(AmountNormalizedUnsafe, 0.001f, 1.0f);
 
 	for (auto It = LiquidsData.Liquids.CreateIterator(); It; ++It)
 	{
-		float RemoveAmountNormalized = FMath::Min(AmountNormalized, It->GetAmount());
-		It->AddAmount(-RemoveAmountNormalized);
-		
-		// Store removed liquid and REAL amount(ml)
-		RemovedLiquids.Add(It->Descriptor, RemoveAmountNormalized * Capacity);
+		const float ExtractAmountReal = It->GetAmount() * AmountNormalized;
+		It->AddAmount(-ExtractAmountReal);
 
-		if (It->GetAmount() < UP::Liquids::MinNormalizedValue)
+		// Store removed liquid and amount(ml)
+		// If there was a round up, extract no more than requested
+		const float ExtractedAmountReturn = FMath::Min(Amount, ExtractAmountReal);
+		RemovedLiquids.Add(It->Descriptor, ExtractedAmountReturn);
+
+		if (It->GetAmount() < KINDA_SMALL_NUMBER)
 		{
 			It.RemoveCurrent();
 			Result.TargetRecordsRemoved++;
+			
+			LiquidsData.MarkArrayDirty();
+		}
+		else
+		{
+			LiquidsData.MarkItemDirty(*It);
 		}
 
-		Result.MovedAmount += RemoveAmountNormalized;
+		Result.MovedAmount += ExtractedAmountReturn;
 	}
 
+	NotifyLiquidsChanged();
 	return Result;
 }
 
@@ -1177,8 +1130,8 @@ void UContainerComponent::SpawnLiquid(const FLiquidDescriptor& LiquidDescriptor,
 
 		if (SafeAmount > TargetCapacityAvailable)
 		{
-			const float FreeAmountNormalized = (Amount - TargetCapacityAvailable) / TargetCapacityTotal;
-			RemoveLiquid(FreeAmountNormalized);
+			const float FreeAmount = Amount - TargetCapacityAvailable;
+			RemoveLiquid(FreeAmount);
 		}
 	}
 	else
@@ -1212,6 +1165,7 @@ TMap<FLiquidDescriptor, float> UContainerComponent::ExtractLiquid(const float Am
 	check(GetOwner() && GetOwner()->HasAuthority());
 
 	TMap<FLiquidDescriptor, float> ExtractedLiquids;
+
 	FItemTransactionResult Result = RemoveLiquid(Amount, ExtractedLiquids);
 
 	if (Result.IsSuccess(true))
@@ -1219,6 +1173,6 @@ TMap<FLiquidDescriptor, float> UContainerComponent::ExtractLiquid(const float Am
 		// Server notification
 		NotifyLiquidsChanged();
 	}
-	
+
 	return ExtractedLiquids;
 }

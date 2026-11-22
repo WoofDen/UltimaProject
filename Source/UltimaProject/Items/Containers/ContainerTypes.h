@@ -110,7 +110,5 @@ inline uint32 GetTypeHash(const FLiquidDescriptor& Item)
 
 namespace UP::Liquids
 {
-	constexpr float MinNormalizedValue = 0.05f;
-
 	const FLiquidDescriptor Water = FLiquidDescriptor{ESubstance::Water};
 }

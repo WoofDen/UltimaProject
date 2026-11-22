@@ -75,6 +75,7 @@ private:
 
 	TArray<FLiquidRow> Rows;
 	float Capacity = 0.f;
+	float Used = 0.f;
 	float UsedNormalized = 0.f;
 	bool bHasData = false;
 

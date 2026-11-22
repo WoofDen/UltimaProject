@@ -7,11 +7,6 @@ TMap<const UClass*, UHeartbeatItemProcessor*> UHeartbeatItemProcessor::InstanceP
 
 bool UHeartbeatItemProcessor::HeartbeatInternal_Implementation(FItemData& ItemData, const FItemDataLocation& ItemDataLocation, int64 CurrentTime, int32 TimePassed)
 {
-	if (!ItemDataLocation.Item.IsValid())
-	{
-		return false;
-	}
-
 	ProcessTemperature(ItemData, ItemDataLocation, TimePassed);
 	ProcessHumidity(ItemData, ItemDataLocation, TimePassed);
 
@@ -79,11 +74,12 @@ void UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDa
 
 	if (ItemLocation.ContainerComponent.IsValid()
 		&& ItemLocation.ContainerComponent->CanStoreLiquids()
-		&& ItemLocation.ContainerComponent->GetLiquidCapacityUsed())
+		&& ItemLocation.ContainerComponent->GetLiquidCapacityUsed(false) > 0
+		&& !FMath::IsNearlyEqual(CurrentHumidityLevel, 1.f))
 	{
 		// Humidity grows
 		const float SoakCapacity = ItemData.GetAmount() * HumidityConsumptionRate;
-		const float SoakAmountReal = FMath::Min(ItemLocation.ContainerComponent->GetLiquidCapacityUsed(), SoakCapacity);
+		const float SoakAmountReal = FMath::Min(ItemLocation.ContainerComponent->GetLiquidCapacityUsed(false), SoakCapacity);
 
 		TMap<FLiquidDescriptor, float> ExtractedLiquids = ItemLocation.ContainerComponent->ExtractLiquid(SoakAmountReal);
 
@@ -131,9 +127,10 @@ UHeartbeatItemProcessor* UHeartbeatItemProcessor::GetInstance(const UClass* Inst
 
 	if (InstancePool.Contains(InstanceClass))
 	{
+		ensureAlways(IsValid(InstancePool[InstanceClass]));
 		return InstancePool[InstanceClass];
 	}
-
+	
 	if (!bCreateIfMissing)
 	{
 		return nullptr;

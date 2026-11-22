@@ -51,6 +51,16 @@ float FItemData::GetIntPropNormalized(EItemIntProperty Prop) const
 	return static_cast<float>(GetIntProp(Prop)) / UINT8_MAX;
 }
 
+bool FItemData::IsSupportProp(EItemIntProperty Prop) const
+{
+	if (const UItemDataAsset* ItemDataAsset = GetStaticData())
+	{
+		return ItemDataAsset->EnabledProperties.Contains(Prop);
+	}
+
+	return false;
+}
+
 FItemData::FItemData()
 {
 	InstanceData.Amount = 1;

@@ -244,7 +244,7 @@ struct ULTIMAPROJECT_API FItemData
 
 protected:
 	// Data asset with static props
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ExposeOnSpawn="true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSoftObjectPtr<const UItemDataAsset> StaticDataSoftPtr;
 
 	UPROPERTY(Transient, BlueprintReadOnly)
@@ -303,4 +303,5 @@ public:
 	void SetProp(EItemIntProperty Prop, uint8 Value);
 	uint8 GetIntProp(EItemIntProperty Prop, uint8 DefaultValue = 0) const;
 	float GetIntPropNormalized(EItemIntProperty Prop) const;
+	bool IsSupportProp(EItemIntProperty Prop) const;
 };
