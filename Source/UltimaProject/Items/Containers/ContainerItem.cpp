@@ -7,43 +7,6 @@
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/UI/ContainerWidget.h"
 
-UObject* UContainerItem::GetTemperatureIcon(uint8 Temperature) const
-{
-	if (Temperature <= UP::ItemProperty::Temperature::Frozen)
-	{
-		return IconStatusFrozen;
-	}
-	if (Temperature <= UP::ItemProperty::Temperature::Cold)
-	{
-		return IconStatusCold;
-	}
-
-	if (Temperature >= UP::ItemProperty::Temperature::Hot)
-	{
-		return IconStatusHot;
-	}
-	if (Temperature >= UP::ItemProperty::Temperature::Burning)
-	{
-		return IconStatusBurning;
-	}
-
-	return nullptr;
-}
-
-UObject* UContainerItem::GetHumidityIcon(uint8 Humidity) const
-{
-	if (Humidity >= UP::ItemProperty::Humidity::Wet)
-	{
-		return IconStatusHumid;
-	}
-	if (Humidity >= UP::ItemProperty::Humidity::Soaked)
-	{
-		return IconStatusWet;
-	}
-
-	return nullptr;
-}
-
 void UContainerItem::AddStatusIcon(UObject* ResourceObject)
 {
 	NULLCHECK(ResourceObject);
@@ -57,6 +20,47 @@ void UContainerItem::AddStatusIcon(UObject* ResourceObject)
 	}
 }
 
+void UContainerItem::BuildPropertyIcons(const FItemData& ItemData)
+{
+	const FItemProperties& Properties = ItemData.GetInstanceData().Properties;
+	for (const EItemIntProperty Property : Properties.PropertyKeys)
+	{
+		if (!PropertyIcons.Contains(Property))
+		{
+			continue;
+		}
+
+		const float PropertyValueNormalized = ItemData.GetIntPropNormalized(Property);
+
+		// Find index within the ranges array
+		const FItemPropIconSettings& StatusIconSettings = PropertyIcons[Property];
+
+		for (int32 i = 0; i < StatusIconSettings.PropertyRanges.Num(); i++)
+		{
+			const FVector2f& PropertyRange = StatusIconSettings.PropertyRanges[i];
+
+			bool bMatches;
+			if (i == StatusIconSettings.PropertyRanges.Num() - 1)
+			{
+				bMatches = PropertyValueNormalized >= PropertyRange.GetMin() && PropertyValueNormalized < PropertyRange.GetMax();;
+			}
+			else
+			{
+				// Include Max. value if this is the last element
+				bMatches = PropertyValueNormalized >= PropertyRange.GetMin() && PropertyValueNormalized <= PropertyRange.GetMax();;
+			}
+
+			if (bMatches)
+			{
+				if (StatusIconSettings.Icons.IsValidIndex(i))
+				{
+					AddStatusIcon(StatusIconSettings.Icons[i]);
+				}
+			}
+		}
+	}
+}
+
 void UContainerItem::NativePreConstruct()
 {
 	Super::NativePreConstruct();
@@ -65,12 +69,6 @@ void UContainerItem::NativePreConstruct()
 	if (!IsDesignTime())
 	{
 		ResetItem();
-	}
-	else
-	{
-		AddStatusIcon(IconStatusWet);
-		AddStatusIcon(IconStatusCold);
-		AddStatusIcon(IconStatusDamaged);
 	}
 #endif
 }
@@ -105,18 +103,7 @@ void UContainerItem::SetItem(const FContainerItemData& Item)
 		StatusList->ClearChildren();
 
 		const FItemData& ItemData = Item.GetItemData();
-
-		if (ItemData.IsSupportProp(EItemIntProperty::Temperature))
-		{
-			const uint8 Temperature = Item.GetItemData().GetIntProp(EItemIntProperty::Temperature);
-			AddStatusIcon(GetTemperatureIcon(Temperature));
-		}
-
-		if (ItemData.IsSupportProp(EItemIntProperty::Humidity))
-		{
-			const uint8 Humidity = Item.GetItemData().GetIntProp(EItemIntProperty::Humidity);
-			AddStatusIcon(GetHumidityIcon(Humidity));
-		}
+		BuildPropertyIcons(ItemData);
 	}
 }
 

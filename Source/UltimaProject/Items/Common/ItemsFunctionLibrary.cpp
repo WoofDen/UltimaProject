@@ -10,11 +10,17 @@ float UItemsFunctionLibrary::GetItemProp(const FItemData& ItemData, EItemIntProp
 
 void UItemsFunctionLibrary::SetItemProp(FItemData& ItemData, EItemIntProperty Property, float Value)
 {
+	ensureAlways(ItemData.IsValid());
+	check(ItemData.IsSupportProp(Property));
+
 	const uint8 IntValue = FMath::Lerp<uint8>(0, UINT8_MAX, Value);
 	ItemData.SetProp(Property, IntValue);
 }
 
 void UItemsFunctionLibrary::AddItemProp(FItemData& ItemData, EItemIntProperty Property, float Value)
 {
+	ensureAlways(ItemData.IsValid());
+	check(ItemData.IsSupportProp(Property));
+
 	SetItemProp(ItemData, Property, GetItemProp(ItemData, Property) + Value);
 }

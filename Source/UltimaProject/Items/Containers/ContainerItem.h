@@ -11,14 +11,27 @@
 class UTextLayoutWidget;
 class UImage;
 
+USTRUCT(BlueprintType)
+struct FItemPropIconSettings
+{
+	GENERATED_BODY()
+
+	FItemPropIconSettings() = default;
+
+	UPROPERTY(EditAnywhere, Category="UP", meta=(ClampMin = 0.f, ClampMax = 1.f))
+	TArray<FVector2f> PropertyRanges;
+
+	UPROPERTY(EditDefaultsOnly, Category="UP")
+	TArray<TObjectPtr<UObject>> Icons;
+};
+
 UCLASS()
 class ULTIMAPROJECT_API UContainerItem : public UUserWidget
 {
 	GENERATED_BODY()
 
-	UObject* GetTemperatureIcon(uint8 Temperature) const;
-	UObject* GetHumidityIcon(uint8 Humidity) const;
 	void AddStatusIcon(UObject* ResourceObject);
+	void BuildPropertyIcons(const FItemData& ItemData);
 
 protected:
 	// Item data
@@ -29,33 +42,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	int32 ContainerItemHandle = FContainerItemData::InvalidHandle;
 
-	// Icons
-	// Icons - Humidity
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusWet;
-
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusHumid;
-
-	// Icons - Temperature
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusHot;
-
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusBurning;
-
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusCold;
-
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusFrozen;
-
-	// Icons - Condition
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusDamaged;
-
-	UPROPERTY(EditDefaultsOnly, Category="Status icons")
-	UObject* IconStatusDestroyed;
+	UPROPERTY(EditDefaultsOnly)
+	TMap<EItemIntProperty, FItemPropIconSettings> PropertyIcons;
 
 	// Widgets
 	UPROPERTY(EditDefaultsOnly, meta=(BindWidget))
@@ -66,7 +54,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, meta=(BindWidget))
 	TObjectPtr<UHorizontalBox> StatusList;
-	
+
 	UPROPERTY(EditDefaultsOnly)
 	FSlateBrush StatusBrushSettings;
 
@@ -80,7 +68,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ResetItem();
-	
+
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsEmpty() const;
 };

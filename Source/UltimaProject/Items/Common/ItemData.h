@@ -15,6 +15,7 @@ enum class EItemIntProperty : uint8
 	Temperature = 1,
 	Grow = 2,
 	Durability = 3,
+	Decay = 4,
 
 	MAX UMETA(Hidden)
 };

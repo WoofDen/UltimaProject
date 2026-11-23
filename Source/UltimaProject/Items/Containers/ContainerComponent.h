@@ -277,6 +277,18 @@ public:
 	virtual void OnClientOpened(class AUPPlayerController* Instigator);
 	virtual void OnClientContainerClosed(class AUPPlayerController* Instigator);
 
+	// If a container item was changed externally
+	void OnExternalItemChange(uint32 ContainerItemHandle);
+	
+	// If a liquid was changed externally
+	void OnExternalLiquidChange(FContainerLiquidData& LiquidData);
+
+	// If a container item was removed externally
+	void OnExternalItemsChange();
+	
+	// If a liquid was removed externally
+	void OnExternalLiquidsChange();
+
 	UFUNCTION(BlueprintNativeEvent)
 	void NotifyContainerItemChanged(const FContainerItemData& Item);
 

@@ -376,6 +376,34 @@ void UContainerComponent::OnClientContainerClosed(AUPPlayerController* Instigato
 {
 }
 
+void UContainerComponent::OnExternalItemChange(uint32 ContainerItemHandle)
+{
+	FContainerItemData& Item = GetItemMutable(ContainerItemHandle);
+	if (Item.IsValid())
+	{
+		ContainerItems.MarkItemDirty(Item);
+		NotifyContainerItemChanged(Item);
+	}
+}
+
+void UContainerComponent::OnExternalLiquidChange(FContainerLiquidData& LiquidData)
+{
+	LiquidsData.MarkItemDirty(LiquidData);
+	NotifyLiquidsChanged();
+}
+
+void UContainerComponent::OnExternalItemsChange()
+{
+	ContainerItems.MarkArrayDirty();
+	NotifyContainerItemsChanged();
+}
+
+void UContainerComponent::OnExternalLiquidsChange()
+{
+	LiquidsData.MarkArrayDirty();
+	NotifyLiquidsChanged();
+}
+
 int32 UContainerComponent::GetSlotsTotal() const
 {
 	if (UContainerCategoriesDataAsset* DataAsset = GetCategoryData())

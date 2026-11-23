@@ -33,8 +33,11 @@ protected:
 
 	float CalculateTemperature(float EnvironmentTemperature, float ItemTemperature, float ThermalCoefficient, float DeltaTime) const;
 
-	void ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
-	void ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
+	// Update Temperature prop. Returns true if the prop was changed
+	bool ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
+
+	// Update Humidity prop. Returns true if the prop was changed
+	bool ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed);
 
 	UFUNCTION(BlueprintNativeEvent)
 	bool HeartbeatInternal(UPARAM(ref) FItemData& ItemData, UPARAM(ref) const FItemDataLocation& ItemLocation, int64 CurrentTime, int32 TimePassed);

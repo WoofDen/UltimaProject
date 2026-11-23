@@ -7,19 +7,26 @@ TMap<const UClass*, UHeartbeatItemProcessor*> UHeartbeatItemProcessor::InstanceP
 
 bool UHeartbeatItemProcessor::HeartbeatInternal_Implementation(FItemData& ItemData, const FItemDataLocation& ItemDataLocation, int64 CurrentTime, int32 TimePassed)
 {
-	ProcessTemperature(ItemData, ItemDataLocation, TimePassed);
-	ProcessHumidity(ItemData, ItemDataLocation, TimePassed);
+	bool bChanged = false;
+
+	bChanged |= ProcessTemperature(ItemData, ItemDataLocation, TimePassed);
+	bChanged |= ProcessHumidity(ItemData, ItemDataLocation, TimePassed);
+
+	if (bChanged)
+	{
+		if (ItemDataLocation.ContainerComponent.IsValid())
+		{
+			ItemDataLocation.ContainerComponent->OnExternalItemChange(ItemDataLocation.ContainerItemHandle);
+		}
+	}
 
 	return true;
 }
 
 void UHeartbeatItemProcessor::BeginDestroy()
 {
-	if (UObject* Instance = GetInstance(GetClass(), false); IsValid(Instance))
-	{
-		InstancePool.Remove(GetClass());;
-		Instance->MarkAsGarbage();
-	}
+	UClass* Class = GetClass();
+	InstancePool.Remove(Class);
 
 	Super::BeginDestroy();
 }
@@ -54,7 +61,7 @@ float UHeartbeatItemProcessor::CalculateTemperature(float EnvironmentTemperature
 	return FMath::Lerp(ItemTemperature, EnvironmentTemperature, Alpha);
 }
 
-void UHeartbeatItemProcessor::ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemDataLocation, int32 TimePassed)
+bool UHeartbeatItemProcessor::ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemDataLocation, int32 TimePassed)
 {
 	// Temperature
 	const float TargetTemperatureReal = UP::ItemProperty::Temperature::Default;
@@ -66,18 +73,20 @@ void UHeartbeatItemProcessor::ProcessTemperature(FItemData& ItemData, const FIte
 
 	uint8 NewTemperatureProp = NewTemperatureReal / UP::ItemProperty::Temperature::Limits.Y * UINT8_MAX;
 	ItemData.SetProp(EItemIntProperty::Temperature, NewTemperatureProp);
+
+	return true;
 }
 
-void UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed)
+bool UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed)
 {
 	float CurrentHumidityLevel = ItemData.GetIntPropNormalized(EItemIntProperty::Humidity);
 
+	// Humidity grows if there is a liquid
+	// Even with Humidity 1.0f the liquid will be consumed to sustain this level
 	if (ItemLocation.ContainerComponent.IsValid()
 		&& ItemLocation.ContainerComponent->CanStoreLiquids()
-		&& ItemLocation.ContainerComponent->GetLiquidCapacityUsed(false) > 0
-		&& !FMath::IsNearlyEqual(CurrentHumidityLevel, 1.f))
+		&& ItemLocation.ContainerComponent->GetLiquidCapacityUsed(false) > 0)
 	{
-		// Humidity grows
 		const float SoakCapacity = ItemData.GetAmount() * HumidityConsumptionRate;
 		const float SoakAmountReal = FMath::Min(ItemLocation.ContainerComponent->GetLiquidCapacityUsed(false), SoakCapacity);
 
@@ -87,17 +96,31 @@ void UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDa
 		{
 			const float SoakResult = SoakAmountReal / SoakCapacity;
 			const float HumidityDelta = HumidityGrowRate * SoakResult * TimePassed;
+			const float HumidityNewValue = FMath::Clamp(CurrentHumidityLevel + HumidityDelta, 0, 1.f);
 
-			uint8 NewValue = FMath::Lerp(0,UINT8_MAX, CurrentHumidityLevel + HumidityDelta);
-			
+			uint8 NewValue = FMath::Lerp(0,UINT8_MAX, HumidityNewValue);
+
 			ItemData.SetProp(EItemIntProperty::Humidity, NewValue);
+
+			return true;
 		}
 	}
-	else if (CurrentHumidityLevel > 0)
+
+	// A world item or a dry container
+	// Humidity loss
+	if (CurrentHumidityLevel > 0)
 	{
-		// A world item or a dry container
-		// Humidity loss
+		const float HumidityDelta = HumidityGrowRate * TimePassed;
+		const float HumidityNewValue = FMath::Clamp(CurrentHumidityLevel - HumidityDelta, 0, 1.f);
+
+		uint8 NewValue = FMath::Lerp(0,UINT8_MAX, HumidityNewValue);
+
+		ItemData.SetProp(EItemIntProperty::Humidity, NewValue);
+
+		return true;
 	}
+
+	return false;
 }
 
 // Add default functionality here for any IHeartbeatProcessorInterface functions that are not pure virtual.
@@ -130,7 +153,7 @@ UHeartbeatItemProcessor* UHeartbeatItemProcessor::GetInstance(const UClass* Inst
 		ensureAlways(IsValid(InstancePool[InstanceClass]));
 		return InstancePool[InstanceClass];
 	}
-	
+
 	if (!bCreateIfMissing)
 	{
 		return nullptr;
@@ -142,8 +165,6 @@ UHeartbeatItemProcessor* UHeartbeatItemProcessor::GetInstance(const UClass* Inst
 		InstanceClass->GetFName(),
 		RF_Transient
 	);
-
-	NewInstance->AddToRoot();
 
 	NULLCHECK_RETURN(InstanceClass, nullptr);
 
