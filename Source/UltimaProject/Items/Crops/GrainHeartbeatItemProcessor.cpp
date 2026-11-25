@@ -10,15 +10,15 @@ bool UGrainHeartbeatItemProcessor::HeartbeatInternal_Implementation(FItemData& I
 	}
 
 	// Grow seeds if they are soaked
-	float HumidityNormalized = ItemData.GetIntPropNormalized(EItemIntProperty::Humidity);
-	float TemperatureNormalized = ItemData.GetIntPropNormalized(EItemIntProperty::Temperature);
-	if (HumidityNormalized > .5f && TemperatureNormalized <= .7f)
+	const float Humidity = ItemData.GetNumericProp(EItemNumericProperty::Humidity);
+	const float Temperature = ItemData.GetNumericProp(EItemNumericProperty::Temperature);
+	if (Humidity > .5f && Temperature <= 70.f)
 	{
-		uint8 GrowCurrent = ItemData.GetIntProp(EItemIntProperty::Grow);
-		uint8 GrowTarget = UINT8_MAX;
+		const float GrowCurrent = ItemData.GetNumericProp(EItemNumericProperty::Grow);
+		constexpr float GrowTarget = static_cast<float>(UINT8_MAX);
 
-		uint8 GrowResult = CalculateProp(GrowCurrent, GrowTarget, GerminationPerMinute, TimePassed);
-		ItemData.SetProp(EItemIntProperty::Grow, GrowResult);
+		const float GrowResult = CalculateProp(GrowCurrent, GrowTarget, GerminationPerMinute, TimePassed);
+		ItemData.SetNumericProp(EItemNumericProperty::Grow, GrowResult);
 	}
 
 	return true;

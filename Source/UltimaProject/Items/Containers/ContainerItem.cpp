@@ -1,7 +1,6 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ContainerItem.h"
-
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 #include "UltimaProject/Common/Macro.h"
@@ -23,14 +22,14 @@ void UContainerItem::AddStatusIcon(UObject* ResourceObject)
 void UContainerItem::BuildPropertyIcons(const FItemData& ItemData)
 {
 	const FItemProperties& Properties = ItemData.GetInstanceData().Properties;
-	for (const EItemIntProperty Property : Properties.PropertyKeys)
+	for (const EItemNumericProperty Property : Properties.PropertyKeys)
 	{
 		if (!PropertyIcons.Contains(Property))
 		{
 			continue;
 		}
 
-		const float PropertyValueNormalized = ItemData.GetIntPropNormalized(Property);
+		const float PropertyValue = ItemData.GetNumericProp(Property);
 
 		// Find index within the ranges array
 		const FItemPropIconSettings& StatusIconSettings = PropertyIcons[Property];
@@ -42,12 +41,12 @@ void UContainerItem::BuildPropertyIcons(const FItemData& ItemData)
 			bool bMatches;
 			if (i == StatusIconSettings.PropertyRanges.Num() - 1)
 			{
-				bMatches = PropertyValueNormalized >= PropertyRange.GetMin() && PropertyValueNormalized < PropertyRange.GetMax();;
+				bMatches = PropertyValue >= PropertyRange.GetMin() && PropertyValue < PropertyRange.GetMax();
 			}
 			else
 			{
 				// Include Max. value if this is the last element
-				bMatches = PropertyValueNormalized >= PropertyRange.GetMin() && PropertyValueNormalized <= PropertyRange.GetMax();;
+				bMatches = PropertyValue >= PropertyRange.GetMin() && PropertyValue <= PropertyRange.GetMax();
 			}
 
 			if (bMatches)

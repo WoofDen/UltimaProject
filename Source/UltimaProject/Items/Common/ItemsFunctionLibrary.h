@@ -18,11 +18,11 @@ class ULTIMAPROJECT_API UItemsFunctionLibrary : public UBlueprintFunctionLibrary
 	
 public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	static float GetItemProp(UPARAM(ref) const FItemData& ItemData, EItemIntProperty Property);
+	static float GetItemProp(UPARAM(ref) const FItemData& ItemData, EItemNumericProperty Property);
 	
 	UFUNCTION(BlueprintCallable)
-	static void SetItemProp(UPARAM(ref) FItemData& ItemData, EItemIntProperty Property, float Value);
+	static void SetItemProp(UPARAM(ref) FItemData& ItemData, EItemNumericProperty Property, float Value);
 	
 	UFUNCTION(BlueprintCallable)
-	static void AddItemProp(UPARAM(ref) FItemData& ItemData, EItemIntProperty Property, float Value);
+	static void AddItemProp(UPARAM(ref) FItemData& ItemData, EItemNumericProperty Property, float Value);
 };

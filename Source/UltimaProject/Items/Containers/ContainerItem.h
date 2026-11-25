@@ -5,7 +5,6 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/HorizontalBox.h"
 #include "Components/TextBlock.h"
-#include "Components/VerticalBox.h"
 #include "ContainerItem.generated.h"
 
 class UTextLayoutWidget;
@@ -18,7 +17,7 @@ struct FItemPropIconSettings
 
 	FItemPropIconSettings() = default;
 
-	UPROPERTY(EditAnywhere, Category="UP", meta=(ClampMin = 0.f, ClampMax = 1.f))
+	UPROPERTY(EditAnywhere, Category="UP")
 	TArray<FVector2f> PropertyRanges;
 
 	UPROPERTY(EditDefaultsOnly, Category="UP")
@@ -43,7 +42,7 @@ protected:
 	int32 ContainerItemHandle = FContainerItemData::InvalidHandle;
 
 	UPROPERTY(EditDefaultsOnly)
-	TMap<EItemIntProperty, FItemPropIconSettings> PropertyIcons;
+	TMap<EItemNumericProperty, FItemPropIconSettings> PropertyIcons;
 
 	// Widgets
 	UPROPERTY(EditDefaultsOnly, meta=(BindWidget))

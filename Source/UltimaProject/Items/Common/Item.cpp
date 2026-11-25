@@ -1,5 +1,9 @@
 ﻿#include "Item.h"
+
+#include "ISinglePropertyView.h"
 #include "Net/UnrealNetwork.h"
+#include "ItemFactoryHelper.h"
+#include "TimerManager.h"
 #include "UltimaProject/Common/Macro.h"
 #include "UltimaProject/World/HeartbeatSystem/HeartbeatItemProcessor.h"
 
@@ -147,7 +151,7 @@ void AItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (HasAuthority())
 	{
-		IHeartbeatInterface::Register();
+		IHeartbeatInterface::Unregister();
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -157,10 +161,10 @@ void AItem::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	ItemDefault.ResetCache();
-
-	if (ItemDefault.GetStaticData() != nullptr)
+	// Initialize ItemDefault
+	if (ItemDefault.IsValid())
 	{
+		ItemData = FItemData(ItemDefault);
 		OnStaticDataSet();
 	}
 	// TODO add an invalid item visuals to highlight the invalid actor

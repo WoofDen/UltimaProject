@@ -25,11 +25,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(ClampMin = 0.f, ClampMax = 1.f))
 	float HumidityGrowRate = 0.f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AmbientTemperature = 20.f;
+
 	// How fast the whole item loses temperature per second
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float ThermalExchangeCoefficient = 0.01f;
 
-	uint8 CalculateProp(uint8 Current, uint8 Target, uint8 SpeedPerMinute, uint64 TimePassed);
+	float CalculateProp(float Current, float Target, float SpeedPerMinute, uint64 TimePassed);
 
 	float CalculateTemperature(float EnvironmentTemperature, float ItemTemperature, float ThermalCoefficient, float DeltaTime) const;
 

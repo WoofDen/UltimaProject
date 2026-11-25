@@ -9,7 +9,7 @@
 class UContextActionHandler;
 
 UENUM(BlueprintType)
-enum class EItemIntProperty : uint8
+enum class EItemNumericProperty : uint8
 {
 	Humidity = 0,
 	Temperature = 1,
@@ -20,30 +20,8 @@ enum class EItemIntProperty : uint8
 	MAX UMETA(Hidden)
 };
 
-namespace UP::ItemProperty
-{
-	namespace Temperature
-	{
-		// Temperature values represented in real values (Celsius)
-		const FVector2f Limits(-100.f, 100.f);
-
-		constexpr float Frozen = 0.f;
-		constexpr float Cold = 8.f;
-		constexpr float Default = 20.f;
-		constexpr float Hot = 40.f;
-		constexpr float Burning = 60.f;
-	}
-
-	namespace Humidity
-	{
-		// Humidity level represented as percentage
-		constexpr uint8 Default = 0.f;
-		constexpr uint8 Wet = UINT8_MAX * 0.2f;
-		constexpr uint8 Soaked = UINT8_MAX * 0.7;
-	}
-}
-
 class AItem;
+class UContainerComponent;
 
 /**
  * FItemLocation
@@ -74,10 +52,10 @@ struct FItemProperties
 	GENERATED_BODY()
 
 	UPROPERTY()
-	TArray<EItemIntProperty> PropertyKeys;
+	TArray<EItemNumericProperty> PropertyKeys;
 
 	UPROPERTY()
-	TArray<uint8> PropertyValues;
+	TArray<float> PropertyValues;
 
 	UPROPERTY(EditAnywhere)
 	FLiquidDescriptor SolidSubstance;
@@ -150,9 +128,6 @@ public:
 	// Using item, call context menus, activate or open containers radius
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="General")
 	float InteractionRadius = 500.f;
-
-	UPROPERTY(EditDefaultsOnly, Category="General")
-	TArray<EItemIntProperty> EnabledProperties;
 
 	UPROPERTY(EditDefaultsOnly, Category="General")
 	FItemProperties DefaultProperties;
@@ -301,8 +276,8 @@ public:
 	virtual TSoftObjectPtr<UStaticMesh> GetStaticMesh() const;
 
 	// Props
-	void SetProp(EItemIntProperty Prop, uint8 Value);
-	uint8 GetIntProp(EItemIntProperty Prop, uint8 DefaultValue = 0) const;
-	float GetIntPropNormalized(EItemIntProperty Prop) const;
-	bool IsSupportProp(EItemIntProperty Prop) const;
+	void SetNumericProp(EItemNumericProperty Prop, float Value);
+	float GetNumericProp(EItemNumericProperty Prop, float DefaultValue = 0.f) const;
+	bool IsSupportProp(EItemNumericProperty Prop) const;
+	void InitializeDefaultProperties();
 };

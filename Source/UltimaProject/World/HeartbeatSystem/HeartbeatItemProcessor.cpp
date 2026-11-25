@@ -31,28 +31,21 @@ void UHeartbeatItemProcessor::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-uint8 UHeartbeatItemProcessor::CalculateProp(uint8 Current, uint8 Target, uint8 SpeedPerMinute, uint64 TimePassed)
+float UHeartbeatItemProcessor::CalculateProp(float Current, float Target, float SpeedPerMinute, uint64 TimePassed)
 {
 	if (Target == Current)
 	{
 		return Target;
 	}
 
-	uint8 Delta = FMath::Min((TimePassed / 60) * SpeedPerMinute, static_cast<uint64>(UINT8_MAX));
+	const float Delta = static_cast<float>(TimePassed) / 60.f * SpeedPerMinute;
 
 	if (Target > Current)
 	{
-		return static_cast<uint8>(
-			FMath::Min<uint64>(Current + Delta, Target)
-		);
+		return FMath::Min(Current + Delta, Target);
 	}
 
-	return static_cast<uint8>(
-		FMath::Max<int64>(
-			static_cast<int64>(Current) - static_cast<int64>(Delta),
-			Target
-		)
-	);
+	return FMath::Max(Current - Delta, Target);
 }
 
 float UHeartbeatItemProcessor::CalculateTemperature(float EnvironmentTemperature, float ItemTemperature, float ThermalCoefficient, float DeltaTime) const
@@ -64,22 +57,16 @@ float UHeartbeatItemProcessor::CalculateTemperature(float EnvironmentTemperature
 bool UHeartbeatItemProcessor::ProcessTemperature(FItemData& ItemData, const FItemDataLocation& ItemDataLocation, int32 TimePassed)
 {
 	// Temperature
-	const float TargetTemperatureReal = UP::ItemProperty::Temperature::Default;
-	const uint8 CurrentTemperatureProp = ItemData.GetIntProp(EItemIntProperty::Temperature);
-
-	const float CurrentTemperatureReal = UP::ItemProperty::Temperature::Limits.Y * (static_cast<float>(CurrentTemperatureProp) / UINT8_MAX);
-
-	float NewTemperatureReal = CalculateTemperature(TargetTemperatureReal, CurrentTemperatureReal, ThermalExchangeCoefficient, TimePassed);
-
-	uint8 NewTemperatureProp = NewTemperatureReal / UP::ItemProperty::Temperature::Limits.Y * UINT8_MAX;
-	ItemData.SetProp(EItemIntProperty::Temperature, NewTemperatureProp);
+	const float CurrentTemperature = ItemData.GetNumericProp(EItemNumericProperty::Temperature);
+	const float NewTemperature = CalculateTemperature(AmbientTemperature, CurrentTemperature, ThermalExchangeCoefficient, TimePassed);
+	ItemData.SetNumericProp(EItemNumericProperty::Temperature, NewTemperature);
 
 	return true;
 }
 
 bool UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDataLocation& ItemLocation, int32 TimePassed)
 {
-	float CurrentHumidityLevel = ItemData.GetIntPropNormalized(EItemIntProperty::Humidity);
+	const float CurrentHumidityLevel = ItemData.GetNumericProp(EItemNumericProperty::Humidity);
 
 	// Humidity grows if there is a liquid
 	// Even with Humidity 1.0f the liquid will be consumed to sustain this level
@@ -98,9 +85,7 @@ bool UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDa
 			const float HumidityDelta = HumidityGrowRate * SoakResult * TimePassed;
 			const float HumidityNewValue = FMath::Clamp(CurrentHumidityLevel + HumidityDelta, 0, 1.f);
 
-			uint8 NewValue = FMath::Lerp(0,UINT8_MAX, HumidityNewValue);
-
-			ItemData.SetProp(EItemIntProperty::Humidity, NewValue);
+			ItemData.SetNumericProp(EItemNumericProperty::Humidity, HumidityNewValue);
 
 			return true;
 		}
@@ -113,9 +98,7 @@ bool UHeartbeatItemProcessor::ProcessHumidity(FItemData& ItemData, const FItemDa
 		const float HumidityDelta = HumidityGrowRate * TimePassed;
 		const float HumidityNewValue = FMath::Clamp(CurrentHumidityLevel - HumidityDelta, 0, 1.f);
 
-		uint8 NewValue = FMath::Lerp(0,UINT8_MAX, HumidityNewValue);
-
-		ItemData.SetProp(EItemIntProperty::Humidity, NewValue);
+		ItemData.SetNumericProp(EItemNumericProperty::Humidity, HumidityNewValue);
 
 		return true;
 	}

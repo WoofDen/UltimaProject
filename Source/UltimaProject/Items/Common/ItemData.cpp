@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ItemData.h"
+#include "Item.h"
 
 FItemInstanceData::FItemInstanceData()
 {
@@ -20,11 +21,13 @@ bool FItemInstanceData::IsValid() const
 
 UItemDataAsset::UItemDataAsset()
 {
-	EnabledProperties.Add(EItemIntProperty::Durability);
+	DefaultProperties.PropertyKeys.Add(EItemNumericProperty::Durability);
+	DefaultProperties.PropertyValues.Add(100.f);
 }
 
-void FItemData::SetProp(EItemIntProperty Prop, uint8 Value)
+void FItemData::SetNumericProp(EItemNumericProperty Prop, float Value)
 {
+	InstanceData.Properties.PropertyValues.SetNum(InstanceData.Properties.PropertyKeys.Num());
 	if (int32 Idx = InstanceData.Properties.PropertyKeys.Find(Prop); Idx != INDEX_NONE)
 	{
 		InstanceData.Properties.PropertyValues[Idx] = Value;
@@ -36,29 +39,59 @@ void FItemData::SetProp(EItemIntProperty Prop, uint8 Value)
 	}
 }
 
-uint8 FItemData::GetIntProp(EItemIntProperty Prop, uint8 DefaultValue) const
+float FItemData::GetNumericProp(EItemNumericProperty Prop, float DefaultValue) const
 {
 	if (int32 Idx = InstanceData.Properties.PropertyKeys.Find(Prop); Idx != INDEX_NONE)
 	{
-		return InstanceData.Properties.PropertyValues[Idx];
+		return InstanceData.Properties.PropertyValues.IsValidIndex(Idx) ? InstanceData.Properties.PropertyValues[Idx] : DefaultValue;
 	}
 
 	return DefaultValue;
 }
 
-float FItemData::GetIntPropNormalized(EItemIntProperty Prop) const
-{
-	return static_cast<float>(GetIntProp(Prop)) / UINT8_MAX;
-}
-
-bool FItemData::IsSupportProp(EItemIntProperty Prop) const
+bool FItemData::IsSupportProp(EItemNumericProperty Prop) const
 {
 	if (const UItemDataAsset* ItemDataAsset = GetStaticData())
 	{
-		return ItemDataAsset->EnabledProperties.Contains(Prop);
+		return ItemDataAsset->DefaultProperties.PropertyKeys.Contains(Prop);
 	}
 
 	return false;
+}
+
+void FItemData::InitializeDefaultProperties()
+{
+	const UItemDataAsset* ItemDataAsset = GetStaticData();
+	if (!ItemDataAsset)
+	{
+		return;
+	}
+
+	const FItemProperties& StaticDefaults = ItemDataAsset->DefaultProperties;
+	
+	FItemProperties& CurrentProperties = InstanceData.Properties;
+	
+	// Ensure values num == keys num
+	const int32 ExistingPropertyKeysNum = CurrentProperties.PropertyKeys.Num();
+	CurrentProperties.PropertyValues.SetNum(ExistingPropertyKeysNum);
+
+	// Merge default properties into item data if its empty
+	for (int32 Index = 0; Index < StaticDefaults.PropertyKeys.Num(); ++Index)
+	{
+		const EItemNumericProperty Property = StaticDefaults.PropertyKeys[Index];
+		const int32 ExistingIndex = CurrentProperties.PropertyKeys.Find(Property);
+
+		if (ExistingIndex == INDEX_NONE || ExistingIndex >= ExistingPropertyKeysNum)
+		{
+			const float DefaultValue = StaticDefaults.PropertyValues.IsValidIndex(Index) ? StaticDefaults.PropertyValues[Index] : 0.f;
+			SetNumericProp(Property, DefaultValue);
+		}
+	}
+
+	if (CurrentProperties.SolidSubstance == FLiquidDescriptor{})
+	{
+		CurrentProperties.SolidSubstance = StaticDefaults.SolidSubstance;
+	}
 }
 
 FItemData::FItemData()

@@ -9,16 +9,14 @@
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
 #include "ScopedTransaction.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
-#include "Widgets/Input/SSlider.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "ItemPropertiesCustomization"
 
 // ---------------------------------------------------------------------------
-// Node builder: one slider + numeric entry per enabled item property
+// Node builder: one numeric entry per enabled item property
 // ---------------------------------------------------------------------------
 class FItemPropertiesNodeBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FItemPropertiesNodeBuilder>
 {
@@ -31,13 +29,13 @@ public:
 
 	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRebuild) override { OnRebuild = InOnRebuild; }
 	virtual bool InitiallyCollapsed() const override { return false; }
-	virtual FName GetName() const override { return TEXT("ItemIntProperties"); }
+	virtual FName GetName() const override { return TEXT("ItemNumericProperties"); }
 	virtual bool RequiresTick() const override { return true; }
 
-	// Rebuild rows when the enabled set changes (EnabledProperties edited, data asset swapped, asset loaded...)
+	// Rebuild rows when the enabled set changes or the data asset changes.
 	virtual void Tick(float) override
 	{
-		TArray<EItemIntProperty> Now;
+		TArray<EItemNumericProperty> Now;
 		const ESource NowSource = ResolveKeys(Now);
 		if (NowSource != DisplayedSource || Now != DisplayedKeys)
 		{
@@ -52,7 +50,7 @@ public:
 		NodeRow.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("IntProps", "Int Properties"))
+			.Text(LOCTEXT("NumericProps", "Numeric Properties"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 	}
@@ -76,64 +74,50 @@ public:
 			return;
 		}
 
-		const UEnum* Enum = StaticEnum<EItemIntProperty>();
+		const UEnum* Enum = StaticEnum<EItemNumericProperty>();
 
-		for (const EItemIntProperty Key : DisplayedKeys)
+		for (const EItemNumericProperty Key : DisplayedKeys)
 		{
-			if (Key == EItemIntProperty::MAX)
+			if (Key == EItemNumericProperty::MAX)
 			{
 				continue;
 			}
 
 			const FText Label = Enum->GetDisplayNameTextByValue(static_cast<int64>(Key));
 
-			ChildrenBuilder.AddCustomRow(Label)
-			.NameContent()
-			[
-				SNew(STextBlock)
-				.Text(Label)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			]
-			.ValueContent()
+			FDetailWidgetRow& Row = ChildrenBuilder.AddCustomRow(Label);
+			if (DisplayedSource == ESource::AssetDefaults)
+			{
+				Row.NameContent()
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &FItemPropertiesNodeBuilder::GetKeyCheckState, Key)
+					.OnCheckStateChanged(this, &FItemPropertiesNodeBuilder::OnKeyCheckStateChanged, Key)
+					.IsEnabled(this, &FItemPropertiesNodeBuilder::IsEditable)
+					[
+						SNew(STextBlock).Text(Label).Font(IDetailLayoutBuilder::GetDetailFont())
+					]
+				];
+			}
+			else
+			{
+				Row.NameContent()
+				[
+					SNew(STextBlock).Text(Label).Font(IDetailLayoutBuilder::GetDetailFont())
+				];
+			}
+
+			Row.ValueContent()
 			.MinDesiredWidth(260.f)
 			.MaxDesiredWidth(500.f)
 			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SSlider)
-					.MinValue(0.f)
-					.MaxValue(1.f)
-					.StepSize(1.f / UINT8_MAX)
-					.Value(TAttribute<float>::CreateSP(this, &FItemPropertiesNodeBuilder::GetNormalized, Key))
-					.OnMouseCaptureBegin(FSimpleDelegate::CreateSP(this, &FItemPropertiesNodeBuilder::OnSliderBegin))
-					.OnMouseCaptureEnd(FSimpleDelegate::CreateSP(this, &FItemPropertiesNodeBuilder::OnSliderEnd))
-					.OnValueChanged(FOnFloatValueChanged::CreateSP(this, &FItemPropertiesNodeBuilder::OnSliderChanged, Key))
-					.IsEnabled(TAttribute<bool>::CreateSP(this, &FItemPropertiesNodeBuilder::IsEditable))
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(6.f, 0.f, 0.f, 0.f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SBox)
-					.WidthOverride(64.f)
-					[
-						SNew(SNumericEntryBox<float>)
-						.AllowSpin(false)
-						.MinValue(0.f)
-						.MaxValue(1.f)
-						.MaxFractionalDigits(3)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-						.Value(TAttribute<TOptional<float>>::CreateSP(this, &FItemPropertiesNodeBuilder::GetNormalizedOptional, Key))
-						.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateSP(this, &FItemPropertiesNodeBuilder::OnEntryCommitted, Key))
-						.IsEnabled(TAttribute<bool>::CreateSP(this, &FItemPropertiesNodeBuilder::IsEditable))
-					]
-				]
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(false)
+				.MaxFractionalDigits(3)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Value(TAttribute<TOptional<float>>::CreateSP(this, &FItemPropertiesNodeBuilder::GetNumericValueOptional, Key))
+				.OnValueCommitted(SNumericEntryBox<float>::FOnValueCommitted::CreateSP(this, &FItemPropertiesNodeBuilder::OnEntryCommitted, Key))
+				.IsEnabled(TAttribute<bool>::CreateSP(this, &FItemPropertiesNodeBuilder::IsNumericEditable, Key))
 			];
 		}
 	}
@@ -143,13 +127,10 @@ private:
 	{
 		NoContext, // no data asset can be determined -> show keys already stored
 		NoAsset,   // context found, but the asset is not assigned
-		Asset      // keys come from UItemDataAsset::EnabledProperties
+		Asset,     // keys come from UItemDataAsset::DefaultProperties
+		AssetDefaults // allow selecting keys on the data asset itself
 	};
 
-	static uint8 ToByte(float Normalized)
-	{
-		return static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(Normalized * UINT8_MAX), 0, static_cast<int32>(UINT8_MAX)));
-	}
 
 	// ----- Context resolution ------------------------------------------------
 
@@ -198,7 +179,7 @@ private:
 		return nullptr;
 	}
 
-	ESource ResolveKeys(TArray<EItemIntProperty>& OutKeys) const
+	ESource ResolveKeys(TArray<EItemNumericProperty>& OutKeys) const
 	{
 		OutKeys.Reset();
 
@@ -219,10 +200,19 @@ private:
 			return ESource::NoAsset;
 		}
 
-		for (const EItemIntProperty Key : Asset->EnabledProperties)
+		if (GetProps() == &Asset->DefaultProperties)
 		{
-			OutKeys.AddUnique(Key);
+			const UEnum* Enum = StaticEnum<EItemNumericProperty>();
+			for (int32 Index = 0; Index < Enum->NumEnums(); ++Index)
+			{
+				if (!Enum->HasMetaData(TEXT("Hidden"), Index))
+				{
+					OutKeys.Add(static_cast<EItemNumericProperty>(Enum->GetValueByIndex(Index)));
+				}
+			}
+			return ESource::AssetDefaults;
 		}
+		OutKeys = Asset->DefaultProperties.PropertyKeys;
 		return ESource::Asset;
 	}
 
@@ -242,27 +232,80 @@ private:
 		return bUtilsAllow && !StructHandle->IsEditConst();
 	}
 
-	float GetNormalized(EItemIntProperty Key) const
+	ECheckBoxState GetKeyCheckState(EItemNumericProperty Key) const
 	{
-		const FItemProperties* Props = GetProps();
-		if (!Props)
+		TArray<void*> Raw;
+		StructHandle->AccessRawData(Raw);
+		TOptional<bool> Enabled;
+		for (const void* Ptr : Raw)
 		{
-			return 0.f;
+			if (!Ptr) continue;
+			const bool bEnabled = static_cast<const FItemProperties*>(Ptr)->PropertyKeys.Contains(Key);
+			if (Enabled.IsSet() && Enabled.GetValue() != bEnabled) return ECheckBoxState::Undetermined;
+			Enabled = bEnabled;
 		}
-
-		const int32 Idx = Props->PropertyKeys.Find(Key);
-		return Props->PropertyValues.IsValidIndex(Idx) ? static_cast<float>(Props->PropertyValues[Idx]) / UINT8_MAX : 0.f;
+		return Enabled.Get(false) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	TOptional<float> GetNormalizedOptional(EItemIntProperty Key) const
+	bool IsNumericEditable(EItemNumericProperty Key) const
 	{
-		return GetNormalized(Key);
+		return IsEditable() && (DisplayedSource != ESource::AssetDefaults || GetKeyCheckState(Key) == ECheckBoxState::Checked);
 	}
 
-	void WriteNormalized(EItemIntProperty Key, float Normalized)
+	void OnKeyCheckStateChanged(ECheckBoxState State, EItemNumericProperty Key)
 	{
-		const uint8 Byte = ToByte(Normalized);
+		if (!IsEditable() || State == ECheckBoxState::Undetermined) return;
+		const FScopedTransaction Scoped(LOCTEXT("EditEnabledItemProp", "Edit Supported Item Property"));
+		StructHandle->NotifyPreChange();
+		TArray<void*> Raw;
+		StructHandle->AccessRawData(Raw);
+		for (void* Ptr : Raw)
+		{
+			if (!Ptr) continue;
+			FItemProperties& Props = *static_cast<FItemProperties*>(Ptr);
+			Props.PropertyValues.SetNum(Props.PropertyKeys.Num());
+			if (State == ECheckBoxState::Checked)
+			{
+				if (!Props.PropertyKeys.Contains(Key))
+				{
+					Props.PropertyKeys.Add(Key);
+					Props.PropertyValues.Add(0.f);
+				}
+			}
+			else
+			{
+				for (int32 Index = Props.PropertyKeys.Num() - 1; Index >= 0; --Index)
+				{
+					if (Props.PropertyKeys[Index] == Key)
+					{
+						Props.PropertyKeys.RemoveAt(Index);
+						Props.PropertyValues.RemoveAt(Index);
+					}
+				}
+			}
+		}
+		StructHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+	}
 
+	TOptional<float> GetNumericValueOptional(EItemNumericProperty Key) const
+	{
+		TArray<void*> Raw;
+		StructHandle->AccessRawData(Raw);
+		TOptional<float> Result;
+		for (const void* Ptr : Raw)
+		{
+			if (!Ptr) continue;
+			const FItemProperties& Props = *static_cast<const FItemProperties*>(Ptr);
+			const int32 Idx = Props.PropertyKeys.Find(Key);
+			const float Value = Props.PropertyValues.IsValidIndex(Idx) ? Props.PropertyValues[Idx] : 0.f;
+			if (Result.IsSet() && !FMath::IsNearlyEqual(Result.GetValue(), Value)) return {};
+			Result = Value;
+		}
+		return Result;
+	}
+
+	void WriteNumericValue(EItemNumericProperty Key, float Value)
+	{
 		TArray<void*> Raw;
 		StructHandle->AccessRawData(Raw);
 		for (void* Ptr : Raw)
@@ -274,7 +317,7 @@ private:
 
 			FItemProperties& Props = *static_cast<FItemProperties*>(Ptr);
 
-			// Same contract as FItemData::SetProp: keys and values stay parallel
+			// Keep keys and values parallel, as FItemData::SetNumericProp does
 			int32 Idx = Props.PropertyKeys.Find(Key);
 			if (Idx == INDEX_NONE)
 			{
@@ -284,71 +327,46 @@ private:
 			{
 				Props.PropertyValues.SetNumZeroed(Props.PropertyKeys.Num());
 			}
-			Props.PropertyValues[Idx] = Byte;
+			Props.PropertyValues[Idx] = Value;
 		}
 	}
 
-	// ----- Slider / entry handlers --------------------------------------------
-
-	void OnSliderBegin()
-	{
-		bDragging = true;
-		Transaction = MakeUnique<FScopedTransaction>(LOCTEXT("EditItemProp", "Edit Item Property"));
-		StructHandle->NotifyPreChange();
-	}
-
-	void OnSliderChanged(float Value, EItemIntProperty Key)
-	{
-		if (!IsEditable())
-		{
-			return;
-		}
-
-		if (bDragging)
-		{
-			WriteNormalized(Key, Value);
-			StructHandle->NotifyPostChange(EPropertyChangeType::Interactive);
-		}
-		else
-		{
-			// Keyboard / non-drag change: one self-contained transaction
-			const FScopedTransaction Scoped(LOCTEXT("EditItemProp", "Edit Item Property"));
-			StructHandle->NotifyPreChange();
-			WriteNormalized(Key, Value);
-			StructHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
-		}
-	}
-
-	void OnSliderEnd()
-	{
-		if (bDragging)
-		{
-			StructHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
-			Transaction.Reset();
-			bDragging = false;
-		}
-	}
-
-	void OnEntryCommitted(float Value, ETextCommit::Type, EItemIntProperty Key)
+	void OnEntryCommitted(float Value, ETextCommit::Type, EItemNumericProperty Key)
 	{
 		// Losing focus without a real change must not dirty the asset
-		if (!IsEditable() || ToByte(Value) == ToByte(GetNormalized(Key)))
+		if (!IsNumericEditable(Key))
 		{
 			return;
 		}
+		TArray<void*> Raw;
+		StructHandle->AccessRawData(Raw);
+		bool bNeedsWrite = false;
+		for (const void* Ptr : Raw)
+		{
+			if (!Ptr) continue;
+			const FItemProperties& Props = *static_cast<const FItemProperties*>(Ptr);
+			const int32 Idx = Props.PropertyKeys.Find(Key);
+			if (!Props.PropertyValues.IsValidIndex(Idx) || !FMath::IsNearlyEqual(Value, Props.PropertyValues[Idx]))
+			{
+				bNeedsWrite = true;
+				break;
+			}
+		}
+		if (!bNeedsWrite) return;
 
-		OnSliderChanged(Value, Key);
+		const FScopedTransaction Scoped(LOCTEXT("EditItemProp", "Edit Item Property"));
+		StructHandle->NotifyPreChange();
+		WriteNumericValue(Key, Value);
+		StructHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
 	}
 
 	TSharedRef<IPropertyHandle> StructHandle;
 	TSharedPtr<IPropertyUtilities> Utils;
 	FSimpleDelegate OnRebuild;
 
-	TArray<EItemIntProperty> DisplayedKeys;
+	TArray<EItemNumericProperty> DisplayedKeys;
 	ESource DisplayedSource = ESource::NoContext;
 
-	bool bDragging = false;
-	TUniquePtr<FScopedTransaction> Transaction;
 };
 
 // ---------------------------------------------------------------------------

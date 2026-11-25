@@ -2,25 +2,27 @@
 
 
 #include "ItemsFunctionLibrary.h"
+#include "UltimaProject/Items/Common/Item.h"
+#include "UltimaProject/Items/Containers/ContainerComponent.h"
 
-float UItemsFunctionLibrary::GetItemProp(const FItemData& ItemData, EItemIntProperty Property)
+float UItemsFunctionLibrary::GetItemProp(const FItemData& ItemData, EItemNumericProperty Property)
 {
-	return ItemData.GetIntPropNormalized(Property);
+	return ItemData.GetNumericProp(Property);
 }
 
-void UItemsFunctionLibrary::SetItemProp(FItemData& ItemData, EItemIntProperty Property, float Value)
+void UItemsFunctionLibrary::SetItemProp(FItemData& ItemData, EItemNumericProperty Property, float Value)
 {
 	ensureAlways(ItemData.IsValid());
 	check(ItemData.IsSupportProp(Property));
 
-	const uint8 IntValue = FMath::Lerp<uint8>(0, UINT8_MAX, Value);
-	ItemData.SetProp(Property, IntValue);
+	ItemData.SetNumericProp(Property, Value);
 }
 
-void UItemsFunctionLibrary::AddItemProp(FItemData& ItemData, EItemIntProperty Property, float Value)
+void UItemsFunctionLibrary::AddItemProp(FItemData& ItemData, EItemNumericProperty Property, float Value)
 {
 	ensureAlways(ItemData.IsValid());
 	check(ItemData.IsSupportProp(Property));
 
 	SetItemProp(ItemData, Property, GetItemProp(ItemData, Property) + Value);
 }
+

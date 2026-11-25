@@ -22,9 +22,6 @@ protected:
 
 	// Default liquids. Value is percentage of the capacity
 
-	UPROPERTY(EditAnywhere)
-	TArray<FLiquidDescriptor> Test;
-
 	UPROPERTY(EditAnywhere, meta=(ClampMin=0, ClampMax=1))
 	TMap<FLiquidDescriptor, float> DefaultLiquids;
 
