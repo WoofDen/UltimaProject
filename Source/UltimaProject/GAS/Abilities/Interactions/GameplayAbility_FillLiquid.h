@@ -17,7 +17,7 @@ struct FGameplayAbilityTargetData_FillLiquid : public FGameplayAbilityTargetData
 
 	// Container item source of interaction request
 	TWeakObjectPtr<UContainerComponent> SourceContainer;
-	uint32 ContainerItemHandle = FContainerItemData::InvalidHandle;
+	int32 ContainerItemHandle = FContainerItemData::InvalidHandle;
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 

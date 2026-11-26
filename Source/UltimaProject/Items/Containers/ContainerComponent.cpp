@@ -13,7 +13,7 @@
 
 DEFINE_LOG_CATEGORY(LogUPContainers)
 
-uint32 FContainerItemData::InvalidHandle = 0;
+int32 FContainerItemData::InvalidHandle = 0;
 
 bool FContainerItemData::operator==(const FContainerItemData& Other) const
 {
@@ -204,7 +204,7 @@ FItemTransactionResult UContainerComponent::AddItem(FItemDataDefinition& ItemDat
 	return AddItem(MoveTemp(NewItem));
 }
 
-FContainerItemData& UContainerComponent::GetItemMutable(uint32 Handle) const
+FContainerItemData& UContainerComponent::GetItemMutable(int32 Handle) const
 {
 	return const_cast<FContainerItemData&>(GetItem(Handle));
 }
@@ -283,7 +283,7 @@ void UContainerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-bool UContainerComponent::FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const
+bool UContainerComponent::FindDropTransform(FTransform& Result) const
 {
 	AActor* Owner = GetOwner();
 	if (APawn* Pawn = Cast<APawn>(GetOwner()))
@@ -376,7 +376,7 @@ void UContainerComponent::OnClientContainerClosed(AUPPlayerController* Instigato
 {
 }
 
-void UContainerComponent::OnExternalItemChange(uint32 ContainerItemHandle)
+void UContainerComponent::OnExternalItemChange(int32 ContainerItemHandle)
 {
 	FContainerItemData& Item = GetItemMutable(ContainerItemHandle);
 	if (Item.IsValid())
@@ -440,7 +440,7 @@ float UContainerComponent::GetLiquidCapacityUsed(bool bNormalized)
 	return Result;
 }
 
-bool UContainerComponent::HasItem(const uint32 ItemHandle) const
+bool UContainerComponent::HasItem(const int32 ItemHandle) const
 {
 	return ContainerItems.Items.ContainsByPredicate([&ItemHandle](const FContainerItemData& ContainerItemData)
 	{
@@ -448,7 +448,7 @@ bool UContainerComponent::HasItem(const uint32 ItemHandle) const
 	});
 }
 
-const FContainerItemData& UContainerComponent::GetItem(uint32 Handle) const
+const FContainerItemData& UContainerComponent::GetItem(int32 Handle) const
 {
 	static FContainerItemData InvalidItem;
 
@@ -465,11 +465,11 @@ const FContainerItemData& UContainerComponent::GetItem(uint32 Handle) const
 
 FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData)
 {
-	uint32 Handle;
+	int32 Handle;
 	return AddItem(MoveTemp(ItemData), Handle);
 }
 
-FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32& ResultHandle)
+FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, int32& ResultHandle)
 {
 	ensureAlways(GetOwner() && GetOwner()->HasAuthority());
 
@@ -490,7 +490,7 @@ FItemTransactionResult UContainerComponent::AddItem(FItemData&& ItemData, uint32
 }
 
 FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* SourceContainer,
-                                                     uint32 Handle,
+                                                     int32 Handle,
                                                      uint32 AmountToMove)
 {
 	// Container->Container move
@@ -629,7 +629,7 @@ FItemTransactionResult UContainerComponent::MoveItem(UContainerComponent* Source
 	return Result;
 }
 
-FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
+FItemTransactionResult UContainerComponent::MoveItem(int32 ContainerItemHandle,
                                                      AItem* OutItem,
                                                      uint32 AmountToMove)
 {
@@ -644,7 +644,7 @@ FItemTransactionResult UContainerComponent::MoveItem(uint32 ContainerItemHandle,
 	}
 
 	FTransform Transform;
-	if (!FindDropTransform(ContainerItemHandle, Transform))
+	if (!FindDropTransform(Transform))
 	{
 		return InvalidItemTransactionResult;
 	}
@@ -909,7 +909,7 @@ void UContainerComponent::SetCategory(EContainerCategory InCategory)
 
 uint32 UContainerComponent::GenerateItemHandle() const
 {
-	uint32 Handle = FContainerItemData::InvalidHandle + 1;
+	int32 Handle = FContainerItemData::InvalidHandle + 1;
 	for (auto Item : ContainerItems.Items)
 	{
 		Handle = FMath::Max(Handle, Item.GetHandle());
@@ -953,7 +953,7 @@ FItemTransactionResult UContainerComponent::RemoveLiquid(const float Amount, TMa
 		{
 			It.RemoveCurrent();
 			Result.TargetRecordsRemoved++;
-			
+
 			LiquidsData.MarkArrayDirty();
 		}
 		else
@@ -1086,14 +1086,14 @@ void UContainerComponent::StoreItem(AItem* WorldItem, uint32 Amount)
 	MoveItem(WorldItem, Amount);
 }
 
-void UContainerComponent::RelocateItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 Amount)
+void UContainerComponent::RelocateItem(UContainerComponent* SourceContainer, int32 Handle, uint32 Amount)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
 
 	MoveItem(SourceContainer, Handle, Amount);
 }
 
-AItem* UContainerComponent::DropItem(uint32 Handle, uint32 Amount)
+AItem* UContainerComponent::DropItem(int32 Handle, uint32 Amount)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
 
@@ -1107,10 +1107,20 @@ uint32 UContainerComponent::SpawnItem(const FItemDataDefinition& ItemDataDefinit
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
 
-	uint32 ResultHandle = FContainerItemData::InvalidHandle;
+	int32 ResultHandle = FContainerItemData::InvalidHandle;
 	AddItem(ItemDataDefinition, ResultHandle);
 
 	return ResultHandle;
+}
+
+bool UContainerComponent::DestroyItem(int32 Handle)
+{
+	if (FContainerItemData& ContainerItemData = GetItemMutable(Handle); ContainerItemData.IsValid())
+	{
+		return RemoveItem(ContainerItemData);
+	}
+
+	return false;
 }
 
 void UContainerComponent::StoreLiquid(UContainerComponent* ContainerComponent, float Amount)

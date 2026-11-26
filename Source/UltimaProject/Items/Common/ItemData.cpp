@@ -68,9 +68,9 @@ void FItemData::InitializeDefaultProperties()
 	}
 
 	const FItemProperties& StaticDefaults = ItemDataAsset->DefaultProperties;
-	
+
 	FItemProperties& CurrentProperties = InstanceData.Properties;
-	
+
 	// Ensure values num == keys num
 	const int32 ExistingPropertyKeysNum = CurrentProperties.PropertyKeys.Num();
 	CurrentProperties.PropertyValues.SetNum(ExistingPropertyKeysNum);
@@ -152,16 +152,26 @@ void FItemData::SetStaticData(const UItemDataAsset* InStaticData)
 {
 	ensureAlways(::IsValid(InStaticData));
 
-	StaticDataSoftPtr = InStaticData;
+	TSoftObjectPtr<UItemDataAsset> InStaticDataSoftPtr(InStaticData);
+	SetStaticData(InStaticDataSoftPtr);
+}
+
+void FItemData::SetStaticData(TSoftObjectPtr<const UItemDataAsset> InStaticDataSoftPtr)
+{
+	ensureAlways(InStaticDataSoftPtr.IsValid());
+
+	if (StaticDataSoftPtr == InStaticDataSoftPtr)
+	{
+		return;
+	}
+
+	StaticDataSoftPtr = InStaticDataSoftPtr;
 	LoadStaticData();
 }
 
 void FItemData::LoadStaticData()
 {
-	if (!::IsValid(StaticData))
-	{
-		StaticData = StaticDataSoftPtr.LoadSynchronous();
-	}
+	StaticData = StaticDataSoftPtr.LoadSynchronous();
 }
 
 const FItemInstanceData& FItemData::GetInstanceData() const

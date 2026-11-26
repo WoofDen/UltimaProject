@@ -250,6 +250,8 @@ public:
 	bool Is(const TSoftObjectPtr<UItemDataAsset>& DataAssetSoftPtr) const;
 
 	void SetStaticData(const UItemDataAsset* InStaticData);
+	void SetStaticData(TSoftObjectPtr<const UItemDataAsset> InStaticDataSoftPtr);
+	
 	void LoadStaticData();
 
 	const FItemInstanceData& GetInstanceData() const;

@@ -1,6 +1,4 @@
 ﻿#include "Item.h"
-
-#include "ISinglePropertyView.h"
 #include "Net/UnrealNetwork.h"
 #include "ItemFactoryHelper.h"
 #include "TimerManager.h"
@@ -169,6 +167,34 @@ void AItem::OnConstruction(const FTransform& Transform)
 	}
 	// TODO add an invalid item visuals to highlight the invalid actor
 }
+
+#if WITH_EDITOR
+void AItem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName MemberName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
+
+	// Only when the data asset reference changes, so manual edits to Properties aren't overwritten
+	if (MemberName == GET_MEMBER_NAME_CHECKED(AItem, ItemDefault)
+		&& PropertyName == GET_MEMBER_NAME_CHECKED(FItemDataDefinition, StaticDataSoftPtr))
+	{
+		CopyDefaultPropertiesFromStaticData();
+	}
+}
+
+void AItem::CopyDefaultPropertiesFromStaticData()
+{
+	// GetStaticData() caches the loaded asset; the soft pointer may have just changed
+	ItemDefault.ResetCache();
+
+	if (const UItemDataAsset* DataAsset = ItemDefault.GetStaticData())
+	{
+		ItemDefault.InstanceData.Properties = DataAsset->DefaultProperties;
+	}
+}
+#endif
 
 void AItem::OnRep_ItemData(FItemData PrevValue)
 {

@@ -56,6 +56,13 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	// AActor
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	// Copies DefaultProperties from ItemDefault's data asset into ItemDefault.InstanceData.Properties
+	void CopyDefaultPropertiesFromStaticData();
+#endif
+
 	void RemoveFromWorld();
 
 	bool SetItemData(FItemData&& NewData);

@@ -185,19 +185,19 @@ FItemTransactionResult UProxyContainerComponent::MoveItem(AItem* WorldItem, uint
 	return OriginContainer->MoveItem(WorldItem);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove)
+FItemTransactionResult UProxyContainerComponent::MoveItem(UContainerComponent* SourceContainer, int32 Handle, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, InvalidItemTransactionResult);
 	return OriginContainer->MoveItem(SourceContainer, Handle, AmountToMove);
 }
 
-FItemTransactionResult UProxyContainerComponent::MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove)
+FItemTransactionResult UProxyContainerComponent::MoveItem(int32 Handle, AItem* OutItem, uint32 AmountToMove)
 {
 	NULLCHECK_SP_RETURN(OriginContainer, InvalidItemTransactionResult);
 	return OriginContainer->MoveItem(Handle, OutItem);
 }
 
-bool UProxyContainerComponent::HasItem(uint32 Handle) const
+bool UProxyContainerComponent::HasItem(int32 Handle) const
 {
 	NULLCHECK_SP_RETURN(OriginContainer, false);
 

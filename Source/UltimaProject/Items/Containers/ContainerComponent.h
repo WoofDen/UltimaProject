@@ -14,6 +14,9 @@
 // Forward declarations
 class UContainerWidget;
 
+// Should be typedef but need a Blueprint support
+#define int32 int32
+
 DECLARE_LOG_CATEGORY_EXTERN(LogUPContainers, Display, All);
 
 // Info about item stored in a container
@@ -29,9 +32,9 @@ struct FContainerItemData : public FFastArraySerializerItem
 	FContainerItemData(FItemData&& InitData, UContainerComponent* InitContainer, const int32 InitSlotIndex);
 	FContainerItemData();
 
-	static uint32 InvalidHandle;
+	static int32 InvalidHandle;
 
-	uint32 GetHandle() const { return Handle; }
+	int32 GetHandle() const { return Handle; }
 	int32 GetSlot() const { return SlotIndex; }
 
 	// Sugar
@@ -212,7 +215,7 @@ class UContainerComponent :
 	virtual FItemTransactionResult AddItem(FItemData&& ItemData);
 
 	// Adds an existing item ( UItemData ) to container, returns FContainerItemData
-	virtual FItemTransactionResult AddItem(FItemData&& ItemData, uint32& ResultHandle);
+	virtual FItemTransactionResult AddItem(FItemData&& ItemData, int32& ResultHandle);
 	virtual bool RemoveItem(FContainerItemData& ItemData);
 
 	static const TCHAR* EnumToString(EContainerCategory Category);
@@ -233,7 +236,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	int32 LiquidCapacityMod = 0;
 
-	FContainerItemData& GetItemMutable(uint32 Handle) const;
+	FContainerItemData& GetItemMutable(int32 Handle) const;
 
 	UFUNCTION()
 	void OnRep_Category();
@@ -278,14 +281,14 @@ public:
 	virtual void OnClientContainerClosed(class AUPPlayerController* Instigator);
 
 	// If a container item was changed externally
-	void OnExternalItemChange(uint32 ContainerItemHandle);
-	
+	void OnExternalItemChange(int32 ContainerItemHandle);
+
 	// If a liquid was changed externally
 	void OnExternalLiquidChange(FContainerLiquidData& LiquidData);
 
 	// If a container item was removed externally
 	void OnExternalItemsChange();
-	
+
 	// If a liquid was removed externally
 	void OnExternalLiquidsChange();
 
@@ -302,8 +305,8 @@ public:
 
 	inline static int32 MaxItemsCapacity = MAX_int32;
 
-	virtual bool HasItem(uint32 Handle) const;
-	const FContainerItemData& GetItem(uint32 Handle) const;
+	virtual bool HasItem(int32 Handle) const;
+	const FContainerItemData& GetItem(int32 Handle) const;
 
 	virtual TSubclassOf<UContainerWidget> GetContainerWidgetClass() const;
 	float GetInteractionRadius() const;
@@ -337,10 +340,10 @@ public:
 
 protected:
 	// Container->Container move. Calls UContainer::AddItem
-	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 AmountToMove = UINT32_MAX);
+	virtual FItemTransactionResult MoveItem(UContainerComponent* SourceContainer, int32 Handle, uint32 AmountToMove = UINT32_MAX);
 
 	// Container->World move
-	virtual FItemTransactionResult MoveItem(uint32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
+	virtual FItemTransactionResult MoveItem(int32 Handle, AItem* OutItem, uint32 AmountToMove = UINT32_MAX);
 
 	// World->Container move. Calls UContainer::AddItem
 	virtual FItemTransactionResult MoveItem(AItem* WorldItem, uint32 AmountToMove = UINT32_MAX);
@@ -365,7 +368,7 @@ public:
 	virtual UContainerComponent* GetListenContainer();
 
 	// Find a position nearby where we can safely drop an item
-	bool FindDropTransform(uint32 ContainerItemDataHandle, FTransform& Result) const;
+	bool FindDropTransform(FTransform& Result) const;
 
 	// TODO split the logic - HasAccess to the container and HasAccess to the item
 	// Check can we move an external actor item to this container
@@ -389,12 +392,14 @@ public:
 	void StoreItem(AItem* WorldItem, uint32 Amount);
 
 	// Container->Container
-	void RelocateItem(UContainerComponent* SourceContainer, uint32 Handle, uint32 Amount);
+	void RelocateItem(UContainerComponent* SourceContainer, int32 Handle, uint32 Amount);
 
 	// Container->World
-	AItem* DropItem(uint32 Handle, uint32 Amount);
+	AItem* DropItem(int32 Handle, uint32 Amount);
 
 	uint32 SpawnItem(const FItemDataDefinition& ItemDataDefinition);
+
+	bool DestroyItem(int32 Handle);
 #pragma endregion
 
 #pragma region Server top-level LIQUID operations
